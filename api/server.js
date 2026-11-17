@@ -18,6 +18,7 @@ const { RateLimiter, IPBasedLimiter } = require('./lib/rate-limiter');
 const UsageTracker = require('./lib/usage-tracker');
 const requestProvenance = require('./lib/request-provenance');
 const localMode = require('./lib/local-mode');
+const errorLog = require('./lib/error-log');
 const { encryptKey, decryptKey, hashToken } = require('./lib/crypto-utils');
 const { createCache } = require('./lib/cache');
 const { createAuthRoutes } = require('./lib/routes');
@@ -124,7 +125,19 @@ function localSessionSecret() {
 }
 
 const sessionSecret = process.env.HIVV_SESSION_SECRET || localSessionSecret();
-app.use(express.json());
+// Body size limit. The default (100kb) was too small for OpenCode and other
+// agent clients: their system prompt plus tool definitions plus conversation
+// history routinely exceeds 100kb, which surfaced as "request entity too
+// large" on every non-trivial request.
+//
+// The limit is about ACCEPTING the HTTP request, not about the model — a
+// large prompt is just text, and the token budget (_budgetTokens) trims it
+// to fit the model's actual context window. So this stays generous and
+// configurable rather than hardware-dependent.
+//
+// Tune with HIVV_MAX_BODY (e.g. "20mb"), default 10mb.
+const MAX_BODY = process.env.HIVV_MAX_BODY || '10mb';
+app.use(express.json({ limit: MAX_BODY }));
 app.use(cookieParser(sessionSecret));
 
 // Serve static files from public_html
@@ -2232,6 +2245,13 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     } catch (err) {
         console.error('Chat completion error:', err);
+        errorLog.recordAsync({
+            error: err,
+            endpoint: '/v1/chat/completions',
+            model: model || null,
+            user_agent: req.headers['user-agent'],
+            status: 500,
+        });
         res.status(500).json({ error: { message: err.message, type: 'server_error' } });
     }
 });
@@ -2510,6 +2530,13 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                             tokensPerSec: result.tokensPerSec });
         }
     } catch (err) {
+        errorLog.recordAsync({
+            error: err,
+            endpoint: '/api/chat',
+            model: model || null,
+            user_agent: req.headers['user-agent'],
+            status: 500,
+        });
         if (!res.headersSent) {
             res.status(500).json({ error: { message: err.message } });
         }
@@ -3178,6 +3205,13 @@ const PartnerRoutes = require('./routes/partner-routes');
 PartnerRoutes.inject(pool, router, orch, capsLib);
 app.use('/api/partner', PartnerRoutes);
 
+// Capability discovery for OpenAI-compatible clients — one GET tells
+// OpenCode/Continue/Cline/any script what HIVV adds on top of plain chat.
+// Sits alongside /v1/models so a client that already probes /v1 finds it.
+const CapabilityDiscovery = require('./routes/capability-discovery');
+CapabilityDiscovery.inject(pool, router, capsLib);
+app.use('/v1/capabilities', CapabilityDiscovery);
+
 setInterval(() => policyLib.expireOldGrants().catch(() => {}), 3600000).unref();
 
 // ---- HIVV_OPENCODE_PLAN §2: MCP server — hive tools for AI agents ----
@@ -3601,16 +3635,46 @@ app.get('/api/sandbox/status', (req, res) => {
   res.json({ runtime: sandboxLib.runtime(), docker: sandboxLib.dockerAvailable(), bwrap: sandboxLib.bwrapAvailable(), limits: sandboxLib.LIMITS, languages: Object.keys(sandboxLib.LANGS) });
 });
 
+// ── error log: what is breaking, right now ────────────────────────────────
+// The diagnostic surface for `hivv problems` and `hivv bug`. In-memory only
+// (cleared on restart) — the durable record is request provenance.
+app.get('/api/errors/summary', (req, res) => {
+    const windowSec = Math.min(Math.max(parseInt(req.query.window, 10) || 3600, 60), 86400);
+    res.json({
+        data: errorLog.summary({ windowMs: windowSec * 1000 }),
+        meta: { version: 'v1', timestamp: new Date().toISOString() },
+    });
+});
+
+app.get('/api/errors/recent', (req, res) => {
+    const rows = errorLog.recent({
+        limit: Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500),
+        cls: req.query.class || null,
+        endpoint: req.query.endpoint || null,
+        client: req.query.client || null,
+        sinceMs: req.query.since ? Number(req.query.since) : null,
+    });
+    // Attach the human-readable diagnosis so a CLI or AI gets advice, not
+    // just a stack trace.
+    const data = rows.map((e) => ({ ...e, diagnosis: errorLog.diagnose(e) }));
+    res.json({
+        data,
+        meta: { version: 'v1', timestamp: new Date().toISOString(), total: data.length },
+    });
+});
+
 // POST /api/feedback — submit feedback (suggestion, complaint, help_request, bug, praise)
 app.post('/api/feedback', async (req, res) => {
   const visitorId = getVisitorId(req, res);
   const session = await getSession(req);
-  const { type = 'other', subject, message } = req.body || {};
+  const { type = 'other', subject, message, target, evidence, severity } = req.body || {};
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
   }
   const validTypes = ['suggestion', 'complaint', 'help_request', 'bug', 'praise', 'other'];
   const feedbackType = validTypes.includes(type) ? type : 'other';
+  const validSev = ['low', 'medium', 'high', 'critical'];
+  const sev = validSev.includes(severity) ? severity : null;
   let nodeId = null;
   try {
     const statePath = path.join(os.homedir(), '.config/hivv/state.json');
@@ -3624,7 +3688,16 @@ app.post('/api/feedback', async (req, res) => {
        RETURNING id, type, subject, message, status, created_at`,
       [visitorId, session?.userId || null, nodeId,
        feedbackType, subject || null, message.trim(),
-       JSON.stringify({ hostname: os.hostname() })]
+       // `target` is the node/user/content being flagged; `evidence` is any
+       // bounded supporting detail (ids, timestamps, log lines). Both are
+       // stored in metadata so the feedback row itself stays unchanged for
+       // older consumers.
+       JSON.stringify({
+         hostname: os.hostname(),
+         ...(target ? { target: String(target).slice(0, 200) } : {}),
+         ...(evidence ? { evidence: String(evidence).slice(0, 4000) } : {}),
+         ...(sev ? { severity: sev } : {}),
+       })]
     );
     res.json({ ok: true, feedback: result.rows[0] });
   } catch(e) {
@@ -3801,13 +3874,43 @@ initialize().catch(console.error);
 // ── Error logging middleware ────────────────────────────────────────
 app.use((err, req, res, next) => {
     const ts = new Date().toISOString();
+
+    // "entity too large" is a CLIENT error with a specific fix — not a 500.
+    // OpenCode and other agent clients send big prompts; the operator needs
+    // to know the limit, not see "Internal server error".
+    const isTooLarge = err.type === 'entity.too.large'
+        || /entity too large|request entity too large/i.test(err.message || '');
+    const status = isTooLarge ? 413
+        : (err.statusCode || err.status || 500);
+
     const msg = `[${ts}] ERROR ${req.method} ${req.path}: ${err.message}`;
     console.error(msg);
-    // Log to file
+
+    // Structured log so `hivv problems` / `hivv bug` can study it.
+    errorLog.recordAsync({
+        error: err,
+        endpoint: req.path,
+        method: req.method,
+        status,
+        user_agent: req.headers['user-agent'],
+        error_class: isTooLarge ? 'body_too_large' : undefined,
+    });
+
+    // Plain file log, kept for operators who tail it.
     const fs = require('fs');
     const logFile = '/var/www/vhosts/hivv.org/logs/error.log';
     fs.appendFile(logFile, msg + '\n', () => {});
-    res.status(500).json({ error: 'Internal server error', message: err.message });
+
+    if (isTooLarge) {
+        return res.status(413).json({
+            error: 'request body too large',
+            message: err.message,
+            limit: MAX_BODY,
+            hint: 'reduce attached files or conversation history, '
+                + `or raise HIVV_MAX_BODY (currently ${MAX_BODY})`,
+        });
+    }
+    res.status(status).json({ error: 'Internal server error', message: err.message });
 });
 
 // ── Uncaught exception handling ─────────────────────────────────────

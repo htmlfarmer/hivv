@@ -10,12 +10,16 @@ class OmniEngine {
     constructor() {
         this.startTime = Date.now();
         
-        // Smart defaults for VRAM safety
+        // Smart defaults for VRAM safety.
+        // maxContextLength is DYNAMIC: it is derived from the model name
+        // (see contextWindowFor below) and can be overridden per-request via
+        // body.context_window. A hardcoded 16k wasted half of gemma-4's 32k
+        // and made OpenCode's coding responses truncate.
         this.vramProtection = {
-            maxThinkingTokens: 50,       // Cap chain-of-thought to 50 tokens before answering
-            maxContextLength: 16000,     // Hard context window limit (tokens)
-            requestTimeoutMs: 60000,     // Kill hung requests after 60s
-            retryOnCrash: 3,             // Auto-retry failed GPUs once before giving up
+            maxThinkingTokens: parseInt(process.env.HIVV_MAX_THINKING_TOKENS, 10) || 50,
+            maxContextLength: parseInt(process.env.HIVV_MAX_CONTEXT, 10) || 16000,
+            requestTimeoutMs: parseInt(process.env.HIVV_SCAN_TIMEOUT_MS, 10) || 60000,
+            retryOnCrash: 3,
             fallbackChain: this.buildFallbackChain()
         };
 
@@ -67,8 +71,20 @@ class OmniEngine {
         const modelPref = body.model || 'gemma4';
         const doThink = body.think_hard !== false && body.think !== false;
         const doStream = body.stream === true;
-        const maxTokens = parseInt(body.max_tokens) || (doThink ? 100 : 200);
         const temperature = parseFloat(body.temperature) || 0.7;
+
+        // DYNAMIC context window: derive from the model name, allow override.
+        // A hardcoded 16k wasted half of gemma-4's 32k and truncated OpenCode.
+        const ctxWindow = parseInt(body.context_window, 10)
+            || this.contextWindowFor(modelPref)
+            || this.vramProtection.maxContextLength;
+
+        // DYNAMIC output budget: scale with the context window, not a flat
+        // 100/200. A coding response needs room to breathe.
+        const defaultMax = doThink
+            ? Math.min(256, Math.floor(ctxWindow * 0.05))
+            : Math.min(4096, Math.floor(ctxWindow * 0.15));
+        const maxTokens = parseInt(body.max_tokens, 10) || defaultMax;
 
         // Pre-validate: no empty prompts, cap size
         if (!prompt && !useMessages.find(m => m.content)) {
@@ -84,9 +100,8 @@ class OmniEngine {
             stream: doStream
         };
 
-        // CRITICAL: If thinking is requested, cap it hard to save VRAM
-        // Instead of letting the model "think out loud" in reasoning_content forever,
-        // we truncate its internal thinking process early and force a direct answer.
+        // CRITICAL: If thinking is requested, cap it hard to save VRAM.
+        // The cap itself is dynamic (HIVV_MAX_THINKING_TOKENS, default 50).
         if (doThink && apiPayload.max_tokens > this.vramProtection.maxThinkingTokens + 10) {
             apiPayload.max_tokens = this.vramProtection.maxThinkingTokens + 10;
         }
@@ -126,6 +141,31 @@ class OmniEngine {
     }
 
     urlToKey(url) { return url; }
+
+    // Derive a model's context window from its name. Ordered most-specific
+    // first. Falls back to the configured default (HIVV_MAX_CONTEXT or 16k).
+    contextWindowFor(modelName) {
+        const name = String(modelName || '');
+        const table = [
+            [/gemma[-_ ]?4/i, 32768],
+            [/gemma/i, 8192],
+            [/llama[-_ ]?3[._-]?\d/i, 131072],
+            [/llama[-_ ]?3/i, 8192],
+            [/llama/i, 4096],
+            [/qwen[-_ ]?3/i, 32768],
+            [/qwen/i, 8192],
+            [/mistral/i, 32768],
+            [/phi[-_ ]?3/i, 131072],
+            [/phi/i, 8192],
+            [/deepseek/i, 65536],
+            [/codellama/i, 16384],
+            [/gpt-oss/i, 131072],
+        ];
+        for (const [re, ctx] of table) {
+            if (re.test(name)) return ctx;
+        }
+        return this.vramProtection.maxContextLength;
+    }
 
     // ---- Routing Pipeline ----
     async routeAndRespond(payload, req, res, options) {

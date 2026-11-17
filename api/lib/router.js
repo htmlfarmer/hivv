@@ -3,6 +3,146 @@ const CircuitBreaker = require('./circuit-breaker');
 
 const { PROVIDER_DEFAULTS } = require('./providers');
 
+// ── token budgeting ────────────────────────────────────────────────────────
+//
+// THE PROBLEM THIS SOLVES
+// ───────────────────────
+// The old code hardcoded `contextLimit = 14000` and `maxTokens ≤ 2048`.
+// A local model with a 32k context (gemma-4-E2B) was being told it had 14k,
+// and OpenCode's coding responses were being cut at 2048 output tokens —
+// which produced "Response still truncated after two output token limit
+// continuations" on every non-trivial edit.
+//
+// THE FIX
+// ───────
+// 1. Use the model's REAL context window (looked up from a name-based table,
+//    overridable per request via `options.contextWindow`).
+// 2. When the prompt is too large, TRIM old conversation messages (keep the
+//    system prompt and the most recent turns) instead of shrinking max_tokens
+//    to almost nothing.
+// 3. Give output a generous default (4096) and let it grow with the context
+//    window, so a coding response has room to breathe.
+// 4. Return a clear `truncated` flag when we had to drop messages, so callers
+//    can tell the user rather than silently losing context.
+//
+// The token estimate is the same ~4 chars/token heuristic the rest of the
+// codebase uses. It is deliberately approximate: over-estimating input is the
+// safe direction (we trim early rather than overflow).
+
+// Known context windows by model-name fragment. Ordered: most specific first.
+// Anything not matched falls back to DEFAULT_CONTEXT_WINDOW.
+const CONTEXT_WINDOWS = [
+    [/gemma[-_ ]?4/i, 32768],
+    [/gemma/i, 8192],
+    [/llama[-_ ]?3[._-]?\d/i, 131072],
+    [/llama[-_ ]?3/i, 8192],
+    [/llama/i, 4096],
+    [/qwen[-_ ]?3/i, 32768],
+    [/qwen/i, 8192],
+    [/mistral/i, 32768],
+    [/phi[-_ ]?3/i, 131072],
+    [/phi/i, 8192],
+    [/deepseek/i, 65536],
+    [/codellama/i, 16384],
+    [/gpt-oss/i, 131072],
+];
+const DEFAULT_CONTEXT_WINDOW = 8192;
+
+// How much output the model should be allowed to produce, as a function of
+// its context window. Coding responses (OpenCode edits, agent tool loops)
+// routinely need 2-4k tokens; a reasoning model may need more.
+function outputBudgetFor(contextWindow) {
+    if (contextWindow >= 131072) return 8192;
+    if (contextWindow >= 32768) return 4096;
+    if (contextWindow >= 16384) return 3072;
+    return 2048;
+}
+
+function contextWindowFor(modelName, override) {
+    if (Number.isFinite(override) && override > 0) return override;
+    const name = String(modelName || '');
+    for (const [re, ctx] of CONTEXT_WINDOWS) {
+        if (re.test(name)) return ctx;
+    }
+    return DEFAULT_CONTEXT_WINDOW;
+}
+
+// Rough token estimate: ~4 chars/token, with a floor so an empty prompt is 0.
+function estimateTokens(messages) {
+    const chars = (messages || []).reduce(
+        (sum, m) => sum + (typeof m?.content === 'string' ? m.content.length
+            : JSON.stringify(m?.content ?? '').length), 0);
+    return Math.ceil(chars / 4);
+}
+
+/**
+ * Decide how many output tokens to allow, and whether the conversation must
+ * be trimmed to fit.
+ *
+ * @param {Array}  messages       the conversation to send
+ * @param {object} opts
+ * @param {string} opts.modelName     the model being targeted
+ * @param {number} [opts.requestedMax]  the client's requested max_tokens
+ * @param {number} [opts.contextWindow] override the detected context window
+ * @returns {{maxTokens:number, messages:Array, contextWindow:number,
+ *            inputTokens:number, trimmed:boolean, dropped:number}}
+ */
+function _budgetTokens(messages, { modelName, requestedMax, contextWindow } = {}) {
+    const msgs = Array.isArray(messages) ? messages : [];
+    const ctx = contextWindowFor(modelName, contextWindow);
+    // Leave 10% headroom for the model's own bookkeeping (chat template,
+    // BOS/EOS, tool-call framing). Over-estimating input is the safe side.
+    const usable = Math.floor(ctx * 0.9);
+    const outBudget = outputBudgetFor(ctx);
+
+    const inputTokens = estimateTokens(msgs);
+    let trimmed = false;
+    let dropped = 0;
+    let out = msgs;
+
+    // If the prompt plus a minimum output budget does not fit, drop the OLDEST
+    // non-system messages until it does. The system prompt (persona, tool
+    // definitions, identity) is never dropped — losing it breaks every tool
+    // call. The most recent turns are kept so the model still has context for
+    // what the user just asked.
+    const MIN_OUTPUT = Math.min(1024, outBudget);
+    if (inputTokens + MIN_OUTPUT > usable) {
+        const system = out.filter((m) => m?.role === 'system');
+        const conversation = out.filter((m) => m?.role !== 'system');
+        // Keep at most the last 8 non-system messages (4 turns).
+        const KEEP = 8;
+        if (conversation.length > KEEP) {
+            dropped = conversation.length - KEEP;
+            out = [...system, ...conversation.slice(-KEEP)];
+            trimmed = true;
+        }
+    }
+
+    const finalInput = trimmed ? estimateTokens(out) : inputTokens;
+    const hardMaxOutput = Math.max(MIN_OUTPUT, usable - finalInput);
+
+    // The client's requested max_tokens wins when it is smaller (they know
+    // what they want). When it is larger we honour it up to the budget.
+    let maxTokens;
+    if (Number.isFinite(requestedMax) && requestedMax > 0) {
+        maxTokens = Math.min(requestedMax, hardMaxOutput);
+    } else {
+        maxTokens = Math.min(outBudget, hardMaxOutput);
+    }
+    // A floor of 256 so a nearly-full context still produces *something* the
+    // caller can see, rather than an empty response that looks like a crash.
+    maxTokens = Math.max(256, maxTokens);
+
+    return {
+        maxTokens,
+        messages: out,
+        contextWindow: ctx,
+        inputTokens: finalInput,
+        trimmed,
+        dropped,
+    };
+}
+
 class AIRouter {
     constructor(pool) {
         this.pool = pool;
@@ -813,16 +953,16 @@ class AIRouter {
                     }
                 }
 
-                // SMART TOKEN BUDGET: Estimate tokens, cap output to prevent VRAM overflow
-                // Simple approximation: ~4 chars per token
-                const totalChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
-                const estimatedInputTokens = Math.ceil(totalChars / 4);
-                
-                // VRAM-safe cap: leave 30% headroom in context window (16k context = ~14k safe)
-                // For short prompts, allow big outputs. Only cap when input is long.
-                const contextLimit = 14000; // 85% of 16k
-                const hardMaxOutput = contextLimit - estimatedInputTokens;
-                const safeMaxTokens = Math.max(256, Math.min(hardMaxOutput, 2048));
+                // SMART TOKEN BUDGET — see _budgetTokens() below for the
+                // full explanation. Replaces the old hardcoded 14k/2048 caps
+                // that truncated every OpenCode coding response.
+                const budget = _budgetTokens(messages, {
+                    modelName,
+                    requestedMax: options.gen?.max_tokens,
+                    contextWindow: options.contextWindow,
+                });
+                const safeMaxTokens = budget.maxTokens;
+                const trimmedMessages = budget.messages;
 
                 // Start the latency clock BEFORE the fetch. For non-streaming
                 // responses `await fetch` only resolves once the backend has
@@ -840,8 +980,8 @@ class AIRouter {
                     
                     const requestBody = {
                         model: modelName || 'local',
-                        messages: messages,
-                        max_tokens: options.gen?.max_tokens ? Math.min(options.gen.max_tokens, safeMaxTokens) : safeMaxTokens,
+                        messages: trimmedMessages,
+                        max_tokens: safeMaxTokens,
                         stream: stream,
                         chat_template_kwargs: { enable_thinking: options.gen?.thinking ? true : false }
                     };
