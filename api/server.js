@@ -3004,8 +3004,32 @@ app.post('/api/keys/donate', async (req, res) => {
     }
 });
 
-app.post('/api/keys/deactivate', async (req, res) => {
-    res.status(501).json({ error: 'Key deactivation not implemented' });
+// Body-based deactivation (the documented shape). The real work is the same
+// ownership-scoped UPDATE the user-scoped endpoint does: a caller can only
+// deactivate a key they own, so no user can revoke another user's key.
+// Returns 401 without a session, 404 for a key that is not theirs — never
+// "not implemented".
+app.post('/api/keys/deactivate', requireAuth, csrfValidate, async (req, res) => {
+    const { id, key_id } = req.body || {};
+    const targetId = id || key_id;
+    if (!targetId) {
+        return res.status(400).json({ error: 'id (or key_id) required' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE ai_keys SET is_active = FALSE WHERE id = $1 AND user_id = $2 RETURNING id',
+            [targetId, req.session.userId]);
+        if (result.rows.length === 0) {
+            // Not theirs (or not there) — indistinguishable, deliberately.
+            return res.status(404).json({ error: 'Key not found' });
+        }
+        // Drop it from the router immediately so the revocation is real, not
+        // just a row that only takes effect on the next reload.
+        try { await router.loadKeys(); } catch (_e) { /* next reload */ }
+        res.json({ success: true, deactivated: true, id: targetId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/agents/mine', async (req, res) => {
@@ -3235,27 +3259,67 @@ app.get('/api/version', (req, res) => {
 });
 
 // ---- Node Registration ----
-// Requires: valid hw_id or token to prevent fake node injection
+// ONE bee protocol (lib/bee-identity.js): the canonical id is `bee_id`, and it
+// may arrive in the URL (HIVV style) or the body (BLNQ style).
+//
+// ANTI-SQUATTING: claiming an id the hub already knows requires proving it
+// is that bee (its secret or its hw_id). Before this, anyone could POST a
+// registration for "masjid" and inherit that bee's inbox, relay jobs and
+// honey streak.
 app.post('/api/nodes/register', async (req, res) => {
   try {
     const body = req.body || {};
+    const bee = require('./lib/bee-identity');
+    const proof = bee.readBeeProof(req);
+
     // Basic validation: must have an id and either hw_id or token
-    if (!body.id && !body.token) {
+    if (!body.id && !body.token && !body.bee_id) {
       return res.status(400).json({ error: 'Node must provide id or token' });
     }
     if (!body.hw_id && !body.token) {
       return res.status(400).json({ error: 'Node must provide hw_id or token for identification' });
     }
+
+    // Which id is this bee claiming?
+    const claimed = bee.readBeeId(req, req.params);
+    const requestedId = claimed.id || body.id || body.token;
+    if (!bee.isValidBeeId(String(requestedId).toLowerCase())) {
+      return res.status(400).json({
+        error: 'bee id must be 3-64 chars: lowercase letters, digits, dot, underscore or dash',
+        bee_id: requestedId,
+      });
+    }
+    const beeId = String(requestedId).toLowerCase();
+
     // Capture the PREVIOUS identity before registerNode (which may rewrite
     // hw_id from this very request — comparing after would make any hw_id
     // trivially "match"). Used below to re-issue a secret the bee lost.
-    const prev = orch.nodes.get(body.id);
+    const prev = orch.nodes.get(beeId) || orch.nodes.get(body.id);
     const prevHw = prev && prev.hw_id;
-    const node = orch.registerNode(body);
+    const prevSecret = prev && prev.secret;
+
+    // ANTI-SQUATTING: a known id must be proven.
+    const auth = bee.authorizeClaim({
+      existing: prev,
+      requestedId: beeId,
+      hwId: proof.hwId,
+      secret: proof.secret,
+      existingHwId: prevHw,
+      existingSecret: prevSecret,
+    });
+    if (!auth.ok) {
+      return res.status(409).json({
+        error: auth.reason,
+        code: auth.code,
+        hint: 'present X-Node-Secret (or the bee_id/hw_id you enrolled with)',
+      });
+    }
+
+    const node = orch.registerNode({ ...body, id: beeId, name: body.name || beeId });
     // Enrol the per-node secret used to gate inbox access (adopts the bee's
     // value, or issues one the bee picks up on its next heartbeat).
     const regSecretBefore = node.secret, regSeenBefore = node.secret_seen;
-    const reg = require('./lib/node-auth').enroll(node, req.headers['x-node-secret']);
+    const reg = require('./lib/node-auth').enroll(node, proof.secret);
     if (!reg.ok) return res.status(403).json({ error: 'Invalid node secret' });
     // Recovery: a bee that already enrolled but lost its local copy (state
     // wipe) presents NO secret — the hub won't re-issue to `secret_seen` bees,
@@ -3263,8 +3327,8 @@ app.post('/api/nodes/register', async (req, res) => {
     // proves the machine via the SAME hw_id it enrolled with (hw_id is not
     // exposed by any API — knowledge of it is the enrollment credential).
     let issue = reg.issue;
-    if (!issue && !req.headers['x-node-secret'] && prev && prevHw &&
-        prev.secret && prev.secret_seen && body.hw_id === prevHw) {
+    if (!issue && !proof.secret && prev && prevHw &&
+        prev.secret && prev.secret_seen && proof.hwId === prevHw) {
       issue = node.secret;
       console.log(`[NODE-AUTH] ${node.node_id}: secret re-issued (lost local copy, hw_id proven)`);
     }
@@ -3274,21 +3338,29 @@ app.post('/api/nodes/register', async (req, res) => {
     if (node.secret !== regSecretBefore || node.secret_seen !== regSeenBefore) {
       try { orch._saveNodes(); } catch (_e) {}
     }
-    res.json({ node_id: node.node_id, role: node.name, ip: node.ip, registered: true,
+    res.json({ node_id: node.node_id, bee_id: node.node_id,
+               role: node.name, ip: node.ip, registered: true,
                ...(issue ? { node_secret: issue } : {}) });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ---- Heartbeat (requires token match) ----
+// ---- Heartbeat (requires proof of identity) ----
+// ONE bee protocol: the id may be in the URL (`/api/nodes/{bee_id}/heartbeat`)
+// or in the body (`{bee_id}` or `{worker_id}` — the BLNQ shape). The body wins
+// on conflict because the body is what the bee signs over.
 app.post('/api/nodes/:id/heartbeat', (req, res) => {
-  const node = orch.nodes.get(req.params.id);
+  const bee = require('./lib/bee-identity');
+  const claimed = bee.readBeeId(req, req.params);
+  const beeId = claimed.id || req.params.id;
+  const node = orch.nodes.get(beeId);
   if (!node) return res.status(404).json({ error: 'Node not found' });
   // Enrol/verify the per-node secret (see lib/node-auth.js). Adopt when absent,
   // verify with a timing-safe compare once the bee has proven it knows one.
   const hbSecretBefore = node.secret, hbSeenBefore = node.secret_seen;
-  const hbAuth = require('./lib/node-auth').enroll(node, req.headers['x-node-secret']);
+  const hbProof = bee.readBeeProof(req);
+  const hbAuth = require('./lib/node-auth').enroll(node, hbProof.secret);
   if (!hbAuth.ok) return res.status(403).json({ error: 'Invalid node secret' });
   // Persist enrolment immediately (see the same reasoning at /register):
   // losing `secret`/`secret_seen` in the 10s debounce window makes the hub
@@ -3298,7 +3370,7 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
   }
   // Capture public IP from the request (this is the IP as seen from the internet)
   const public_ip = (req.ip || req.connection?.remoteAddress || '').replace(/^::ffff:/, '');
-  const updated = orch.updateHeartbeat(req.params.id, req.body || {}, { public_ip });
+  const updated = orch.updateHeartbeat(beeId, req.body || {}, { public_ip });
   if (!updated) return res.status(404).json({ error: 'Node not found' });
 
   // Auto-resolve stale/offline incidents when node comes back

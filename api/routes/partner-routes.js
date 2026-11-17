@@ -63,14 +63,44 @@ async function dbAlive() {
     }
 }
 
+// ── model discovery cache ─────────────────────────────────────────────────
+// The manifest must be CHEAP: a partner fetches it on every page load, and
+// probing eight local ports with a 700ms timeout each is what made it a
+// 719ms p95 under load. The answer changes only when a model server starts
+// or stops, so a short TTL is plenty.
+const MODEL_CACHE_TTL_MS = 15_000;
+let _modelCache = { at: 0, value: [] };
+let _modelCacheBusy = null;
+
+async function localModelsCached() {
+    const now = Date.now();
+    if (now - _modelCache.at < MODEL_CACHE_TTL_MS) return _modelCache.value;
+    // Collapse a thundering herd: one probe serves every waiting request.
+    if (_modelCacheBusy) return _modelCacheBusy;
+    _modelCacheBusy = (async () => {
+        try {
+            const probed = await localMode.probeLocalModels(500);
+            _modelCache = {
+                at: Date.now(),
+                value: probed.map((m) => ({
+                    provider: m.provider, model: m.model, port: m.port,
+                })),
+            };
+            return _modelCache.value;
+        } catch (_e) {
+            _modelCache = { at: Date.now(), value: [] };
+            return _modelCache.value;
+        } finally {
+            _modelCacheBusy = null;
+        }
+    })();
+    return _modelCacheBusy;
+}
+
 // ── manifest ───────────────────────────────────────────────────────────────
 router.get('/manifest', async (req, res) => {
     const db = await dbAlive();
-    let localModels = [];
-    try {
-        const probed = await localMode.probeLocalModels(700);
-        localModels = probed.map((m) => ({ provider: m.provider, model: m.model, port: m.port }));
-    } catch (_e) { /* no local models */ }
+    const localModels = await localModelsCached();
 
     res.json({
         data: {
@@ -141,10 +171,7 @@ router.get('/manifest', async (req, res) => {
 // ── health (works with no database) ────────────────────────────────────────
 router.get('/health', async (req, res) => {
     const db = await dbAlive();
-    let localModels = [];
-    try {
-        localModels = (await localMode.probeLocalModels(500)).map((m) => m.model);
-    } catch (_e) { /* none */ }
+    const localModels = (await localModelsCached()).map((m) => m.model);
 
     let hive = null;
     // Only contact the hub when the operator explicitly allowed the hive to be
@@ -177,15 +204,14 @@ router.get('/health', async (req, res) => {
 // ── models ─────────────────────────────────────────────────────────────────
 router.get('/models', async (req, res) => {
     const models = [];
-    let probed = [];
-    try { probed = await localMode.probeLocalModels(600); } catch (_e) { /* none */ }
+    const probed = await localModelsCached();
     for (const m of probed) {
         models.push({
             id: m.model,
             object: 'model',
             owned_by: m.provider,
             source: 'local',
-            display_name: `${m.label} @ ${m.port}`,
+            display_name: `${m.label || m.provider} @ ${m.port}`,
             context_window: null,
         });
     }

@@ -60,7 +60,9 @@ function normalizePrivacy(input = {}) {
 
 // ── schema ─────────────────────────────────────────────────────────────────
 async function ensureSchema(pool) {
-  await pool.query(`
+  if (!pool) return false;
+  try {
+    await pool.query(`
     CREATE TABLE IF NOT EXISTS ${TABLE} (
       id                    BIGSERIAL PRIMARY KEY,
       attestation_id        TEXT UNIQUE,
@@ -124,6 +126,11 @@ async function ensureSchema(pool) {
     ON ${TABLE} (source_sha256, created_at DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_hivv_review_registry_privacy
     ON ${TABLE} (privacy_class, created_at DESC)`);
+    return true;
+  } catch (err) {
+    console.error('[review-registry] schema setup failed:', err.message);
+    return false;
+  }
 }
 
 // ── write path ─────────────────────────────────────────────────────────────

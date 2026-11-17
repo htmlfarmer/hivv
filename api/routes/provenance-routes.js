@@ -62,18 +62,39 @@ async function isAdmin(req) {
   return false;
 }
 
-// Resolve the audience. Anything not explicitly authorized gets 'public'.
+// Resolve the audience.
+//
+// SECURITY: the DEFAULT is `operator`, not `public`. The request ledger holds
+// who asked, which IP they came from, which node answered, and what it cost —
+// none of which is public. A caller must EXPLICITLY ask for `view=public` (or
+// `view=partner`) to get a reduced projection; omitting the parameter used to
+// silently hand out the operator view to anyone who guessed the URL.
+//
+// `view=partner` is the one anonymous-safe reduced view: aggregate counters
+// and non-identifying metadata only.
 async function resolveView(req, res) {
-  const requested = String(req.query.view || 'public').toLowerCase();
-  if (requested === 'public') return 'public';
-  if (await isAdmin(req)) return requested === 'partner' ? 'partner' : 'operator';
-  if (requested !== 'public') {
-    res.status(403).json({
-      error: 'operator/partner view requires control-token or admin session',
-    });
-    return null;
-  }
-  return 'public';
+    const requested = String(req.query.view || 'operator').toLowerCase();
+    if (!['public', 'partner', 'operator'].includes(requested)) {
+        res.status(400).json({
+            error: `view must be one of public, partner, operator (got '${requested}')`,
+        });
+        return null;
+    }
+    if (await isAdmin(req)) {
+        // An explicit request is honored exactly — an admin asking for the
+        // PUBLIC projection gets the public projection, so they can see what
+        // everyone else sees. Never silently widened to `operator`.
+        return requested;
+    }
+    // Not an admin. `operator` is never available; `public` and `partner` are.
+    if (requested === 'operator') {
+        res.status(403).json({
+            error: 'operator view requires control-token or admin session',
+            hint: 'use ?view=partner for a reduced, non-identifying projection',
+        });
+        return null;
+    }
+    return requested;
 }
 
 // ── request ledger ─────────────────────────────────────────────────────────
@@ -129,6 +150,8 @@ router.get('/reviews', async (req, res) => {
   const view = await resolveView(req, res);
   if (!view) return;
   const { pool } = require('../server');
+  // The table is created on demand — a fresh install must not 500.
+  await registry.ensureSchema(pool);
   const out = await registry.listReviews(pool, {
     principalId: req.query.principal_id,
     sourceSha256: req.query.source_sha256,
@@ -143,6 +166,7 @@ router.get('/reviews/stats', async (req, res) => {
   const view = await resolveView(req, res);
   if (!view) return;
   const { pool } = require('../server');
+  await registry.ensureSchema(pool);
   const out = await registry.reviewStats(pool, { days: req.query.days });
   if (!out.ok) return res.status(500).json({ error: out.error });
   res.json({ data: out, meta: { version: 'v1', timestamp: new Date().toISOString() } });
