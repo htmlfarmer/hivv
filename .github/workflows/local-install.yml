@@ -10,13 +10,16 @@ on:
     paths:
       - 'api/**'
       - 'scripts/setup-local.*'
-      - 'tests/local_install/**'
+      - 'tests/**'
       - 'public_html/hivv-cli.py'
+      # a change to this file must re-run the gate it defines
+      - '.github/workflows/local-install.yml'
   pull_request:
     paths:
       - 'api/**'
       - 'scripts/setup-local.*'
-      - 'tests/local_install/**'
+      - 'tests/**'
+      - '.github/workflows/local-install.yml'
   workflow_dispatch:
 
 permissions:
@@ -83,8 +86,17 @@ jobs:
       - name: Install dependencies
         working-directory: api
         run: npm ci --no-audit --no-fund
+      - name: Install test runner
+        # pytest is NOT part of the stdlib and setup-python gives a clean
+        # interpreter — without this step `python -m pytest` dies with
+        # "No module named pytest" before running a single test (it did,
+        # for 6 straight runs on 2026-11-17).
+        run: python -m pip install --quiet pytest
       - name: Node tests
         working-directory: api
         run: node --test
       - name: Python tests
+        # Only tests/test_upgrade_review.py is pytest-shaped; the other
+        # tests/*.py files are standalone scripts (main() guards), and
+        # tests/local_install is a gateway harness driven by its own job.
         run: python -m pytest tests/ -q
