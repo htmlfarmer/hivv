@@ -1,3 +1,16 @@
+<div align="center">
+  <img src="logo/hivv-social-preview.png" alt="HIVV — a distributed AI network, at home and around the world" width="640">
+</div>
+
+<div align="center">
+
+[![CI](https://github.com/htmlfarmer/hivv/actions/workflows/local-install.yml/badge.svg)](https://github.com/htmlfarmer/hivv/actions/workflows/local-install.yml)
+[![license](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-18%2B-5FA04E.svg)](https://nodejs.org)
+[![local-first](https://img.shields.io/badge/local--first-00ff88.svg)](#three-ways-in)
+
+</div>
+
 # HIVV — A Distributed AI Network (both at home and global)
 
 > **Pronunciation:** HIVV is pronounced **HIVE** (like a beehive — /haɪv/), not like the HIV virus.
