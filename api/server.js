@@ -3380,6 +3380,58 @@ app.post('/api/nodes/register', async (req, res) => {
   }
 });
 
+// ---- Node error reporting ----
+// A node's local errors (agent crash, local model failure, disk full) are
+// invisible to the hub unless the node reports them. This endpoint lets a
+// bee push its local error log entries here, authenticated with its own
+// secret, so an operator can study "what is broken on yalla" from anywhere.
+//
+// The payload is bounded and scrubbed: no prompts, no key material, no raw
+// stack traces over ~2kb per entry.
+app.post('/api/nodes/:id/errors', async (req, res) => {
+  try {
+    const bee = require('./lib/bee-identity');
+    const claimed = bee.readBeeId(req, req.params);
+    const beeId = claimed.id || req.params.id;
+    const node = orch.nodes.get(beeId);
+    if (!node) return res.status(404).json({ error: 'Node not found' });
+
+    const proof = bee.readBeeProof(req);
+    const auth = require('./lib/node-auth').enroll(node, proof.secret);
+    if (!auth.ok) return res.status(403).json({ error: 'Invalid node secret' });
+
+    const entries = Array.isArray(req.body?.errors) ? req.body.errors : [];
+    if (!entries.length) {
+      return res.status(400).json({ error: 'errors array required' });
+    }
+
+    let recorded = 0;
+    for (const e of entries.slice(0, 20)) {
+      if (!e || typeof e !== 'object') continue;
+      errorLog.record({
+        error: e.message || 'reported by node',
+        error_class: e.class || undefined,
+        endpoint: e.endpoint || `node:${beeId}`,
+        model: e.model || null,
+        node: beeId,
+        status: e.status || null,
+        input_tokens: e.input_tokens || null,
+        output_tokens: e.output_tokens || null,
+        context_window: e.context_window || null,
+        max_tokens: e.max_tokens || null,
+        trimmed: e.trimmed === true,
+        dropped: e.dropped || null,
+        user_agent: e.user_agent || `hivv-node/${beeId}`,
+        extra: { reported_by: beeId, local_ts: e.ts || null },
+      });
+      recorded++;
+    }
+    res.json({ ok: true, recorded, node_id: beeId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Heartbeat (requires proof of identity) ----
 // ONE bee protocol: the id may be in the URL (`/api/nodes/{bee_id}/heartbeat`)
 // or in the body (`{bee_id}` or `{worker_id}` — the BLNQ shape). The body wins
@@ -3652,6 +3704,7 @@ app.get('/api/errors/recent', (req, res) => {
         cls: req.query.class || null,
         endpoint: req.query.endpoint || null,
         client: req.query.client || null,
+        node: req.query.node || null,
         sinceMs: req.query.since ? Number(req.query.since) : null,
     });
     // Attach the human-readable diagnosis so a CLI or AI gets advice, not

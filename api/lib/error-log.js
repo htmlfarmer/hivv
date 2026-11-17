@@ -205,11 +205,12 @@ function recordAsync(input) {
     try { record(input); } catch (_e) { /* logging must never break a request */ }
 }
 
-function recent({ limit = 100, cls = null, endpoint = null, client = null, sinceMs = null } = {}) {
+function recent({ limit = 100, cls = null, endpoint = null, client = null, node = null, sinceMs = null } = {}) {
     let rows = entries;
     if (cls) rows = rows.filter((e) => e.class === cls);
     if (endpoint) rows = rows.filter((e) => e.endpoint === endpoint);
     if (client) rows = rows.filter((e) => e.client === client);
+    if (node) rows = rows.filter((e) => e.node === node);
     if (sinceMs) rows = rows.filter((e) => e.ts >= sinceMs);
     return rows.slice(-Math.min(Math.max(parseInt(limit, 10) || 100, 1), MAX_ENTRIES));
 }
