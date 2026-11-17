@@ -144,6 +144,41 @@ $ hivv fast-scan script.py
   → needs a real review (run `hivv review script.py` for a signed verdict)
 ```
 
+## Wire up your GUI tools
+
+```bash
+hivv setup              # detect everything, change nothing
+hivv setup --gui        # point VS Code, JetBrains, Zed, Aider, … at HIVV
+```
+
+`hivv setup` handles the **VS Code family** (VS Code, Cursor, Windsurf,
+VSCodium — Continue, Cline, Roo Code, OpenCode, VS Code ACP), **JetBrains**
+(IntelliJ, PyCharm, GoLand — AI Assistant + MCP), **Zed**, **Windsurf**, and
+the chat front-ends (**LM Studio, Open WebUI, LibreChat, LobeChat, Jan,
+GPT4All, AnythingLLM**), the CLI tools (**Aider, Crush**), and the **MCP**
+hosts (Claude Desktop, Cursor…).
+
+Four backends:
+
+```bash
+hivv setup --gui --profile hybrid    # your model first, hive fallback (default)
+hivv setup --gui --profile local     # nothing leaves this machine
+hivv setup --gui --profile hive      # the global HIVV network
+hivv setup --gui --profile cloud     # a provider key you supplied
+```
+
+**Hybrid is the interesting one:** your IDE hits *your* model first — free,
+private, instant — and falls through to the hive only if your model is busy
+or doesn't know. Meanwhile the hive may use your **idle** capacity, which is
+how you donate (`hivv volunteer on`). Donation shares compute, never prompts
+or files.
+
+Writing is safe by construction: your existing settings always win, the
+config's shape is preserved, every modified file gets a `.bak-<timestamp>`
+sibling, and nothing is executed.
+
+Full guide: [`docs/GUI-SETUP.md`](docs/GUI-SETUP.md).
+
 ## Build on HIVV (the integration surface)
 
 Every partner-facing endpoint lives under one stable prefix, `/api/partner`:

@@ -513,9 +513,37 @@ const apiLimiter = rateLimit({
             || req.headers['x-visitor-id']
             || req.query.visitor_id
             || req.ip;
+    },
+    // LOCALHOST gets its own, much larger budget.
+    //
+    // Why: the limiter's job is to stop a REMOTE caller from hammering the
+    // public gateway. A local process (the CLI, the test suite, a GUI tool
+    // running on the same box) legitimately bursts — a test run fires hundreds
+    // of requests in seconds, and a GUI tool asks for /v1/models on every
+    // dropdown open. Sharing the remote budget made the local path randomly
+    // 429 and made the test suite flaky for no security benefit: loopback
+    // traffic is already inside the trust boundary.
+    skip: (req) => {
+        const ip = req.ip || req.connection?.remoteAddress || '';
+        return ip.includes('127.0.0.1') || ip.includes('::1') || ip.includes('::ffff:127.0.0.1');
     }
 });
 app.use('/api/', apiLimiter);
+
+// A separate, generous budget for loopback — enough that a local GUI tool
+// opening a model dropdown dozens of times a minute never sees a 429.
+const localApiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip || 'local',
+    skip: (req) => {
+        const ip = req.ip || req.connection?.remoteAddress || '';
+        return !(ip.includes('127.0.0.1') || ip.includes('::1') || ip.includes('::ffff:127.0.0.1'));
+    }
+});
+app.use('/api/', localApiLimiter);
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,

@@ -1446,6 +1446,10 @@ class AIRouter {
                 provider: res.provider,
                 answeredBy: res.answeredBy || null,
                 servedModel: res.servedModel || null,
+                // The gate's receipt must reach the caller even on the
+                // non-streaming path — a GUI tool (or any OpenAI client) uses
+                // X-Hivv-Policy to show WHICH rule allowed the request.
+                policyReceipt: policyReceipt,
                 tokensPerSec: res.tokensPerSec || 0,
                 data: {
                     id: `chatcmpl-${  Date.now()}`,
@@ -1467,6 +1471,8 @@ class AIRouter {
         }
 
         return { ok: true, provider: res.provider, servedModel: res.servedModel || null,
+                 answeredBy: res.answeredBy || null,
+                 policyReceipt: policyReceipt,
                  totalTokens: res.totalTokens || 0, tokensPerSec: res.tokensPerSec || 0 };
     }
 }
