@@ -168,9 +168,12 @@ def main() -> int:
              "stream": False},
             timeout=150,
         )
-        check("the chat endpoint answered 200", status == 200,
-              f"HTTP {status}: {str(body)[:200]}")
+        # A FRESH CLONE has no local model, no hive and no cloud key, so the
+        # honest answer is 503 "no providers" — NOT a fabricated answer. That
+        # is the fail-closed behaviour we want. When a model IS reachable the
+        # same request must succeed.
         if status == 200:
+            check("the chat endpoint answered 200", True)
             check("the response is a chat completion",
                   isinstance(body, dict) and bool(body.get("choices")),
                   str(body)[:200])
@@ -184,6 +187,16 @@ def main() -> int:
             check("the response carries a policy receipt",
                   any(k.lower().startswith("x-hivv-policy") for k in headers),
                   str(list(headers.keys())))
+        elif status == 503:
+            check("a provider-less gateway fails CLOSED (503, no fake answer)",
+                  isinstance(body, dict) and bool(body.get("error")),
+                  str(body)[:200])
+            check("the 503 names the real cause",
+                  "provider" in json.dumps(body).lower() or "no local" in json.dumps(body).lower(),
+                  str(body)[:200])
+        else:
+            check("the chat endpoint answered 200 or failed closed with 503",
+                  False, f"HTTP {status}: {str(body)[:200]}")
 
         # ── 4. /v1/models works (GUIs call it to populate a picker) ─
         print("\n== 4. /v1/models (GUI model pickers call this) ==")
