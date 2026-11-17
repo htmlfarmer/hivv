@@ -10,7 +10,25 @@ module.exports = {
       PORT: 3011,
       // Local llama.cpp (gemma-4-E2B) on loopback:8090 — 8080 is Apache's.
       // Router probes /v1/models then calls /v1/chat/completions (OpenAI format).
-      HIVV_LOCAL_ENDPOINTS: 'http://localhost:8090/v1/models'
+      HIVV_LOCAL_ENDPOINTS: 'http://localhost:8090/v1/models',
+      // LYRz settlement: honey earned by a node also becomes a portable LYRz
+      // balance that follows the node across the ecosystem.
+      LYRZ_API_URL: 'https://lyrz.org/api/v1',
+      LYRZ_SITE_ID: 'hivv.org',
+      // A real key never lives in the repository — same rule as the session secret
+      // and control token below (commit 553c1fe). LYRZ_API_KEY was the one
+      // exception and the pre-commit scanner caught it. The consumer,
+      // api/lib/lyrz.js, already reads process.env.LYRZ_API_KEY, so nothing
+      // else changes: without the operator file, settlement simply disables
+      // itself with a warning instead of leaking a credential.
+      LYRZ_API_KEY: process.env.LYRZ_API_KEY || (function () {
+        try {
+          return require('fs').readFileSync(__dirname + '/.lyrz-api-key', 'utf8').trim() || '';
+        } catch (_e) { return ''; }
+      })(),
+      LYRZ_SETTLE_INTERVAL_MS: '300000',
+      // How much LYRz one honey point is worth.
+      HIVV_LYRZ_PER_HONEY: '0.1'
     },
     env_production: {
       DB_HOST: 'localhost',

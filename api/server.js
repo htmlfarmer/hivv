@@ -3171,8 +3171,27 @@ RelayRoutes.inject(orch);
  TipsRoutes.inject(pool);
  app.use('/api/tips', TipsRoutes);
 
+// LYRz settlement: link a node to its LYRz identity and settle honey out to
+// lyrz.org as a portable LYRz balance.
+//
+// Honey earned by a node also becomes a portable LYRz balance that follows
+// the node across the ecosystem. Non-fatal by design: if LYRz is down the
+// work stays queued locally and is retried.
+const lyrzLib = require('./lib/lyrz');
+lyrzLib.inject(pool);
+const LyRzRoutes = require('./routes/lyrz-routes');
+LyRzRoutes.inject(pool, lyrzLib);
+app.use('/api/lyrz', LyRzRoutes);
+
  honeyLib.start(orch, pool);
 perfLib.start(pool);
+
+// The queue table must exist before honey starts accruing, otherwise the
+// first accruals fail to enqueue. Create it up front and start the settler
+// once it is ready.
+const lyrzReady = lyrzLib.ensureQueueTable()
+  .then(() => { lyrzLib.startSettlementLoop(); })
+  .catch(e => console.error('[lyrz] bridge init failed:', e.message));
 
 // ---- hivv OS: capability registry (§1) + policy gate (§3) + route modes (§2) ----
 // Plan: HIVV_CAPABILITY_POLICY_PLAN.md — YES/MAYBE/NO before any action executes.

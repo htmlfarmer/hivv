@@ -178,6 +178,34 @@ async function _flushOnce(orchestrator) {
             'INSERT INTO hivv_honey_events (node_id, kind, amount) VALUES ($1, $2, $3)',
             [id, 'online_minute', HONEY_PER.minute]);
         }
+
+        // ── LYRz settlement ────────────────────────────────────────────────
+        // Honey is HIVV's internal reward; queue the equivalent as a portable
+        // LYRz balance for this node. The counter makes it idempotent — a
+        // replayed heartbeat cannot pay twice. Non-fatal: if the bridge is
+        // not configured or LYRz is down, the honey is still recorded above.
+        try {
+          const lyrz = require('./lyrz');
+          const globalUserId = await lyrz.resolveGlobalUserId(id);
+          if (globalUserId) {
+            await lyrz.enqueueSettlement({
+              nodeId: id,
+              globalUserId,
+              honeyDelta,
+              kind: 'honey',
+              // The cumulative job count is a monotonic cursor; combined with
+              // the node id it uniquely identifies this accrual.
+              counter: `jobs:${cumJobs}:tok:${cumTokens}:min:${cumJobs + cumTokens}`,
+            });
+          }
+        } catch (e) {
+          // The queue table may not exist yet on the very first heartbeat.
+          // That is fine — the honey itself is already recorded above, and
+          // the settlement can be reconciled later.
+          if (!/does not exist/.test(String(e.message))) {
+            console.error('[lyrz] failed to queue honey settlement:', e.message);
+          }
+        }
         // weekly hive goal tracks jobs done by the whole hive
         if (jobDelta > 0) {
           try {
