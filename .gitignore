@@ -18,7 +18,10 @@ api/.keys/
 api/.secrets.key
 api/.control-token
 api/.session-secret
+api/.encryption-key
 api/.p2p.json
+api/data/nodes.json
+api/data/inbox.json
 public_html/.secrets.key
 
 # ── runtime data ───────────────────────────────────────────────────────────

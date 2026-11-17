@@ -31,7 +31,14 @@ module.exports = {
           return require('fs').readFileSync(__dirname + '/.control-token', 'utf8').trim() || '';
         } catch (_e) { return ''; }
       })(),
-      HIVV_ENCRYPTION_KEY: process.env.HIVV_ENCRYPTION_KEY || 'd03969a095d96e87d9c5f1c3614c5fd1547457fb742de0a2aa7d90e102464ee8'
+      HIVV_ENCRYPTION_KEY: process.env.HIVV_ENCRYPTION_KEY || (function () {
+        // A real key never lives in the repository. The operator generates one
+        // into a 0600 file; without it the gateway refuses to start in
+        // production rather than shipping a shared default.
+        try {
+          return require('fs').readFileSync(__dirname + '/.encryption-key', 'utf8').trim() || '';
+        } catch (_e) { return ''; }
+      })()
     },
     // Log into the vhost (daily-rotated as out-16__DATE.log) — do not let PM2
     // fall back to ~/.pm2/logs, which silently orphans the app's output from
