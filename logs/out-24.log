@@ -1,0 +1,711 @@
+2026-09-17 05:05:55: Redis not configured, using in-memory cache only
+2026-09-17 05:05:55: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 05:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:05:55: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 05:05:55: AI Gateway initialized
+2026-09-17 05:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:12:18: [ORCH] New node online: masjid (undefined) caps: heartbeat, cli, metrics
+2026-09-17 05:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:13:50: [ORCH] New node online: yalla (undefined) caps: heartbeat, cli, metrics
+2026-09-17 05:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:14:45: [ORCH] New node online: ashy (undefined) caps: heartbeat, cli, metrics
+2026-09-17 05:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:25:19: [ORCH] New node online: yalla-135 (undefined) caps: heartbeat, cli, metrics
+2026-09-17 05:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:28:25: [ORCH] Node re-registered: yalla-135
+2026-09-17 05:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:31:17: [ORCH] Node re-registered: yalla-135
+2026-09-17 05:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 05:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 06:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 07:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 08:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 09:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:25:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:26:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:27:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:28:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:29:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:30:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:31:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:32:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:33:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:34:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:35:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:36:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:37:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:38:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:39:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:40:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:41:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:42:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:43:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:44:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:45:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:46:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:47:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:48:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:49:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:50:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:51:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:52:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:53:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:54:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:55:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:56:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:57:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:58:27: [ORCH] Node re-registered: yalla-135
+2026-09-17 10:58:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 10:59:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:00:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:01:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:02:50: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:02:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:03:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:04:36: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:04:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:05:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:06:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:07:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:08:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:09:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:10:35: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:10:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:11:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:12:40: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:12:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:13:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:14:34: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:14:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:15:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:16:05: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:16:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:17:26: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:17:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:18:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:19:49: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:19:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:20:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:21:47: [ORCH] Node re-registered: yalla-135
+2026-09-17 11:21:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:22:53: [ORCH] New node online: masjid-33 (undefined) caps: heartbeat, cli, metrics
+2026-09-17 11:22:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:23:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:24:55: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:25:10: [ORCH] Loaded 5 persisted node(s)
+2026-09-17 11:25:10: Redis not configured, using in-memory cache only
+2026-09-17 11:25:10: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 11:25:10: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:25:10: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 11:25:10: AI Gateway initialized
+2026-09-17 11:25:50: Redis not configured, using in-memory cache only
+2026-09-17 11:25:50: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 11:25:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:25:50: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 11:25:50: AI Gateway initialized
+2026-09-17 11:26:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:27:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:28:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:29:10: [ORCH] New node online: masjid (undefined) caps: heartbeat, cli, metrics
+2026-09-17 11:29:20: [ORCH] New node online: yalla (undefined) caps: heartbeat, cli, metrics
+2026-09-17 11:29:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:30:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:31:17: [ORCH] Node re-registered: yalla
+2026-09-17 11:31:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:32:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:33:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:34:31: [ORCH] Node re-registered: yalla
+2026-09-17 11:34:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:35:34: [ORCH] New node online: ashy (undefined) caps: heartbeat, cli, metrics
+2026-09-17 11:35:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:36:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:37:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:38:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:39:50: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:40:41: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 11:40:41: Redis not configured, using in-memory cache only
+2026-09-17 11:40:41: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 11:40:41: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:40:41: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 11:40:41: AI Gateway initialized
+2026-09-17 11:41:41: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:42:19: [ORCH] Node re-registered: masjid
+2026-09-17 11:42:41: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:43:41: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:44:41: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:44:58: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 11:44:58: Redis not configured, using in-memory cache only
+2026-09-17 11:44:58: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 11:44:58: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:44:58: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 11:44:58: AI Gateway initialized
+2026-09-17 11:45:58: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:46:30: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 11:46:30: Redis not configured, using in-memory cache only
+2026-09-17 11:46:30: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 11:46:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:46:30: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 11:46:30: AI Gateway initialized
+2026-09-17 11:46:57: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 11:46:59: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 11:47:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:48:15: [ORCH] Node re-registered: yalla
+2026-09-17 11:48:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:48:38: [ORCH] Node re-registered: ashy
+2026-09-17 11:49:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:49:58: [ORCH] Node re-registered: ashy
+2026-09-17 11:50:06: [ORCH] Node re-registered: masjid
+2026-09-17 11:50:11: [ORCH] Node re-registered: yalla
+2026-09-17 11:50:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:51:13: Local yalla:8080 (http://192.168.1.135:8080/v1/chat/completions) failed: This operation was aborted
+2026-09-17 11:51:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:52:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:53:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:54:21: [ORCH] Node re-registered: yalla
+2026-09-17 11:54:24: [ORCH] Node re-registered: masjid
+2026-09-17 11:54:28: [ORCH] Node re-registered: ashy
+2026-09-17 11:54:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:54:41: Local yalla:8080 (http://192.168.1.135:8080/v1/chat/completions) failed: fetch failed
+2026-09-17 11:54:50: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 11:55:05: Local yalla:8081 (http://192.168.1.135:8081/v1/chat/completions) failed: This operation was aborted
+2026-09-17 11:55:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:56:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:57:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:58:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 11:59:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:00:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:00:58: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:00:59: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:01:04: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:01:16: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:01:30: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:01:51: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:01:51: Redis not configured, using in-memory cache only
+2026-09-17 12:01:51: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:01:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:01:51: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:01:51: AI Gateway initialized
+2026-09-17 12:02:34: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:02:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:03:11: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:03:44: Local yalla:8080 (http://192.168.1.135:8080/v1/chat/completions) failed: terminated
+2026-09-17 12:03:44: Local yalla:8081 (http://192.168.1.135:8081/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:03:44: Local masjid:8080 (http://192.168.1.33:8080/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:03:44: Local masjid:8081 (http://192.168.1.33:8081/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:03:44: Local llamacpp (http://localhost:8080/v1/models) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:03:44: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:03:44: Local ashy:8080 (http://192.168.1.3:8080/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:03:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:04:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:05:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:06:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:07:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:08:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:09:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:10:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:11:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:12:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:13:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:14:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:15:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:16:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:17:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:18:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:19:51: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:20:02: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:20:02: Redis not configured, using in-memory cache only
+2026-09-17 12:20:02: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:20:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:20:02: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:20:02: AI Gateway initialized
+2026-09-17 12:21:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:22:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:23:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:24:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:25:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:26:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:27:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:28:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:29:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:29:32: Local yalla:8080 (http://192.168.1.135:8080/v1/chat/completions) failed: This operation was aborted
+2026-09-17 12:29:32: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:30:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:31:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:32:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:33:02: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:33:16: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:33:16: Redis not configured, using in-memory cache only
+2026-09-17 12:33:16: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:33:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:33:16: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:33:16: AI Gateway initialized
+2026-09-17 12:34:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:35:09: Local yalla:8080 (http://192.168.1.135:8080/v1/chat/completions) failed: terminated
+2026-09-17 12:35:09: Local yalla:11434 (http://192.168.1.135:11434/v1/chat/completions) failed: fetch failed
+2026-09-17 12:35:09: Local llamacpp (http://localhost:8080/v1/models) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09: Local yalla:8081 (http://192.168.1.135:8081/v1/chat/completions) failed: fetch failed
+2026-09-17 12:35:09: Local masjid:8080 (http://192.168.1.33:8080/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09: Local ashy:8080 (http://192.168.1.3:8080/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09: Local masjid:8081 (http://192.168.1.33:8081/v1/chat/completions) failed: Cannot set headers after they are sent to the client
+2026-09-17 12:35:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:36:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:37:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:37:34: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:37:34: Redis not configured, using in-memory cache only
+2026-09-17 12:37:34: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:37:35: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:37:35: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:37:35: AI Gateway initialized
+2026-09-17 12:38:20: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:38:20: Redis not configured, using in-memory cache only
+2026-09-17 12:38:20: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:38:20: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:38:20: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:38:20: AI Gateway initialized
+2026-09-17 12:39:19: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:39:19: Redis not configured, using in-memory cache only
+2026-09-17 12:39:19: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:39:19: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:39:19: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:39:19: AI Gateway initialized
+2026-09-17 12:40:19: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:41:19: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:42:14: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:42:14: Redis not configured, using in-memory cache only
+2026-09-17 12:42:14: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:42:14: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:42:14: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:42:14: AI Gateway initialized
+2026-09-17 12:43:14: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:44:14: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:45:14: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:45:31: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:45:31: Redis not configured, using in-memory cache only
+2026-09-17 12:45:31: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:45:31: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:45:31: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:45:31: AI Gateway initialized
+2026-09-17 12:45:48: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:45:48: Redis not configured, using in-memory cache only
+2026-09-17 12:45:48: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:45:48: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:45:48: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:45:48: AI Gateway initialized
+2026-09-17 12:46:15: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 12:46:15: Redis not configured, using in-memory cache only
+2026-09-17 12:46:15: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 12:46:15: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:46:16: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 12:46:16: AI Gateway initialized
+2026-09-17 12:46:18: [KEYS] New key donated: test (test-key) — test-key...2345
+2026-09-17 12:47:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:48:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:49:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:50:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:51:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:52:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:53:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:54:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:55:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:56:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:57:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:58:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 12:59:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:00:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:01:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:02:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:03:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:04:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:05:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:06:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:07:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:08:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:09:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:10:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:11:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:12:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:13:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:14:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:15:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:16:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:17:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:18:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:19:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:20:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:21:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:22:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:23:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:24:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:25:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:26:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:27:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:28:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:29:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:30:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:31:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:32:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:33:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:34:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:35:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:36:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:37:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:38:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:39:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:40:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:41:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:42:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:43:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:44:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:45:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:46:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:47:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:48:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:49:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:50:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:51:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:52:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:53:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:54:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:55:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:56:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:57:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:58:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 13:59:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:00:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:01:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:02:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:03:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:04:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:05:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:06:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:07:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:08:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:09:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:10:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:11:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:12:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:13:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:14:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:15:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:16:16: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:16:54: [ORCH] Loaded 3 persisted node(s)
+2026-09-17 14:16:54: Redis not configured, using in-memory cache only
+2026-09-17 14:16:54: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-09-17 14:16:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:16:54: Discovered local AI: llamacpp at http://localhost:8080/v1/models
+2026-09-17 14:16:54: AI Gateway initialized
+2026-09-17 14:17:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:18:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:19:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:20:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:21:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:22:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:23:54: Gateway config loaded: API v2, Frontend v2
+2026-09-17 14:24:54: Gateway config loaded: API v2, Frontend v2

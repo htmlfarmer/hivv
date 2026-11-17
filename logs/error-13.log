@@ -1,0 +1,35 @@
+2026-11-14 21:27:14: [HONEY] goal reset check failed: the database system is starting up
+2026-11-14 21:27:14: [CAPS] registry load failed: the database system is starting up
+2026-11-14 21:27:14: [POLICY] _takeMonthlySnapshot failed: the database system is starting up
+2026-11-14 21:27:14: Failed to load gateway config: the database system is starting up
+2026-11-14 21:27:14: [INCIDENT] Auto-resolve error: the database system is starting up
+2026-11-14 21:27:14: [INCIDENT] Auto-resolve error: the database system is starting up
+2026-11-14 21:27:14: [HONEY] flush masjid failed: the database system is starting up
+2026-11-14 21:27:14: [POLICY] _pruneAuditChain failed: the database system is starting up
+2026-11-14 21:27:14: Failed to load providers: the database system is starting up
+2026-11-14 21:27:14: [HONEY] flush yalla failed: the database system is starting up
+2026-11-14 21:27:14: Failed to load keys: the database system is starting up
+2026-11-14 21:27:14: [HONEY] flush ashy failed: the database system is starting up
+2026-11-14 21:27:14: Failed to load config: the database system is starting up
+2026-11-14 23:38:06: [2026-11-15T07:38:06.887Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:40:55: [2026-11-15T07:40:55.269Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:40:55: [2026-11-15T07:40:55.333Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:41:04: [2026-11-15T07:41:04.497Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:41:04: [2026-11-15T07:41:04.546Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:41:04: [2026-11-15T07:41:04.600Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:41:04: [2026-11-15T07:41:04.659Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-14 23:41:06: [2026-11-15T07:41:06.593Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-16 12:04:06: [2026-11-16T20:04:06.857Z] ERROR POST /api/nodes/masjid/heartbeat: request aborted
+2026-11-17 00:32:12: [scan] error: canonical JSON allows integers only, got 4.047
+2026-11-17 00:32:34: [scan] error: canonical JSON allows integers only, got 3.922
+2026-11-17 02:45:36: dashboard-stats error: remaining connection slots are reserved for non-replication superuser connections
+2026-11-17 02:48:36: dashboard-stats error: remaining connection slots are reserved for non-replication superuser connections
+2026-11-17 02:56:36: dashboard-stats error: remaining connection slots are reserved for non-replication superuser connections
+2026-11-17 04:18:26: [review-registry] read failed: relation "hivv_review_registry" does not exist
+2026-11-17 04:19:27: [review-registry] read failed: relation "hivv_review_registry" does not exist
+2026-11-17 05:29:31: [2026-11-17T13:29:31.858Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-17 05:29:37: [2026-11-17T13:29:37.227Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-17 05:35:53: [2026-11-17T13:35:53.303Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-17 05:35:56: [2026-11-17T13:35:56.252Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-17 05:36:35: [2026-11-17T13:36:35.801Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-17 05:39:19: [2026-11-17T13:39:19.839Z] ERROR POST /v1/chat/completions: request entity too large

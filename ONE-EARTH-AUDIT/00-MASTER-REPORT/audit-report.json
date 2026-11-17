@@ -1,0 +1,147 @@
+{
+  "generated_at": "2026-11-17T15:05:48Z",
+  "framework": "docs/AUDIT-FRAMEWORK.md",
+  "tools": {
+    "lighthouse": {
+      "version": "13.6.0",
+      "purpose": "performance, accessibility, SEO"
+    },
+    "axe-core": {
+      "version": "4.14.1",
+      "purpose": "accessibility"
+    },
+    "zap": {
+      "version": "zap-stable",
+      "purpose": "web security scanning"
+    },
+    "semgrep": {
+      "version": "1.185.0",
+      "purpose": "source code security"
+    },
+    "schemathesis": {
+      "version": "4.33.4",
+      "purpose": "OpenAPI testing"
+    },
+    "gitleaks": {
+      "version": "latest",
+      "purpose": "secret detection"
+    },
+    "trivy": {
+      "version": "latest",
+      "purpose": "dependency + secret scanning"
+    }
+  },
+  "results": {
+    "hivv_lighthouse": {
+      "performance": 93,
+      "accessibility": 88,
+      "best-practices": 96,
+      "seo": 100
+    },
+    "blnq_lighthouse": {
+      "performance": 99,
+      "accessibility": 93,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "hivv_axe": {
+      "issues": 70,
+      "top": [
+        "color-contrast",
+        "page-has-heading-one",
+        "scrollable-region-focusable"
+      ]
+    },
+    "blnq_axe": {
+      "issues": 25,
+      "top": [
+        "color-contrast",
+        "landmark-one-main",
+        "region"
+      ]
+    },
+    "hivv_zap": {
+      "alert_types": 16,
+      "instances_by_risk": {
+        "2": 22,
+        "1": 20,
+        "0": 21
+      },
+      "high": 0,
+      "medium": 22,
+      "low": 20,
+      "info": 21
+    },
+    "blnq_zap": {
+      "alert_types": 0,
+      "instances_by_risk": {},
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "hivv_semgrep": {
+      "total": 18,
+      "by_rule": {
+        "javascript.node-crypto.security.gcm-no-tag-length.gcm-no-tag-length": 2,
+        "javascript.express.security.injection.raw-html-format.raw-html-format": 15,
+        "javascript.express.security.audit.xss.direct-response-write.direct-response-write": 1
+      },
+      "blocking": [
+        "/var/www/vhosts/hivv.org/api/lib/crypto-utils.js:50",
+        "/var/www/vhosts/hivv.org/api/lib/providers.js:129"
+      ]
+    },
+    "hivv_schemathesis": {
+      "operations_tested": 17,
+      "failures": 20,
+      "by_check": {
+        "ST401_invalid_auth": 6,
+        "ST401_no_auth": 1,
+        "ST108_schema_violation": 1,
+        "ST202_valid_rejected": 4,
+        "ST103_undocumented_status": 6,
+        "ST204_wrong_method_response": 2
+      }
+    },
+    "hivv_npm_audit": {
+      "before": {
+        "critical": 1,
+        "high": 4,
+        "moderate": 4,
+        "low": 3,
+        "total": 12
+      },
+      "after_fix": {
+        "critical": 0,
+        "high": 4,
+        "moderate": 0,
+        "low": 0,
+        "total": 4
+      },
+      "remaining": [
+        "csurf (deprecated)",
+        "uid-safe"
+      ]
+    },
+    "hivv_trivy": {
+      "before": {
+        "critical": 1,
+        "high": 3,
+        "total": 4
+      },
+      "fixed": [
+        "proxy-addr CVE-2026-90711 (CRITICAL: IP spoofing)"
+      ],
+      "remaining_high": [
+        "body-parser CVE-2026-111181 (DoS)",
+        "compression CVE-2026-87776 (memory leak DoS)",
+        "multer CVE-2026-113872 (DoS)"
+      ]
+    },
+    "hivv_gitleaks": {
+      "leaks": 0,
+      "note": "clean after our scanner fixes"
+    }
+  }
+}

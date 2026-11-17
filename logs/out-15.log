@@ -1,0 +1,406 @@
+2026-11-14 17:53:17: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 17:53:17: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 17:53:17: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 17:53:17: [POLICY] audit sweep started (every 24h)
+2026-11-14 17:53:17: Redis not configured, using in-memory cache only
+2026-11-14 17:53:17: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 17:53:17: [CAPS] registry loaded (15 capabilities)
+2026-11-14 17:53:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:53:17: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 17:53:17: AI Gateway initialized
+2026-11-14 17:53:50: [ORCH] Node re-registered: masjid
+2026-11-14 17:54:00: [ORCH] Node re-registered: masjid
+2026-11-14 17:54:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:54:26: [REPAIR] masjid <- rp_mwh6luhn5n41cc [{"op":"cli_update","force":true}] reason=unblock: gate trips on printed curl|sh hint
+2026-11-14 17:54:27: [REPAIR] yalla <- rp_mwh6lumtxca75z [{"op":"cli_update","force":true}] reason=unblock: gate trips on printed curl|sh hint
+2026-11-14 17:55:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:56:01: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwh6luhn5n41cc","result":"signature mismatch — plan rejected","ts":1794707701}
+2026-11-14 17:56:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:57:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:58:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:59:17: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:59:29: [DIAL] 66ad1b8932111461 shim=probe mode=balanced prompt_est=50 tools=false → 3 candidate(s) (masjid,masjid,hub)
+2026-11-14 17:59:45: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 17:59:45: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 17:59:45: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 17:59:45: [POLICY] audit sweep started (every 24h)
+2026-11-14 17:59:45: Redis not configured, using in-memory cache only
+2026-11-14 17:59:45: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 17:59:45: [CAPS] registry loaded (15 capabilities)
+2026-11-14 17:59:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 17:59:45: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 17:59:45: AI Gateway initialized
+2026-11-14 17:59:48: [REPAIR] masjid <- rp_mwh6sqk9e9rxho [{"op":"reap_duplicates"}] reason=signature-parity live test
+2026-11-14 18:00:19: [REPAIR] yalla <- rp_mwh6tefs8tov6t [{"op":"cli_update","force":true}] reason=unblock + signature-canonical fix
+2026-11-14 18:00:19: [REPAIR] masjid <- rp_mwh6tekon7o0cc [{"op":"cli_update","force":true}] reason=retry after canonical-ops fix
+2026-11-14 18:00:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:01:02: [REPAIR] masjid report: {"ok":true,"plan_id":"rp_mwh6sqk9e9rxho","result":"no duplicate agents found","ts":1794708002}
+2026-11-14 18:01:07: [ORCH] Node re-registered: masjid
+2026-11-14 18:01:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:02:07: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwh6tekon7o0cc","result":"signature mismatch — plan rejected","ts":1794708067}
+2026-11-14 18:02:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:02:53: [REPAIR] masjid <- rp_mwh6wpdevqzrnd [{"op":"cli_update","force":true}] reason=canonical signature live test (cli_update path)
+2026-11-14 18:03:12: [ORCH] Node re-registered: masjid
+2026-11-14 18:03:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:04:12: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwh6wpdevqzrnd","result":"signature mismatch — plan rejected","ts":1794708192}
+2026-11-14 18:04:41: [DIAL] 80242ab5e63d31bd shim=0d0ed929ff95 mode=balanced prompt_est=23 tools=false → 5 candidate(s) (localhost,localhost,masjid,masjid,hub)
+2026-11-14 18:04:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:05:37: [DIAL] c3c8d55e1cc0dc1c shim=probe mode=balanced prompt_est=50 tools=false → 3 candidate(s) (masjid,masjid,hub)
+2026-11-14 18:05:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:05:45: [REPAIR] masjid <- rp_mwh70ed93gudit [{"op":"cli_update","force":true}] reason=peek capture
+2026-11-14 18:06:13: [DIAL] 372887ef2b3c37a7 shim=0d0ed929ff95 mode=balanced prompt_est=134 tools=false → 5 candidate(s) (localhost,masjid,masjid,localhost,hub)
+2026-11-14 18:06:45: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:07:01: [ORCH] Node re-registered: masjid
+2026-11-14 18:07:04: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 18:07:04: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 18:07:04: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 18:07:04: [POLICY] audit sweep started (every 24h)
+2026-11-14 18:07:04: Redis not configured, using in-memory cache only
+2026-11-14 18:07:04: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 18:07:04: [CAPS] registry loaded (15 capabilities)
+2026-11-14 18:07:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:07:04: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 18:07:04: AI Gateway initialized
+2026-11-14 18:08:01: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwh70ed93gudit","result":"signature mismatch — plan rejected","ts":1794708421}
+2026-11-14 18:08:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:09:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:09:38: [REPAIR] masjid <- rp_mwh75e3o3gj596 [{"op":"cli_update","force":true}] reason=multi-key signature retest
+2026-11-14 18:10:04: [ORCH] Node re-registered: masjid
+2026-11-14 18:10:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:11:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:11:55: [REPAIR] masjid <- rp_mwh78bdisr6fnb [{"op":"cli_update","force":true}] reason=convergence test (both sides current)
+2026-11-14 18:12:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:13:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:13:46: [ORCH] Node re-registered: yalla
+2026-11-14 18:14:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:15:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:16:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:17:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:18:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:18:48: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 18:18:48: [INBOX] restored 2 pending message(s) across restart
+2026-11-14 18:18:48: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 18:18:48: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 18:18:48: [POLICY] audit sweep started (every 24h)
+2026-11-14 18:18:48: Redis not configured, using in-memory cache only
+2026-11-14 18:18:48: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 18:18:48: [CAPS] registry loaded (15 capabilities)
+2026-11-14 18:18:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:18:48: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 18:18:48: AI Gateway initialized
+2026-11-14 18:18:52: [DIAL] 5acbee4b549ada94 shim=e2e mode=balanced prompt_est=5000 tools=true → 4 candidate(s) (localhost,masjid,masjid,hub)
+2026-11-14 18:19:34: [DIAL] 85d2604e45ef8710 shim=0d0ed929ff95 mode=balanced prompt_est=528 tools=false → 5 candidate(s) (masjid,localhost,localhost,masjid,hub)
+2026-11-14 18:19:34: [DIAL] 795fa7780878eb86 shim=0d0ed929ff95 mode=balanced prompt_est=5642 tools=true → 4 candidate(s) (localhost,masjid,masjid,hub)
+2026-11-14 18:19:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:20:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:21:22: [ORCH] Node re-registered: ashy
+2026-11-14 18:21:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:22:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:23:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:24:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:25:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:26:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:27:03: [ORCH] Node re-registered: yalla
+2026-11-14 18:27:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:28:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:29:08: [ORCH] Node re-registered: masjid
+2026-11-14 18:29:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:30:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:31:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:32:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:33:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:34:48: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:35:08: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 18:35:08: [INBOX] restored 2 pending message(s) across restart
+2026-11-14 18:35:08: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 18:35:08: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 18:35:08: [POLICY] audit sweep started (every 24h)
+2026-11-14 18:35:08: Redis not configured, using in-memory cache only
+2026-11-14 18:35:08: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 18:35:08: [CAPS] registry loaded (15 capabilities)
+2026-11-14 18:35:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:35:08: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 18:35:08: AI Gateway initialized
+2026-11-14 18:35:30: [ORCH] Node re-registered: ashy
+2026-11-14 18:35:30: [NODE-AUTH] ashy: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 18:36:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:37:08: [ORCH] Node re-registered: ashy
+2026-11-14 18:37:08: [NODE-AUTH] ashy: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 18:37:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:38:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:39:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:40:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:40:18: [ORCH] Node re-registered: yalla
+2026-11-14 18:41:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:41:56: [ORCH] Node re-registered: ashy
+2026-11-14 18:42:02: [ORCH] Node re-registered: masjid
+2026-11-14 18:42:02: [NODE-AUTH] masjid: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 18:42:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:43:02: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwh78bdisr6fnb","result":"outside trusted window (age=1807s, ttl=300s)","ts":1794710522}
+2026-11-14 18:43:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:44:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:44:33: [ORCH] Node re-registered: yalla
+2026-11-14 18:44:34: [ORCH] Node re-registered: yalla
+2026-11-14 18:45:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:46:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:47:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:48:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:49:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:50:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:51:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:52:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:53:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:53:35: [ORCH] Node re-registered: ashy
+2026-11-14 18:53:36: [ORCH] Node re-registered: ashy
+2026-11-14 18:54:07: [ORCH] Node re-registered: yalla
+2026-11-14 18:54:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:55:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:56:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:56:14: [ORCH] Node re-registered: masjid
+2026-11-14 18:57:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:57:41: [ORCH] Node re-registered: ashy
+2026-11-14 18:58:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 18:59:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:00:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:01:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:02:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:02:37: [ORCH] Node re-registered: yalla
+2026-11-14 19:02:58: [ORCH] Node re-registered: masjid
+2026-11-14 19:03:07: [ORCH] Node re-registered: ashy
+2026-11-14 19:03:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:04:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:05:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:06:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:07:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:08:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:09:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:10:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:11:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:12:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:13:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:14:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:15:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:16:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:17:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:18:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:19:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:20:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:21:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:22:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:22:18: [ORCH] Node re-registered: yalla
+2026-11-14 19:22:22: [ORCH] Node re-registered: ashy
+2026-11-14 19:22:29: [ORCH] Node re-registered: masjid
+2026-11-14 19:23:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:24:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:25:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:26:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:27:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:28:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:29:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:30:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:31:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:31:31: [ORCH] Node re-registered: yalla
+2026-11-14 19:31:31: [ORCH] Node re-registered: ashy
+2026-11-14 19:31:35: [ORCH] Node re-registered: masjid
+2026-11-14 19:32:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:33:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:34:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:35:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:35:52: [ORCH] Node re-registered: yalla
+2026-11-14 19:35:54: [ORCH] Node re-registered: ashy
+2026-11-14 19:35:57: [ORCH] Node re-registered: masjid
+2026-11-14 19:36:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:37:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:38:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:39:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:40:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:41:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:42:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:43:08: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:43:20: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 19:43:20: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 19:43:20: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 19:43:20: [POLICY] audit sweep started (every 24h)
+2026-11-14 19:43:20: Redis not configured, using in-memory cache only
+2026-11-14 19:43:20: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 19:43:20: [CAPS] registry loaded (15 capabilities)
+2026-11-14 19:43:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:43:20: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 19:43:20: AI Gateway initialized
+2026-11-14 19:44:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:45:14: [ORCH] Node re-registered: yalla
+2026-11-14 19:45:14: [ORCH] Node re-registered: ashy
+2026-11-14 19:45:19: [ORCH] Node re-registered: masjid
+2026-11-14 19:45:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:46:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:47:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:48:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:48:43: [DIAL] aca7d57c829653c8 shim=0d0ed929ff95 mode=balanced prompt_est=23 tools=false → 6 candidate(s) (ashy,localhost,masjid,localhost,masjid,hub)
+2026-11-14 19:49:17: [ORCH] Node re-registered: ashy
+2026-11-14 19:49:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:49:44: [DIAL] fefb5246c6a4cc88 shim=0d0ed929ff95 mode=balanced prompt_est=23 tools=false → 6 candidate(s) (localhost,masjid,ashy,masjid,localhost,hub)
+2026-11-14 19:50:13: [ORCH] Node re-registered: yalla
+2026-11-14 19:50:20: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:50:36: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 19:50:36: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 19:50:36: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 19:50:36: [POLICY] audit sweep started (every 24h)
+2026-11-14 19:50:36: Redis not configured, using in-memory cache only
+2026-11-14 19:50:36: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 19:50:36: [CAPS] registry loaded (15 capabilities)
+2026-11-14 19:50:36: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:50:36: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 19:50:36: AI Gateway initialized
+2026-11-14 19:50:39: [UPGRADE-REVIEW] upgrade_suspicious on masjid: tie broken — flagger held up under evidence demand: The introduction of `--pin` explicitly creates a persistent connecti
+2026-11-14 19:50:43: [DIAL] 84790199700ba4b2 shim=e2e mode=balanced prompt_est=5000 tools=true → 5 candidate(s) (localhost,ashy,masjid,masjid,hub)
+2026-11-14 19:50:56: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 19:50:56: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 19:50:56: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 19:50:56: [POLICY] audit sweep started (every 24h)
+2026-11-14 19:50:56: Redis not configured, using in-memory cache only
+2026-11-14 19:50:56: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 19:50:56: [CAPS] registry loaded (15 capabilities)
+2026-11-14 19:50:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:50:56: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 19:50:56: AI Gateway initialized
+2026-11-14 19:51:03: [DIAL] c72d9621f7caf20d shim=e2e mode=balanced prompt_est=5000 tools=true → 4 candidate(s) (localhost,masjid,masjid,hub)
+2026-11-14 19:51:16: [DIAL] 6d199e3a23b313c8 shim=0d0ed929ff95 mode=balanced prompt_est=23 tools=false → 5 candidate(s) (localhost,masjid,localhost,masjid,hub)
+2026-11-14 19:51:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:52:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:53:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:54:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:55:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:56:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:57:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:58:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 19:59:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:00:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:01:34: [DIAL] 2718b92f824fc722 shim=0d0ed929ff95 mode=balanced prompt_est=532 tools=false → 5 candidate(s) (localhost,masjid,masjid,localhost,hub)
+2026-11-14 20:01:34: [DIAL] 9540c3b2e884909b shim=0d0ed929ff95 mode=balanced prompt_est=5645 tools=true → 4 candidate(s) (localhost,masjid,masjid,hub)
+2026-11-14 20:01:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:02:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:03:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:04:56: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:05:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:06:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:07:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:08:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:09:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:10:57: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:11:02: [ORCH] Loaded 3 persisted node(s)
+2026-11-14 20:11:02: [HONEY] bee-identity sweep started (every 60s)
+2026-11-14 20:11:02: [PERF] model-performance tracker started (flush 30s)
+2026-11-14 20:11:02: [POLICY] audit sweep started (every 24h)
+2026-11-14 20:11:02: Redis not configured, using in-memory cache only
+2026-11-14 20:11:02: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-14 20:11:02: [CAPS] registry loaded (15 capabilities)
+2026-11-14 20:11:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:11:02: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-14 20:11:02: AI Gateway initialized
+2026-11-14 20:12:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:12:03: [INCIDENT] LLM locked on yalla: api-key required
+2026-11-14 20:13:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:14:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:15:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:16:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:17:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:18:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:18:26: [REPAIR] yalla <- rp_mwhbr0pyvdthwf [{"op":"service_restart","unit":"llama.service"}] reason=verify which unit (if any) runs yalla's llama — ps shows PPID2729 launcher, not systemd
+2026-11-14 20:18:38: [ORCH] Node re-registered: ashy
+2026-11-14 20:19:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:19:32: [ORCH] Node re-registered: yalla
+2026-11-14 20:19:32: [REPAIR] yalla report: {"ok":true,"plan_id":"rp_mwhbr0pyvdthwf","result":"llama.service: no permission (rc=5)","ts":1794716371}
+2026-11-14 20:20:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:21:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:21:29: [ORCH] New node online: __node_auth_e2e__ (undefined) caps: heartbeat
+2026-11-14 20:21:29: [ORCH] Node re-registered: __node_auth_e2e__
+2026-11-14 20:21:29: [NODE-AUTH] __node_auth_e2e__: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 20:21:29: [REPAIR] __node_auth_e2e__ <- rp_mwhbuy7nay4wpj [{"op":"cli_update","force":true}] reason=e2e canonical parity
+2026-11-14 20:21:29: [UPGRADE-REVIEW] upgrade_suspicious on __node_auth_e2e__: e2e blocked row
+2026-11-14 20:21:29: [ORCH] New node online: __node_auth_e2e__ (undefined) caps: heartbeat
+2026-11-14 20:21:30: [ORCH] Node re-registered: __node_auth_e2e__
+2026-11-14 20:21:30: [NODE-AUTH] __node_auth_e2e__: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 20:21:30: [REPAIR] __node_auth_e2e__ <- rp_mwhbuyre3fpqdq [{"op":"cli_update","force":true}] reason=e2e canonical parity
+2026-11-14 20:21:30: [UPGRADE-REVIEW] upgrade_suspicious on __node_auth_e2e__: e2e blocked row
+2026-11-14 20:21:45: [ORCH] New node online: __node_auth_e2e__ (undefined) caps: heartbeat
+2026-11-14 20:21:45: [ORCH] Node re-registered: __node_auth_e2e__
+2026-11-14 20:21:45: [NODE-AUTH] __node_auth_e2e__: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 20:21:46: [REPAIR] __node_auth_e2e__ <- rp_mwhbvb724up16t [{"op":"cli_update","force":true}] reason=e2e canonical parity
+2026-11-14 20:21:47: [UPGRADE-REVIEW] upgrade_suspicious on __node_auth_e2e__: e2e blocked row
+2026-11-14 20:22:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:23:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:24:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:25:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:25:55: [ORCH] Node re-registered: masjid
+2026-11-14 20:25:59: [ORCH] Node re-registered: ashy
+2026-11-14 20:26:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:26:30: [REPAIR] masjid <- rp_mwhc1eetvjozb9 [{"op":"cli_update","force":true}] reason=operator review: --pin flag is intentional (documented dial-shim feature with transport-level hub fallback); brain misread; force to latest
+2026-11-14 20:26:56: [ORCH] Node re-registered: masjid
+2026-11-14 20:26:56: [REPAIR] masjid report: {"ok":true,"plan_id":"rp_mwhc1eetvjozb9","result":"update applied (force=True) → applied (source=repair, version=0.2.a369e87e)","ts":1794716816}
+2026-11-14 20:27:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:27:56: [REPAIR] masjid report: {"ok":false,"plan_id":"rp_mwhc1eetvjozb9","result":"replay ignored — already executed","ts":1794716816}
+2026-11-14 20:28:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:28:47: [ORCH] Node re-registered: yalla
+2026-11-14 20:29:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:29:49: [ORCH] New node online: __node_auth_e2e__ (undefined) caps: heartbeat
+2026-11-14 20:29:49: [ORCH] Node re-registered: __node_auth_e2e__
+2026-11-14 20:29:49: [NODE-AUTH] __node_auth_e2e__: secret re-issued (lost local copy, hw_id proven)
+2026-11-14 20:29:49: [REPAIR] __node_auth_e2e__ <- rp_mwhc5nyim8fsu1 [{"op":"cli_update","force":true}] reason=e2e canonical parity
+2026-11-14 20:29:49: [UPGRADE-REVIEW] upgrade_suspicious on __node_auth_e2e__: e2e blocked row
+2026-11-14 20:30:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:31:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:32:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:33:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:34:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:35:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:36:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:37:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:38:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:39:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:40:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:41:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:42:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:43:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:44:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:45:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:46:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:47:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:48:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:49:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:50:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:50:07: [ORCH] Node re-registered: yalla
+2026-11-14 20:51:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:52:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:53:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:54:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:55:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:56:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:57:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:58:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 20:59:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:00:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:01:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:02:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:03:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:04:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:05:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:06:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:07:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:08:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:09:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:10:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:11:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:12:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:13:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:14:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:15:04: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:16:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:17:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:18:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:19:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:20:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:21:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:22:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:23:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:24:02: Gateway config loaded: API v2, Frontend v2
+2026-11-14 21:25:02: Gateway config loaded: API v2, Frontend v2

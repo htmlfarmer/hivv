@@ -1,0 +1,1088 @@
+2026-09-17 04:16:59: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:16:59:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:16:59:   errno: -111,
+2026-09-17 04:16:59:   code: 'ECONNREFUSED',
+2026-09-17 04:16:59:   syscall: 'connect',
+2026-09-17 04:16:59:   address: '192.168.1.3',
+2026-09-17 04:16:59:   port: 8081
+2026-09-17 04:16:59: }
+2026-09-17 04:17:13: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:17:13:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:17:13:   errno: -111,
+2026-09-17 04:17:13:   code: 'ECONNREFUSED',
+2026-09-17 04:17:13:   syscall: 'connect',
+2026-09-17 04:17:13:   address: '192.168.1.3',
+2026-09-17 04:17:13:   port: 8081
+2026-09-17 04:17:13: }
+2026-09-17 04:17:27: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:17:27:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:17:27:   errno: -111,
+2026-09-17 04:17:27:   code: 'ECONNREFUSED',
+2026-09-17 04:17:27:   syscall: 'connect',
+2026-09-17 04:17:27:   address: '192.168.1.3',
+2026-09-17 04:17:27:   port: 8081
+2026-09-17 04:17:27: }
+2026-09-17 04:17:41: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:17:41:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:17:41:   errno: -111,
+2026-09-17 04:17:41:   code: 'ECONNREFUSED',
+2026-09-17 04:17:41:   syscall: 'connect',
+2026-09-17 04:17:41:   address: '192.168.1.3',
+2026-09-17 04:17:41:   port: 8081
+2026-09-17 04:17:41: }
+2026-09-17 04:17:55: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:17:55:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:17:55:   errno: -111,
+2026-09-17 04:17:55:   code: 'ECONNREFUSED',
+2026-09-17 04:17:55:   syscall: 'connect',
+2026-09-17 04:17:55:   address: '192.168.1.3',
+2026-09-17 04:17:55:   port: 8081
+2026-09-17 04:17:55: }
+2026-09-17 04:18:10: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:18:10:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:18:10:   errno: -111,
+2026-09-17 04:18:10:   code: 'ECONNREFUSED',
+2026-09-17 04:18:10:   syscall: 'connect',
+2026-09-17 04:18:10:   address: '192.168.1.3',
+2026-09-17 04:18:10:   port: 8081
+2026-09-17 04:18:10: }
+2026-09-17 04:18:24: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:18:24:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:18:24:   errno: -111,
+2026-09-17 04:18:24:   code: 'ECONNREFUSED',
+2026-09-17 04:18:24:   syscall: 'connect',
+2026-09-17 04:18:24:   address: '192.168.1.3',
+2026-09-17 04:18:24:   port: 8081
+2026-09-17 04:18:24: }
+2026-09-17 04:18:38: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:18:38:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:18:38:   errno: -111,
+2026-09-17 04:18:38:   code: 'ECONNREFUSED',
+2026-09-17 04:18:38:   syscall: 'connect',
+2026-09-17 04:18:38:   address: '192.168.1.3',
+2026-09-17 04:18:38:   port: 8081
+2026-09-17 04:18:38: }
+2026-09-17 04:18:53: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:18:53:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:18:53:   errno: -111,
+2026-09-17 04:18:53:   code: 'ECONNREFUSED',
+2026-09-17 04:18:53:   syscall: 'connect',
+2026-09-17 04:18:53:   address: '192.168.1.3',
+2026-09-17 04:18:53:   port: 8081
+2026-09-17 04:18:53: }
+2026-09-17 04:19:07: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:19:07:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:19:07:   errno: -111,
+2026-09-17 04:19:07:   code: 'ECONNREFUSED',
+2026-09-17 04:19:07:   syscall: 'connect',
+2026-09-17 04:19:07:   address: '192.168.1.3',
+2026-09-17 04:19:07:   port: 8081
+2026-09-17 04:19:07: }
+2026-09-17 04:19:21: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:19:21:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:19:21:   errno: -111,
+2026-09-17 04:19:21:   code: 'ECONNREFUSED',
+2026-09-17 04:19:21:   syscall: 'connect',
+2026-09-17 04:19:21:   address: '192.168.1.3',
+2026-09-17 04:19:21:   port: 8081
+2026-09-17 04:19:21: }
+2026-09-17 04:19:35: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:19:35:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:19:35:   errno: -111,
+2026-09-17 04:19:35:   code: 'ECONNREFUSED',
+2026-09-17 04:19:35:   syscall: 'connect',
+2026-09-17 04:19:35:   address: '192.168.1.3',
+2026-09-17 04:19:35:   port: 8081
+2026-09-17 04:19:35: }
+2026-09-17 04:19:50: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:19:50:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:19:50:   errno: -111,
+2026-09-17 04:19:50:   code: 'ECONNREFUSED',
+2026-09-17 04:19:50:   syscall: 'connect',
+2026-09-17 04:19:50:   address: '192.168.1.3',
+2026-09-17 04:19:50:   port: 8081
+2026-09-17 04:19:50: }
+2026-09-17 04:20:04: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:20:04:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:20:04:   errno: -111,
+2026-09-17 04:20:04:   code: 'ECONNREFUSED',
+2026-09-17 04:20:04:   syscall: 'connect',
+2026-09-17 04:20:04:   address: '192.168.1.3',
+2026-09-17 04:20:04:   port: 8081
+2026-09-17 04:20:04: }
+2026-09-17 04:20:18: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:20:18:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:20:18:   errno: -111,
+2026-09-17 04:20:18:   code: 'ECONNREFUSED',
+2026-09-17 04:20:18:   syscall: 'connect',
+2026-09-17 04:20:18:   address: '192.168.1.3',
+2026-09-17 04:20:18:   port: 8081
+2026-09-17 04:20:18: }
+2026-09-17 04:20:32: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:20:32:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:20:32:   errno: -111,
+2026-09-17 04:20:32:   code: 'ECONNREFUSED',
+2026-09-17 04:20:32:   syscall: 'connect',
+2026-09-17 04:20:32:   address: '192.168.1.3',
+2026-09-17 04:20:32:   port: 8081
+2026-09-17 04:20:32: }
+2026-09-17 04:20:47: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:20:47:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:20:47:   errno: -111,
+2026-09-17 04:20:47:   code: 'ECONNREFUSED',
+2026-09-17 04:20:47:   syscall: 'connect',
+2026-09-17 04:20:47:   address: '192.168.1.3',
+2026-09-17 04:20:47:   port: 8081
+2026-09-17 04:20:47: }
+2026-09-17 04:21:01: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:21:01:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:21:01:   errno: -111,
+2026-09-17 04:21:01:   code: 'ECONNREFUSED',
+2026-09-17 04:21:01:   syscall: 'connect',
+2026-09-17 04:21:01:   address: '192.168.1.3',
+2026-09-17 04:21:01:   port: 8081
+2026-09-17 04:21:01: }
+2026-09-17 04:21:15: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:21:15:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:21:15:   errno: -111,
+2026-09-17 04:21:15:   code: 'ECONNREFUSED',
+2026-09-17 04:21:15:   syscall: 'connect',
+2026-09-17 04:21:15:   address: '192.168.1.3',
+2026-09-17 04:21:15:   port: 8081
+2026-09-17 04:21:15: }
+2026-09-17 04:21:29: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:21:29:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:21:29:   errno: -111,
+2026-09-17 04:21:29:   code: 'ECONNREFUSED',
+2026-09-17 04:21:29:   syscall: 'connect',
+2026-09-17 04:21:29:   address: '192.168.1.3',
+2026-09-17 04:21:29:   port: 8081
+2026-09-17 04:21:29: }
+2026-09-17 04:21:44: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:21:44:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:21:44:   errno: -111,
+2026-09-17 04:21:44:   code: 'ECONNREFUSED',
+2026-09-17 04:21:44:   syscall: 'connect',
+2026-09-17 04:21:44:   address: '192.168.1.3',
+2026-09-17 04:21:44:   port: 8081
+2026-09-17 04:21:44: }
+2026-09-17 04:21:58: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:21:58:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:21:58:   errno: -111,
+2026-09-17 04:21:58:   code: 'ECONNREFUSED',
+2026-09-17 04:21:58:   syscall: 'connect',
+2026-09-17 04:21:58:   address: '192.168.1.3',
+2026-09-17 04:21:58:   port: 8081
+2026-09-17 04:21:58: }
+2026-09-17 04:22:12: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:22:12:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:22:12:   errno: -111,
+2026-09-17 04:22:12:   code: 'ECONNREFUSED',
+2026-09-17 04:22:12:   syscall: 'connect',
+2026-09-17 04:22:12:   address: '192.168.1.3',
+2026-09-17 04:22:12:   port: 8081
+2026-09-17 04:22:12: }
+2026-09-17 04:22:26: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:22:26:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:22:26:   errno: -111,
+2026-09-17 04:22:26:   code: 'ECONNREFUSED',
+2026-09-17 04:22:26:   syscall: 'connect',
+2026-09-17 04:22:26:   address: '192.168.1.3',
+2026-09-17 04:22:26:   port: 8081
+2026-09-17 04:22:26: }
+2026-09-17 04:22:41: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:22:41:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:22:41:   errno: -111,
+2026-09-17 04:22:41:   code: 'ECONNREFUSED',
+2026-09-17 04:22:41:   syscall: 'connect',
+2026-09-17 04:22:41:   address: '192.168.1.3',
+2026-09-17 04:22:41:   port: 8081
+2026-09-17 04:22:41: }
+2026-09-17 04:22:55: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:22:55:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:22:55:   errno: -111,
+2026-09-17 04:22:55:   code: 'ECONNREFUSED',
+2026-09-17 04:22:55:   syscall: 'connect',
+2026-09-17 04:22:55:   address: '192.168.1.3',
+2026-09-17 04:22:55:   port: 8081
+2026-09-17 04:22:55: }
+2026-09-17 04:23:09: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:23:09:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:23:09:   errno: -111,
+2026-09-17 04:23:09:   code: 'ECONNREFUSED',
+2026-09-17 04:23:09:   syscall: 'connect',
+2026-09-17 04:23:09:   address: '192.168.1.3',
+2026-09-17 04:23:09:   port: 8081
+2026-09-17 04:23:09: }
+2026-09-17 04:23:23: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:23:23:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:23:23:   errno: -111,
+2026-09-17 04:23:23:   code: 'ECONNREFUSED',
+2026-09-17 04:23:23:   syscall: 'connect',
+2026-09-17 04:23:23:   address: '192.168.1.3',
+2026-09-17 04:23:23:   port: 8081
+2026-09-17 04:23:23: }
+2026-09-17 04:23:38: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:23:38:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:23:38:   errno: -111,
+2026-09-17 04:23:38:   code: 'ECONNREFUSED',
+2026-09-17 04:23:38:   syscall: 'connect',
+2026-09-17 04:23:38:   address: '192.168.1.3',
+2026-09-17 04:23:38:   port: 8081
+2026-09-17 04:23:38: }
+2026-09-17 04:23:52: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:23:52:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:23:52:   errno: -111,
+2026-09-17 04:23:52:   code: 'ECONNREFUSED',
+2026-09-17 04:23:52:   syscall: 'connect',
+2026-09-17 04:23:52:   address: '192.168.1.3',
+2026-09-17 04:23:52:   port: 8081
+2026-09-17 04:23:52: }
+2026-09-17 04:24:06: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:24:06:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:24:06:   errno: -111,
+2026-09-17 04:24:06:   code: 'ECONNREFUSED',
+2026-09-17 04:24:06:   syscall: 'connect',
+2026-09-17 04:24:06:   address: '192.168.1.3',
+2026-09-17 04:24:06:   port: 8081
+2026-09-17 04:24:06: }
+2026-09-17 04:24:20: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:24:20:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:24:20:   errno: -111,
+2026-09-17 04:24:20:   code: 'ECONNREFUSED',
+2026-09-17 04:24:20:   syscall: 'connect',
+2026-09-17 04:24:20:   address: '192.168.1.3',
+2026-09-17 04:24:20:   port: 8081
+2026-09-17 04:24:20: }
+2026-09-17 04:24:35: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:24:35:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:24:35:   errno: -111,
+2026-09-17 04:24:35:   code: 'ECONNREFUSED',
+2026-09-17 04:24:35:   syscall: 'connect',
+2026-09-17 04:24:35:   address: '192.168.1.3',
+2026-09-17 04:24:35:   port: 8081
+2026-09-17 04:24:35: }
+2026-09-17 04:24:49: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:24:49:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:24:49:   errno: -111,
+2026-09-17 04:24:49:   code: 'ECONNREFUSED',
+2026-09-17 04:24:49:   syscall: 'connect',
+2026-09-17 04:24:49:   address: '192.168.1.3',
+2026-09-17 04:24:49:   port: 8081
+2026-09-17 04:24:49: }
+2026-09-17 04:25:03: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:25:03:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:25:03:   errno: -111,
+2026-09-17 04:25:03:   code: 'ECONNREFUSED',
+2026-09-17 04:25:03:   syscall: 'connect',
+2026-09-17 04:25:03:   address: '192.168.1.3',
+2026-09-17 04:25:03:   port: 8081
+2026-09-17 04:25:03: }
+2026-09-17 04:25:17: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:25:17:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:25:17:   errno: -111,
+2026-09-17 04:25:17:   code: 'ECONNREFUSED',
+2026-09-17 04:25:17:   syscall: 'connect',
+2026-09-17 04:25:17:   address: '192.168.1.3',
+2026-09-17 04:25:17:   port: 8081
+2026-09-17 04:25:17: }
+2026-09-17 04:25:32: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:25:32:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:25:32:   errno: -111,
+2026-09-17 04:25:32:   code: 'ECONNREFUSED',
+2026-09-17 04:25:32:   syscall: 'connect',
+2026-09-17 04:25:32:   address: '192.168.1.3',
+2026-09-17 04:25:32:   port: 8081
+2026-09-17 04:25:32: }
+2026-09-17 04:25:46: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:25:46:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:25:46:   errno: -111,
+2026-09-17 04:25:46:   code: 'ECONNREFUSED',
+2026-09-17 04:25:46:   syscall: 'connect',
+2026-09-17 04:25:46:   address: '192.168.1.3',
+2026-09-17 04:25:46:   port: 8081
+2026-09-17 04:25:46: }
+2026-09-17 04:26:00: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:26:00:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:26:00:   errno: -111,
+2026-09-17 04:26:00:   code: 'ECONNREFUSED',
+2026-09-17 04:26:00:   syscall: 'connect',
+2026-09-17 04:26:00:   address: '192.168.1.3',
+2026-09-17 04:26:00:   port: 8081
+2026-09-17 04:26:00: }
+2026-09-17 04:26:14: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:26:14:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:26:14:   errno: -111,
+2026-09-17 04:26:14:   code: 'ECONNREFUSED',
+2026-09-17 04:26:14:   syscall: 'connect',
+2026-09-17 04:26:14:   address: '192.168.1.3',
+2026-09-17 04:26:14:   port: 8081
+2026-09-17 04:26:14: }
+2026-09-17 04:26:29: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:26:29:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:26:29:   errno: -111,
+2026-09-17 04:26:29:   code: 'ECONNREFUSED',
+2026-09-17 04:26:29:   syscall: 'connect',
+2026-09-17 04:26:29:   address: '192.168.1.3',
+2026-09-17 04:26:29:   port: 8081
+2026-09-17 04:26:29: }
+2026-09-17 04:26:43: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:26:43:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:26:43:   errno: -111,
+2026-09-17 04:26:43:   code: 'ECONNREFUSED',
+2026-09-17 04:26:43:   syscall: 'connect',
+2026-09-17 04:26:43:   address: '192.168.1.3',
+2026-09-17 04:26:43:   port: 8081
+2026-09-17 04:26:43: }
+2026-09-17 04:26:57: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:26:57:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:26:57:   errno: -111,
+2026-09-17 04:26:57:   code: 'ECONNREFUSED',
+2026-09-17 04:26:57:   syscall: 'connect',
+2026-09-17 04:26:57:   address: '192.168.1.3',
+2026-09-17 04:26:57:   port: 8081
+2026-09-17 04:26:57: }
+2026-09-17 04:27:11: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:27:11:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:27:11:   errno: -111,
+2026-09-17 04:27:11:   code: 'ECONNREFUSED',
+2026-09-17 04:27:11:   syscall: 'connect',
+2026-09-17 04:27:11:   address: '192.168.1.3',
+2026-09-17 04:27:11:   port: 8081
+2026-09-17 04:27:11: }
+2026-09-17 04:27:26: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:27:26:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:27:26:   errno: -111,
+2026-09-17 04:27:26:   code: 'ECONNREFUSED',
+2026-09-17 04:27:26:   syscall: 'connect',
+2026-09-17 04:27:26:   address: '192.168.1.3',
+2026-09-17 04:27:26:   port: 8081
+2026-09-17 04:27:26: }
+2026-09-17 04:27:40: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:27:40:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:27:40:   errno: -111,
+2026-09-17 04:27:40:   code: 'ECONNREFUSED',
+2026-09-17 04:27:40:   syscall: 'connect',
+2026-09-17 04:27:40:   address: '192.168.1.3',
+2026-09-17 04:27:40:   port: 8081
+2026-09-17 04:27:40: }
+2026-09-17 04:27:54: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:27:54:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:27:54:   errno: -111,
+2026-09-17 04:27:54:   code: 'ECONNREFUSED',
+2026-09-17 04:27:54:   syscall: 'connect',
+2026-09-17 04:27:54:   address: '192.168.1.3',
+2026-09-17 04:27:54:   port: 8081
+2026-09-17 04:27:54: }
+2026-09-17 04:28:08: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:28:08:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:28:08:   errno: -111,
+2026-09-17 04:28:08:   code: 'ECONNREFUSED',
+2026-09-17 04:28:08:   syscall: 'connect',
+2026-09-17 04:28:08:   address: '192.168.1.3',
+2026-09-17 04:28:08:   port: 8081
+2026-09-17 04:28:08: }
+2026-09-17 04:28:22: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:28:22:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:28:22:   errno: -111,
+2026-09-17 04:28:22:   code: 'ECONNREFUSED',
+2026-09-17 04:28:22:   syscall: 'connect',
+2026-09-17 04:28:22:   address: '192.168.1.3',
+2026-09-17 04:28:22:   port: 8081
+2026-09-17 04:28:22: }
+2026-09-17 04:28:37: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:28:37:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:28:37:   errno: -111,
+2026-09-17 04:28:37:   code: 'ECONNREFUSED',
+2026-09-17 04:28:37:   syscall: 'connect',
+2026-09-17 04:28:37:   address: '192.168.1.3',
+2026-09-17 04:28:37:   port: 8081
+2026-09-17 04:28:37: }
+2026-09-17 04:28:51: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:28:51:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:28:51:   errno: -111,
+2026-09-17 04:28:51:   code: 'ECONNREFUSED',
+2026-09-17 04:28:51:   syscall: 'connect',
+2026-09-17 04:28:51:   address: '192.168.1.3',
+2026-09-17 04:28:51:   port: 8081
+2026-09-17 04:28:51: }
+2026-09-17 04:29:05: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:29:05:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:29:05:   errno: -111,
+2026-09-17 04:29:05:   code: 'ECONNREFUSED',
+2026-09-17 04:29:05:   syscall: 'connect',
+2026-09-17 04:29:05:   address: '192.168.1.3',
+2026-09-17 04:29:05:   port: 8081
+2026-09-17 04:29:05: }
+2026-09-17 04:29:19: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:29:19:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:29:19:   errno: -111,
+2026-09-17 04:29:19:   code: 'ECONNREFUSED',
+2026-09-17 04:29:19:   syscall: 'connect',
+2026-09-17 04:29:19:   address: '192.168.1.3',
+2026-09-17 04:29:19:   port: 8081
+2026-09-17 04:29:19: }
+2026-09-17 04:29:34: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:29:34:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:29:34:   errno: -111,
+2026-09-17 04:29:34:   code: 'ECONNREFUSED',
+2026-09-17 04:29:34:   syscall: 'connect',
+2026-09-17 04:29:34:   address: '192.168.1.3',
+2026-09-17 04:29:34:   port: 8081
+2026-09-17 04:29:34: }
+2026-09-17 04:29:48: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:29:48:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:29:48:   errno: -111,
+2026-09-17 04:29:48:   code: 'ECONNREFUSED',
+2026-09-17 04:29:48:   syscall: 'connect',
+2026-09-17 04:29:48:   address: '192.168.1.3',
+2026-09-17 04:29:48:   port: 8081
+2026-09-17 04:29:48: }
+2026-09-17 04:30:02: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:30:02:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:30:02:   errno: -111,
+2026-09-17 04:30:02:   code: 'ECONNREFUSED',
+2026-09-17 04:30:02:   syscall: 'connect',
+2026-09-17 04:30:02:   address: '192.168.1.3',
+2026-09-17 04:30:02:   port: 8081
+2026-09-17 04:30:02: }
+2026-09-17 04:30:17: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:30:17:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:30:17:   errno: -111,
+2026-09-17 04:30:17:   code: 'ECONNREFUSED',
+2026-09-17 04:30:17:   syscall: 'connect',
+2026-09-17 04:30:17:   address: '192.168.1.3',
+2026-09-17 04:30:17:   port: 8081
+2026-09-17 04:30:17: }
+2026-09-17 04:30:31: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:30:31:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:30:31:   errno: -111,
+2026-09-17 04:30:31:   code: 'ECONNREFUSED',
+2026-09-17 04:30:31:   syscall: 'connect',
+2026-09-17 04:30:31:   address: '192.168.1.3',
+2026-09-17 04:30:31:   port: 8081
+2026-09-17 04:30:31: }
+2026-09-17 04:30:45: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:30:45:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:30:45:   errno: -111,
+2026-09-17 04:30:45:   code: 'ECONNREFUSED',
+2026-09-17 04:30:45:   syscall: 'connect',
+2026-09-17 04:30:45:   address: '192.168.1.3',
+2026-09-17 04:30:45:   port: 8081
+2026-09-17 04:30:45: }
+2026-09-17 04:30:59: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:30:59:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:30:59:   errno: -111,
+2026-09-17 04:30:59:   code: 'ECONNREFUSED',
+2026-09-17 04:30:59:   syscall: 'connect',
+2026-09-17 04:30:59:   address: '192.168.1.3',
+2026-09-17 04:30:59:   port: 8081
+2026-09-17 04:30:59: }
+2026-09-17 04:31:14: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:31:14:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:31:14:   errno: -111,
+2026-09-17 04:31:14:   code: 'ECONNREFUSED',
+2026-09-17 04:31:14:   syscall: 'connect',
+2026-09-17 04:31:14:   address: '192.168.1.3',
+2026-09-17 04:31:14:   port: 8081
+2026-09-17 04:31:14: }
+2026-09-17 04:31:28: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:31:28:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:31:28:   errno: -111,
+2026-09-17 04:31:28:   code: 'ECONNREFUSED',
+2026-09-17 04:31:28:   syscall: 'connect',
+2026-09-17 04:31:28:   address: '192.168.1.3',
+2026-09-17 04:31:28:   port: 8081
+2026-09-17 04:31:28: }
+2026-09-17 04:31:42: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:31:42:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:31:42:   errno: -111,
+2026-09-17 04:31:42:   code: 'ECONNREFUSED',
+2026-09-17 04:31:42:   syscall: 'connect',
+2026-09-17 04:31:42:   address: '192.168.1.3',
+2026-09-17 04:31:42:   port: 8081
+2026-09-17 04:31:42: }
+2026-09-17 04:31:56: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:31:56:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:31:56:   errno: -111,
+2026-09-17 04:31:56:   code: 'ECONNREFUSED',
+2026-09-17 04:31:56:   syscall: 'connect',
+2026-09-17 04:31:56:   address: '192.168.1.3',
+2026-09-17 04:31:56:   port: 8081
+2026-09-17 04:31:56: }
+2026-09-17 04:32:10: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:32:10:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:32:10:   errno: -111,
+2026-09-17 04:32:10:   code: 'ECONNREFUSED',
+2026-09-17 04:32:10:   syscall: 'connect',
+2026-09-17 04:32:10:   address: '192.168.1.3',
+2026-09-17 04:32:10:   port: 8081
+2026-09-17 04:32:10: }
+2026-09-17 04:32:25: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:32:25:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:32:25:   errno: -111,
+2026-09-17 04:32:25:   code: 'ECONNREFUSED',
+2026-09-17 04:32:25:   syscall: 'connect',
+2026-09-17 04:32:25:   address: '192.168.1.3',
+2026-09-17 04:32:25:   port: 8081
+2026-09-17 04:32:25: }
+2026-09-17 04:32:39: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:32:39:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:32:39:   errno: -111,
+2026-09-17 04:32:39:   code: 'ECONNREFUSED',
+2026-09-17 04:32:39:   syscall: 'connect',
+2026-09-17 04:32:39:   address: '192.168.1.3',
+2026-09-17 04:32:39:   port: 8081
+2026-09-17 04:32:39: }
+2026-09-17 04:32:53: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:32:53:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:32:53:   errno: -111,
+2026-09-17 04:32:53:   code: 'ECONNREFUSED',
+2026-09-17 04:32:53:   syscall: 'connect',
+2026-09-17 04:32:53:   address: '192.168.1.3',
+2026-09-17 04:32:53:   port: 8081
+2026-09-17 04:32:53: }
+2026-09-17 04:33:07: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:33:07:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:33:07:   errno: -111,
+2026-09-17 04:33:07:   code: 'ECONNREFUSED',
+2026-09-17 04:33:07:   syscall: 'connect',
+2026-09-17 04:33:07:   address: '192.168.1.3',
+2026-09-17 04:33:07:   port: 8081
+2026-09-17 04:33:07: }
+2026-09-17 04:33:22: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:33:22:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:33:22:   errno: -111,
+2026-09-17 04:33:22:   code: 'ECONNREFUSED',
+2026-09-17 04:33:22:   syscall: 'connect',
+2026-09-17 04:33:22:   address: '192.168.1.3',
+2026-09-17 04:33:22:   port: 8081
+2026-09-17 04:33:22: }
+2026-09-17 04:33:36: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:33:36:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:33:36:   errno: -111,
+2026-09-17 04:33:36:   code: 'ECONNREFUSED',
+2026-09-17 04:33:36:   syscall: 'connect',
+2026-09-17 04:33:36:   address: '192.168.1.3',
+2026-09-17 04:33:36:   port: 8081
+2026-09-17 04:33:36: }
+2026-09-17 04:33:50: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:33:50:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:33:50:   errno: -111,
+2026-09-17 04:33:50:   code: 'ECONNREFUSED',
+2026-09-17 04:33:50:   syscall: 'connect',
+2026-09-17 04:33:50:   address: '192.168.1.3',
+2026-09-17 04:33:50:   port: 8081
+2026-09-17 04:33:50: }
+2026-09-17 04:34:04: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:34:04:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:34:04:   errno: -111,
+2026-09-17 04:34:04:   code: 'ECONNREFUSED',
+2026-09-17 04:34:04:   syscall: 'connect',
+2026-09-17 04:34:04:   address: '192.168.1.3',
+2026-09-17 04:34:04:   port: 8081
+2026-09-17 04:34:04: }
+2026-09-17 04:34:19: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:34:19:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:34:19:   errno: -111,
+2026-09-17 04:34:19:   code: 'ECONNREFUSED',
+2026-09-17 04:34:19:   syscall: 'connect',
+2026-09-17 04:34:19:   address: '192.168.1.3',
+2026-09-17 04:34:19:   port: 8081
+2026-09-17 04:34:19: }
+2026-09-17 04:34:33: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:34:33:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:34:33:   errno: -111,
+2026-09-17 04:34:33:   code: 'ECONNREFUSED',
+2026-09-17 04:34:33:   syscall: 'connect',
+2026-09-17 04:34:33:   address: '192.168.1.3',
+2026-09-17 04:34:33:   port: 8081
+2026-09-17 04:34:33: }
+2026-09-17 04:34:47: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:34:47:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:34:47:   errno: -111,
+2026-09-17 04:34:47:   code: 'ECONNREFUSED',
+2026-09-17 04:34:47:   syscall: 'connect',
+2026-09-17 04:34:47:   address: '192.168.1.3',
+2026-09-17 04:34:47:   port: 8081
+2026-09-17 04:34:47: }
+2026-09-17 04:35:01: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:35:01:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:35:01:   errno: -111,
+2026-09-17 04:35:01:   code: 'ECONNREFUSED',
+2026-09-17 04:35:01:   syscall: 'connect',
+2026-09-17 04:35:01:   address: '192.168.1.3',
+2026-09-17 04:35:01:   port: 8081
+2026-09-17 04:35:01: }
+2026-09-17 04:35:16: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:35:16:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:35:16:   errno: -111,
+2026-09-17 04:35:16:   code: 'ECONNREFUSED',
+2026-09-17 04:35:16:   syscall: 'connect',
+2026-09-17 04:35:16:   address: '192.168.1.3',
+2026-09-17 04:35:16:   port: 8081
+2026-09-17 04:35:16: }
+2026-09-17 04:35:30: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:35:30:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:35:30:   errno: -111,
+2026-09-17 04:35:30:   code: 'ECONNREFUSED',
+2026-09-17 04:35:30:   syscall: 'connect',
+2026-09-17 04:35:30:   address: '192.168.1.3',
+2026-09-17 04:35:30:   port: 8081
+2026-09-17 04:35:30: }
+2026-09-17 04:35:44: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:35:44:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:35:44:   errno: -111,
+2026-09-17 04:35:44:   code: 'ECONNREFUSED',
+2026-09-17 04:35:44:   syscall: 'connect',
+2026-09-17 04:35:44:   address: '192.168.1.3',
+2026-09-17 04:35:44:   port: 8081
+2026-09-17 04:35:44: }
+2026-09-17 04:35:58: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:35:58:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:35:58:   errno: -111,
+2026-09-17 04:35:58:   code: 'ECONNREFUSED',
+2026-09-17 04:35:58:   syscall: 'connect',
+2026-09-17 04:35:58:   address: '192.168.1.3',
+2026-09-17 04:35:58:   port: 8081
+2026-09-17 04:35:58: }
+2026-09-17 04:36:13: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:36:13:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:36:13:   errno: -111,
+2026-09-17 04:36:13:   code: 'ECONNREFUSED',
+2026-09-17 04:36:13:   syscall: 'connect',
+2026-09-17 04:36:13:   address: '192.168.1.3',
+2026-09-17 04:36:13:   port: 8081
+2026-09-17 04:36:13: }
+2026-09-17 04:36:27: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:36:27:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:36:27:   errno: -111,
+2026-09-17 04:36:27:   code: 'ECONNREFUSED',
+2026-09-17 04:36:27:   syscall: 'connect',
+2026-09-17 04:36:27:   address: '192.168.1.3',
+2026-09-17 04:36:27:   port: 8081
+2026-09-17 04:36:27: }
+2026-09-17 04:36:41: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:36:41:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:36:41:   errno: -111,
+2026-09-17 04:36:41:   code: 'ECONNREFUSED',
+2026-09-17 04:36:41:   syscall: 'connect',
+2026-09-17 04:36:41:   address: '192.168.1.3',
+2026-09-17 04:36:41:   port: 8081
+2026-09-17 04:36:41: }
+2026-09-17 04:36:55: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:36:55:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:36:55:   errno: -111,
+2026-09-17 04:36:55:   code: 'ECONNREFUSED',
+2026-09-17 04:36:55:   syscall: 'connect',
+2026-09-17 04:36:55:   address: '192.168.1.3',
+2026-09-17 04:36:55:   port: 8081
+2026-09-17 04:36:55: }
+2026-09-17 04:37:10: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:37:10:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:37:10:   errno: -111,
+2026-09-17 04:37:10:   code: 'ECONNREFUSED',
+2026-09-17 04:37:10:   syscall: 'connect',
+2026-09-17 04:37:10:   address: '192.168.1.3',
+2026-09-17 04:37:10:   port: 8081
+2026-09-17 04:37:10: }
+2026-09-17 04:37:24: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:37:24:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:37:24:   errno: -111,
+2026-09-17 04:37:24:   code: 'ECONNREFUSED',
+2026-09-17 04:37:24:   syscall: 'connect',
+2026-09-17 04:37:24:   address: '192.168.1.3',
+2026-09-17 04:37:24:   port: 8081
+2026-09-17 04:37:24: }
+2026-09-17 04:37:38: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:37:38:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:37:38:   errno: -111,
+2026-09-17 04:37:38:   code: 'ECONNREFUSED',
+2026-09-17 04:37:38:   syscall: 'connect',
+2026-09-17 04:37:38:   address: '192.168.1.3',
+2026-09-17 04:37:38:   port: 8081
+2026-09-17 04:37:38: }
+2026-09-17 04:37:52: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:37:52:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:37:52:   errno: -111,
+2026-09-17 04:37:52:   code: 'ECONNREFUSED',
+2026-09-17 04:37:52:   syscall: 'connect',
+2026-09-17 04:37:52:   address: '192.168.1.3',
+2026-09-17 04:37:52:   port: 8081
+2026-09-17 04:37:52: }
+2026-09-17 04:38:07: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:38:07:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:38:07:   errno: -111,
+2026-09-17 04:38:07:   code: 'ECONNREFUSED',
+2026-09-17 04:38:07:   syscall: 'connect',
+2026-09-17 04:38:07:   address: '192.168.1.3',
+2026-09-17 04:38:07:   port: 8081
+2026-09-17 04:38:07: }
+2026-09-17 04:38:21: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:38:21:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:38:21:   errno: -111,
+2026-09-17 04:38:21:   code: 'ECONNREFUSED',
+2026-09-17 04:38:21:   syscall: 'connect',
+2026-09-17 04:38:21:   address: '192.168.1.3',
+2026-09-17 04:38:21:   port: 8081
+2026-09-17 04:38:21: }
+2026-09-17 04:38:35: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:38:35:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:38:35:   errno: -111,
+2026-09-17 04:38:35:   code: 'ECONNREFUSED',
+2026-09-17 04:38:35:   syscall: 'connect',
+2026-09-17 04:38:35:   address: '192.168.1.3',
+2026-09-17 04:38:35:   port: 8081
+2026-09-17 04:38:35: }
+2026-09-17 04:38:49: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:38:49:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:38:49:   errno: -111,
+2026-09-17 04:38:49:   code: 'ECONNREFUSED',
+2026-09-17 04:38:49:   syscall: 'connect',
+2026-09-17 04:38:49:   address: '192.168.1.3',
+2026-09-17 04:38:49:   port: 8081
+2026-09-17 04:38:49: }
+2026-09-17 04:39:04: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:39:04:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:39:04:   errno: -111,
+2026-09-17 04:39:04:   code: 'ECONNREFUSED',
+2026-09-17 04:39:04:   syscall: 'connect',
+2026-09-17 04:39:04:   address: '192.168.1.3',
+2026-09-17 04:39:04:   port: 8081
+2026-09-17 04:39:04: }
+2026-09-17 04:39:18: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:39:18:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:39:18:   errno: -111,
+2026-09-17 04:39:18:   code: 'ECONNREFUSED',
+2026-09-17 04:39:18:   syscall: 'connect',
+2026-09-17 04:39:18:   address: '192.168.1.3',
+2026-09-17 04:39:18:   port: 8081
+2026-09-17 04:39:18: }
+2026-09-17 04:39:32: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:39:32:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:39:32:   errno: -111,
+2026-09-17 04:39:32:   code: 'ECONNREFUSED',
+2026-09-17 04:39:32:   syscall: 'connect',
+2026-09-17 04:39:32:   address: '192.168.1.3',
+2026-09-17 04:39:32:   port: 8081
+2026-09-17 04:39:32: }
+2026-09-17 04:39:46: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:39:46:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:39:46:   errno: -111,
+2026-09-17 04:39:46:   code: 'ECONNREFUSED',
+2026-09-17 04:39:46:   syscall: 'connect',
+2026-09-17 04:39:46:   address: '192.168.1.3',
+2026-09-17 04:39:46:   port: 8081
+2026-09-17 04:39:46: }
+2026-09-17 04:40:01: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:40:01:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:40:01:   errno: -111,
+2026-09-17 04:40:01:   code: 'ECONNREFUSED',
+2026-09-17 04:40:01:   syscall: 'connect',
+2026-09-17 04:40:01:   address: '192.168.1.3',
+2026-09-17 04:40:01:   port: 8081
+2026-09-17 04:40:01: }
+2026-09-17 04:40:15: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:40:15:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:40:15:   errno: -111,
+2026-09-17 04:40:15:   code: 'ECONNREFUSED',
+2026-09-17 04:40:15:   syscall: 'connect',
+2026-09-17 04:40:15:   address: '192.168.1.3',
+2026-09-17 04:40:15:   port: 8081
+2026-09-17 04:40:15: }
+2026-09-17 04:40:29: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:40:29:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:40:29:   errno: -111,
+2026-09-17 04:40:29:   code: 'ECONNREFUSED',
+2026-09-17 04:40:29:   syscall: 'connect',
+2026-09-17 04:40:29:   address: '192.168.1.3',
+2026-09-17 04:40:29:   port: 8081
+2026-09-17 04:40:29: }
+2026-09-17 04:40:43: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:40:43:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:40:43:   errno: -111,
+2026-09-17 04:40:43:   code: 'ECONNREFUSED',
+2026-09-17 04:40:43:   syscall: 'connect',
+2026-09-17 04:40:43:   address: '192.168.1.3',
+2026-09-17 04:40:43:   port: 8081
+2026-09-17 04:40:43: }
+2026-09-17 04:40:58: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:40:58:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:40:58:   errno: -111,
+2026-09-17 04:40:58:   code: 'ECONNREFUSED',
+2026-09-17 04:40:58:   syscall: 'connect',
+2026-09-17 04:40:58:   address: '192.168.1.3',
+2026-09-17 04:40:58:   port: 8081
+2026-09-17 04:40:58: }
+2026-09-17 04:41:12: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:41:12:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:41:12:   errno: -111,
+2026-09-17 04:41:12:   code: 'ECONNREFUSED',
+2026-09-17 04:41:12:   syscall: 'connect',
+2026-09-17 04:41:12:   address: '192.168.1.3',
+2026-09-17 04:41:12:   port: 8081
+2026-09-17 04:41:12: }
+2026-09-17 04:41:26: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:41:26:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:41:26:   errno: -111,
+2026-09-17 04:41:26:   code: 'ECONNREFUSED',
+2026-09-17 04:41:26:   syscall: 'connect',
+2026-09-17 04:41:26:   address: '192.168.1.3',
+2026-09-17 04:41:26:   port: 8081
+2026-09-17 04:41:26: }
+2026-09-17 04:41:40: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:41:40:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:41:40:   errno: -111,
+2026-09-17 04:41:40:   code: 'ECONNREFUSED',
+2026-09-17 04:41:40:   syscall: 'connect',
+2026-09-17 04:41:40:   address: '192.168.1.3',
+2026-09-17 04:41:40:   port: 8081
+2026-09-17 04:41:40: }
+2026-09-17 04:41:55: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:41:55:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:41:55:   errno: -111,
+2026-09-17 04:41:55:   code: 'ECONNREFUSED',
+2026-09-17 04:41:55:   syscall: 'connect',
+2026-09-17 04:41:55:   address: '192.168.1.3',
+2026-09-17 04:41:55:   port: 8081
+2026-09-17 04:41:55: }
+2026-09-17 04:42:09: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:42:09:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:42:09:   errno: -111,
+2026-09-17 04:42:09:   code: 'ECONNREFUSED',
+2026-09-17 04:42:09:   syscall: 'connect',
+2026-09-17 04:42:09:   address: '192.168.1.3',
+2026-09-17 04:42:09:   port: 8081
+2026-09-17 04:42:09: }
+2026-09-17 04:42:23: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:42:23:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:42:23:   errno: -111,
+2026-09-17 04:42:23:   code: 'ECONNREFUSED',
+2026-09-17 04:42:23:   syscall: 'connect',
+2026-09-17 04:42:23:   address: '192.168.1.3',
+2026-09-17 04:42:23:   port: 8081
+2026-09-17 04:42:23: }
+2026-09-17 04:42:37: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:42:37:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:42:37:   errno: -111,
+2026-09-17 04:42:37:   code: 'ECONNREFUSED',
+2026-09-17 04:42:37:   syscall: 'connect',
+2026-09-17 04:42:37:   address: '192.168.1.3',
+2026-09-17 04:42:37:   port: 8081
+2026-09-17 04:42:37: }
+2026-09-17 04:42:52: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:42:52:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:42:52:   errno: -111,
+2026-09-17 04:42:52:   code: 'ECONNREFUSED',
+2026-09-17 04:42:52:   syscall: 'connect',
+2026-09-17 04:42:52:   address: '192.168.1.3',
+2026-09-17 04:42:52:   port: 8081
+2026-09-17 04:42:52: }
+2026-09-17 04:43:06: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:43:06:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:43:06:   errno: -111,
+2026-09-17 04:43:06:   code: 'ECONNREFUSED',
+2026-09-17 04:43:06:   syscall: 'connect',
+2026-09-17 04:43:06:   address: '192.168.1.3',
+2026-09-17 04:43:06:   port: 8081
+2026-09-17 04:43:06: }
+2026-09-17 04:43:20: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:43:20:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:43:20:   errno: -111,
+2026-09-17 04:43:20:   code: 'ECONNREFUSED',
+2026-09-17 04:43:20:   syscall: 'connect',
+2026-09-17 04:43:20:   address: '192.168.1.3',
+2026-09-17 04:43:20:   port: 8081
+2026-09-17 04:43:20: }
+2026-09-17 04:43:34: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:43:34:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:43:34:   errno: -111,
+2026-09-17 04:43:34:   code: 'ECONNREFUSED',
+2026-09-17 04:43:34:   syscall: 'connect',
+2026-09-17 04:43:34:   address: '192.168.1.3',
+2026-09-17 04:43:34:   port: 8081
+2026-09-17 04:43:34: }
+2026-09-17 04:43:49: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:43:49:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:43:49:   errno: -111,
+2026-09-17 04:43:49:   code: 'ECONNREFUSED',
+2026-09-17 04:43:49:   syscall: 'connect',
+2026-09-17 04:43:49:   address: '192.168.1.3',
+2026-09-17 04:43:49:   port: 8081
+2026-09-17 04:43:49: }
+2026-09-17 04:44:03: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:44:03:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:44:03:   errno: -111,
+2026-09-17 04:44:03:   code: 'ECONNREFUSED',
+2026-09-17 04:44:03:   syscall: 'connect',
+2026-09-17 04:44:03:   address: '192.168.1.3',
+2026-09-17 04:44:03:   port: 8081
+2026-09-17 04:44:03: }
+2026-09-17 04:44:17: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:44:17:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:44:17:   errno: -111,
+2026-09-17 04:44:17:   code: 'ECONNREFUSED',
+2026-09-17 04:44:17:   syscall: 'connect',
+2026-09-17 04:44:17:   address: '192.168.1.3',
+2026-09-17 04:44:17:   port: 8081
+2026-09-17 04:44:17: }
+2026-09-17 04:44:32: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:44:32:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:44:32:   errno: -111,
+2026-09-17 04:44:32:   code: 'ECONNREFUSED',
+2026-09-17 04:44:32:   syscall: 'connect',
+2026-09-17 04:44:32:   address: '192.168.1.3',
+2026-09-17 04:44:32:   port: 8081
+2026-09-17 04:44:32: }
+2026-09-17 04:44:46: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:44:46:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:44:46:   errno: -111,
+2026-09-17 04:44:46:   code: 'ECONNREFUSED',
+2026-09-17 04:44:46:   syscall: 'connect',
+2026-09-17 04:44:46:   address: '192.168.1.3',
+2026-09-17 04:44:46:   port: 8081
+2026-09-17 04:44:46: }
+2026-09-17 04:45:00: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:45:00:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:45:00:   errno: -111,
+2026-09-17 04:45:00:   code: 'ECONNREFUSED',
+2026-09-17 04:45:00:   syscall: 'connect',
+2026-09-17 04:45:00:   address: '192.168.1.3',
+2026-09-17 04:45:00:   port: 8081
+2026-09-17 04:45:00: }
+2026-09-17 04:45:14: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:45:14:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:45:14:   errno: -111,
+2026-09-17 04:45:14:   code: 'ECONNREFUSED',
+2026-09-17 04:45:14:   syscall: 'connect',
+2026-09-17 04:45:14:   address: '192.168.1.3',
+2026-09-17 04:45:14:   port: 8081
+2026-09-17 04:45:14: }
+2026-09-17 04:45:29: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:45:29:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:45:29:   errno: -111,
+2026-09-17 04:45:29:   code: 'ECONNREFUSED',
+2026-09-17 04:45:29:   syscall: 'connect',
+2026-09-17 04:45:29:   address: '192.168.1.3',
+2026-09-17 04:45:29:   port: 8081
+2026-09-17 04:45:29: }
+2026-09-17 04:45:43: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:45:43:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:45:43:   errno: -111,
+2026-09-17 04:45:43:   code: 'ECONNREFUSED',
+2026-09-17 04:45:43:   syscall: 'connect',
+2026-09-17 04:45:43:   address: '192.168.1.3',
+2026-09-17 04:45:43:   port: 8081
+2026-09-17 04:45:43: }
+2026-09-17 04:45:57: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:45:57:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:45:57:   errno: -111,
+2026-09-17 04:45:57:   code: 'ECONNREFUSED',
+2026-09-17 04:45:57:   syscall: 'connect',
+2026-09-17 04:45:57:   address: '192.168.1.3',
+2026-09-17 04:45:57:   port: 8081
+2026-09-17 04:45:57: }
+2026-09-17 04:46:11: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:46:11:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:46:11:   errno: -111,
+2026-09-17 04:46:11:   code: 'ECONNREFUSED',
+2026-09-17 04:46:11:   syscall: 'connect',
+2026-09-17 04:46:11:   address: '192.168.1.3',
+2026-09-17 04:46:11:   port: 8081
+2026-09-17 04:46:11: }
+2026-09-17 04:46:26: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:46:26:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:46:26:   errno: -111,
+2026-09-17 04:46:26:   code: 'ECONNREFUSED',
+2026-09-17 04:46:26:   syscall: 'connect',
+2026-09-17 04:46:26:   address: '192.168.1.3',
+2026-09-17 04:46:26:   port: 8081
+2026-09-17 04:46:26: }
+2026-09-17 04:46:40: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:46:40:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:46:40:   errno: -111,
+2026-09-17 04:46:40:   code: 'ECONNREFUSED',
+2026-09-17 04:46:40:   syscall: 'connect',
+2026-09-17 04:46:40:   address: '192.168.1.3',
+2026-09-17 04:46:40:   port: 8081
+2026-09-17 04:46:40: }
+2026-09-17 04:46:54: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:46:54:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:46:54:   errno: -111,
+2026-09-17 04:46:54:   code: 'ECONNREFUSED',
+2026-09-17 04:46:54:   syscall: 'connect',
+2026-09-17 04:46:54:   address: '192.168.1.3',
+2026-09-17 04:46:54:   port: 8081
+2026-09-17 04:46:54: }
+2026-09-17 04:47:08: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:47:08:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:47:08:   errno: -111,
+2026-09-17 04:47:08:   code: 'ECONNREFUSED',
+2026-09-17 04:47:08:   syscall: 'connect',
+2026-09-17 04:47:08:   address: '192.168.1.3',
+2026-09-17 04:47:08:   port: 8081
+2026-09-17 04:47:08: }
+2026-09-17 04:47:23: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:47:23:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:47:23:   errno: -111,
+2026-09-17 04:47:23:   code: 'ECONNREFUSED',
+2026-09-17 04:47:23:   syscall: 'connect',
+2026-09-17 04:47:23:   address: '192.168.1.3',
+2026-09-17 04:47:23:   port: 8081
+2026-09-17 04:47:23: }
+2026-09-17 04:47:37: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:47:37:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:47:37:   errno: -111,
+2026-09-17 04:47:37:   code: 'ECONNREFUSED',
+2026-09-17 04:47:37:   syscall: 'connect',
+2026-09-17 04:47:37:   address: '192.168.1.3',
+2026-09-17 04:47:37:   port: 8081
+2026-09-17 04:47:37: }
+2026-09-17 04:47:51: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:47:51:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:47:51:   errno: -111,
+2026-09-17 04:47:51:   code: 'ECONNREFUSED',
+2026-09-17 04:47:51:   syscall: 'connect',
+2026-09-17 04:47:51:   address: '192.168.1.3',
+2026-09-17 04:47:51:   port: 8081
+2026-09-17 04:47:51: }
+2026-09-17 04:48:05: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:48:05:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:48:05:   errno: -111,
+2026-09-17 04:48:05:   code: 'ECONNREFUSED',
+2026-09-17 04:48:05:   syscall: 'connect',
+2026-09-17 04:48:05:   address: '192.168.1.3',
+2026-09-17 04:48:05:   port: 8081
+2026-09-17 04:48:05: }
+2026-09-17 04:48:20: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:48:20:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:48:20:   errno: -111,
+2026-09-17 04:48:20:   code: 'ECONNREFUSED',
+2026-09-17 04:48:20:   syscall: 'connect',
+2026-09-17 04:48:20:   address: '192.168.1.3',
+2026-09-17 04:48:20:   port: 8081
+2026-09-17 04:48:20: }
+2026-09-17 04:48:34: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:48:34:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:48:34:   errno: -111,
+2026-09-17 04:48:34:   code: 'ECONNREFUSED',
+2026-09-17 04:48:34:   syscall: 'connect',
+2026-09-17 04:48:34:   address: '192.168.1.3',
+2026-09-17 04:48:34:   port: 8081
+2026-09-17 04:48:34: }
+2026-09-17 04:48:48: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:48:48:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:48:48:   errno: -111,
+2026-09-17 04:48:48:   code: 'ECONNREFUSED',
+2026-09-17 04:48:48:   syscall: 'connect',
+2026-09-17 04:48:48:   address: '192.168.1.3',
+2026-09-17 04:48:48:   port: 8081
+2026-09-17 04:48:48: }
+2026-09-17 04:49:02: Error: connect ECONNREFUSED 192.168.1.3:8081
+2026-09-17 04:49:02:     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:2021:16) {
+2026-09-17 04:49:02:   errno: -111,
+2026-09-17 04:49:02:   code: 'ECONNREFUSED',
+2026-09-17 04:49:02:   syscall: 'connect',
+2026-09-17 04:49:02:   address: '192.168.1.3',
+2026-09-17 04:49:02:   port: 8081
+2026-09-17 04:49:02: }

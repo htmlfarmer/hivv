@@ -1,0 +1,670 @@
+2026-09-13 02:17:45: Failed to load keys: 
+2026-09-13 02:17:45: Session cleanup error: 
+2026-09-13 02:17:45: Failed to load gateway config: 
+2026-09-13 02:18:45: Failed to load keys: 
+2026-09-13 02:18:45: Session cleanup error: 
+2026-09-13 02:18:45: Failed to load gateway config: 
+2026-09-13 02:19:45: Failed to load keys: 
+2026-09-13 02:19:45: Session cleanup error: 
+2026-09-13 02:19:45: Failed to load gateway config: 
+2026-09-13 02:20:45: Failed to load keys: 
+2026-09-13 02:20:45: Session cleanup error: 
+2026-09-13 02:20:45: Failed to load gateway config: 
+2026-09-13 02:21:45: Failed to load keys: 
+2026-09-13 02:21:45: Session cleanup error: 
+2026-09-13 02:21:45: Failed to load gateway config: 
+2026-09-13 02:22:45: Failed to load keys: 
+2026-09-13 02:22:45: Session cleanup error: 
+2026-09-13 02:22:45: Failed to load gateway config: 
+2026-09-13 02:23:45: Failed to load keys: 
+2026-09-13 02:23:45: Session cleanup error: 
+2026-09-13 02:23:45: Failed to load gateway config: 
+2026-09-13 02:24:45: Failed to load keys: 
+2026-09-13 02:24:45: Session cleanup error: 
+2026-09-13 02:24:45: Failed to load gateway config: 
+2026-09-13 02:25:45: Failed to load keys: 
+2026-09-13 02:25:45: Session cleanup error: 
+2026-09-13 02:25:45: Failed to load gateway config: 
+2026-09-13 07:19:57: error: terminating connection due to administrator command
+2026-09-13 07:19:57:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 07:19:57:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 07:19:57:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 07:19:57:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 07:19:57:     at Socket.emit (node:events:514:28)
+2026-09-13 07:19:57:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 07:19:57:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 07:19:57:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 07:19:57:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 07:19:57:   length: 116,
+2026-09-13 07:19:57:   severity: 'FATAL',
+2026-09-13 07:19:57:   code: '57P01',
+2026-09-13 07:19:57:   detail: undefined,
+2026-09-13 07:19:57:   hint: undefined,
+2026-09-13 07:19:57:   position: undefined,
+2026-09-13 07:19:57:   internalPosition: undefined,
+2026-09-13 07:19:57:   internalQuery: undefined,
+2026-09-13 07:19:57:   where: undefined,
+2026-09-13 07:19:57:   schema: undefined,
+2026-09-13 07:19:57:   table: undefined,
+2026-09-13 07:19:57:   column: undefined,
+2026-09-13 07:19:57:   dataType: undefined,
+2026-09-13 07:19:57:   constraint: undefined,
+2026-09-13 07:19:57:   file: 'postgres.c',
+2026-09-13 07:19:57:   line: '3211',
+2026-09-13 07:19:57:   routine: 'ProcessInterrupts',
+2026-09-13 07:19:57:   client: Client {
+2026-09-13 07:19:57:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 07:19:57:     _eventsCount: 1,
+2026-09-13 07:19:57:     _maxListeners: undefined,
+2026-09-13 07:19:57:     connectionParameters: ConnectionParameters {
+2026-09-13 07:19:57:       user: 'hivv',
+2026-09-13 07:19:57:       database: 'hivv',
+2026-09-13 07:19:57:       port: 5432,
+2026-09-13 07:19:57:       host: 'localhost',
+2026-09-13 07:19:57:       binary: false,
+2026-09-13 07:19:57:       options: undefined,
+2026-09-13 07:19:57:       ssl: false,
+2026-09-13 07:19:57:       sslnegotiation: undefined,
+2026-09-13 07:19:57:       client_encoding: '',
+2026-09-13 07:19:57:       replication: undefined,
+2026-09-13 07:19:57:       isDomainSocket: false,
+2026-09-13 07:19:57:       application_name: undefined,
+2026-09-13 07:19:57:       fallback_application_name: undefined,
+2026-09-13 07:19:57:       statement_timeout: false,
+2026-09-13 07:19:57:       lock_timeout: false,
+2026-09-13 07:19:57:       idle_in_transaction_session_timeout: false,
+2026-09-13 07:19:57:       query_timeout: false,
+2026-09-13 07:19:57:       connect_timeout: 0
+2026-09-13 07:19:57:     },
+2026-09-13 07:19:57:     user: 'hivv',
+2026-09-13 07:19:57:     database: 'hivv',
+2026-09-13 07:19:57:     port: 5432,
+2026-09-13 07:19:57:     host: 'localhost',
+2026-09-13 07:19:57:     replication: undefined,
+2026-09-13 07:19:57:     _Promise: [Function: Promise],
+2026-09-13 07:19:57:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 07:19:57:     _ending: true,
+2026-09-13 07:19:57:     _ended: false,
+2026-09-13 07:19:57:     _connecting: false,
+2026-09-13 07:19:57:     _connected: true,
+2026-09-13 07:19:57:     _connectionError: false,
+2026-09-13 07:19:57:     _queryable: false,
+2026-09-13 07:19:57:     _activeQuery: null,
+2026-09-13 07:19:57:     _txStatus: 'I',
+2026-09-13 07:19:57:     enableChannelBinding: false,
+2026-09-13 07:19:57:     scramMaxIterations: 100000,
+2026-09-13 07:19:57:     connection: Connection {
+2026-09-13 07:19:57:       _events: [Object: null prototype],
+2026-09-13 07:19:57:       _eventsCount: 23,
+2026-09-13 07:19:57:       _maxListeners: undefined,
+2026-09-13 07:19:57:       stream: [Socket],
+2026-09-13 07:19:57:       _keepAlive: false,
+2026-09-13 07:19:57:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 07:19:57:       parsedStatements: {},
+2026-09-13 07:19:57:       ssl: false,
+2026-09-13 07:19:57:       sslNegotiation: 'postgres',
+2026-09-13 07:19:57:       _ending: false,
+2026-09-13 07:19:57:       _emitMessage: false,
+2026-09-13 07:19:57:       _connecting: true,
+2026-09-13 07:19:57:       Symbol(shapeMode): false,
+2026-09-13 07:19:57:       Symbol(kCapture): false
+2026-09-13 07:19:57:     },
+2026-09-13 07:19:57:     _queryQueue: [],
+2026-09-13 07:19:57:     binary: false,
+2026-09-13 07:19:57:     processID: 180236,
+2026-09-13 07:19:57:     secretKey: 672157949,
+2026-09-13 07:19:57:     ssl: false,
+2026-09-13 07:19:57:     sslNegotiation: 'postgres',
+2026-09-13 07:19:57:     _connectionTimeoutMillis: 0,
+2026-09-13 07:19:57:     _connectionCallback: null,
+2026-09-13 07:19:57:     release: [Function (anonymous)],
+2026-09-13 07:19:57:     readyForQuery: true,
+2026-09-13 07:19:57:     hasExecuted: true,
+2026-09-13 07:19:57:     _poolUseCount: 1,
+2026-09-13 07:19:57:     Symbol(shapeMode): false,
+2026-09-13 07:19:57:     Symbol(kCapture): false
+2026-09-13 07:19:57:   }
+2026-09-13 07:19:57: }
+2026-09-13 07:20:01: Failed to load gateway config: the database system is shutting down
+2026-09-13 07:20:01: Failed to load providers: the database system is shutting down
+2026-09-13 07:20:01: Failed to load keys: the database system is shutting down
+2026-09-13 07:20:01: Failed to load config: the database system is shutting down
+2026-09-13 07:21:01: Failed to load keys: 
+2026-09-13 07:21:01: Session cleanup error: 
+2026-09-13 07:21:01: Failed to load gateway config: 
+2026-09-13 07:22:01: Failed to load keys: 
+2026-09-13 07:22:01: Session cleanup error: 
+2026-09-13 07:22:01: Failed to load gateway config: 
+2026-09-13 07:23:01: Failed to load keys: 
+2026-09-13 07:23:01: Session cleanup error: 
+2026-09-13 07:23:01: Failed to load gateway config: 
+2026-09-13 07:54:15: error: terminating connection due to administrator command
+2026-09-13 07:54:15:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 07:54:15:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 07:54:15:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 07:54:15:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 07:54:15:     at Socket.emit (node:events:514:28)
+2026-09-13 07:54:15:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 07:54:15:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 07:54:15:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 07:54:15:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 07:54:15:   length: 116,
+2026-09-13 07:54:15:   severity: 'FATAL',
+2026-09-13 07:54:15:   code: '57P01',
+2026-09-13 07:54:15:   detail: undefined,
+2026-09-13 07:54:15:   hint: undefined,
+2026-09-13 07:54:15:   position: undefined,
+2026-09-13 07:54:15:   internalPosition: undefined,
+2026-09-13 07:54:15:   internalQuery: undefined,
+2026-09-13 07:54:15:   where: undefined,
+2026-09-13 07:54:15:   schema: undefined,
+2026-09-13 07:54:15:   table: undefined,
+2026-09-13 07:54:15:   column: undefined,
+2026-09-13 07:54:15:   dataType: undefined,
+2026-09-13 07:54:15:   constraint: undefined,
+2026-09-13 07:54:15:   file: 'postgres.c',
+2026-09-13 07:54:15:   line: '3211',
+2026-09-13 07:54:15:   routine: 'ProcessInterrupts',
+2026-09-13 07:54:15:   client: Client {
+2026-09-13 07:54:15:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 07:54:15:     _eventsCount: 1,
+2026-09-13 07:54:15:     _maxListeners: undefined,
+2026-09-13 07:54:15:     connectionParameters: ConnectionParameters {
+2026-09-13 07:54:15:       user: 'hivv',
+2026-09-13 07:54:15:       database: 'hivv',
+2026-09-13 07:54:15:       port: 5432,
+2026-09-13 07:54:15:       host: 'localhost',
+2026-09-13 07:54:15:       binary: false,
+2026-09-13 07:54:15:       options: undefined,
+2026-09-13 07:54:15:       ssl: false,
+2026-09-13 07:54:15:       sslnegotiation: undefined,
+2026-09-13 07:54:15:       client_encoding: '',
+2026-09-13 07:54:15:       replication: undefined,
+2026-09-13 07:54:15:       isDomainSocket: false,
+2026-09-13 07:54:15:       application_name: undefined,
+2026-09-13 07:54:15:       fallback_application_name: undefined,
+2026-09-13 07:54:15:       statement_timeout: false,
+2026-09-13 07:54:15:       lock_timeout: false,
+2026-09-13 07:54:15:       idle_in_transaction_session_timeout: false,
+2026-09-13 07:54:15:       query_timeout: false,
+2026-09-13 07:54:15:       connect_timeout: 0
+2026-09-13 07:54:15:     },
+2026-09-13 07:54:15:     user: 'hivv',
+2026-09-13 07:54:15:     database: 'hivv',
+2026-09-13 07:54:15:     port: 5432,
+2026-09-13 07:54:15:     host: 'localhost',
+2026-09-13 07:54:15:     replication: undefined,
+2026-09-13 07:54:15:     _Promise: [Function: Promise],
+2026-09-13 07:54:15:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 07:54:15:     _ending: true,
+2026-09-13 07:54:15:     _ended: false,
+2026-09-13 07:54:15:     _connecting: false,
+2026-09-13 07:54:15:     _connected: true,
+2026-09-13 07:54:15:     _connectionError: false,
+2026-09-13 07:54:15:     _queryable: false,
+2026-09-13 07:54:15:     _activeQuery: null,
+2026-09-13 07:54:15:     _txStatus: 'I',
+2026-09-13 07:54:15:     enableChannelBinding: false,
+2026-09-13 07:54:15:     scramMaxIterations: 100000,
+2026-09-13 07:54:15:     connection: Connection {
+2026-09-13 07:54:15:       _events: [Object: null prototype],
+2026-09-13 07:54:15:       _eventsCount: 23,
+2026-09-13 07:54:15:       _maxListeners: undefined,
+2026-09-13 07:54:15:       stream: [Socket],
+2026-09-13 07:54:15:       _keepAlive: false,
+2026-09-13 07:54:15:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 07:54:15:       parsedStatements: {},
+2026-09-13 07:54:15:       ssl: false,
+2026-09-13 07:54:15:       sslNegotiation: 'postgres',
+2026-09-13 07:54:15:       _ending: false,
+2026-09-13 07:54:15:       _emitMessage: false,
+2026-09-13 07:54:15:       _connecting: true,
+2026-09-13 07:54:15:       Symbol(shapeMode): false,
+2026-09-13 07:54:15:       Symbol(kCapture): false
+2026-09-13 07:54:15:     },
+2026-09-13 07:54:15:     _queryQueue: [],
+2026-09-13 07:54:15:     binary: false,
+2026-09-13 07:54:15:     processID: 210562,
+2026-09-13 07:54:15:     secretKey: 583007785,
+2026-09-13 07:54:15:     ssl: false,
+2026-09-13 07:54:15:     sslNegotiation: 'postgres',
+2026-09-13 07:54:15:     _connectionTimeoutMillis: 0,
+2026-09-13 07:54:15:     _connectionCallback: null,
+2026-09-13 07:54:15:     release: [Function (anonymous)],
+2026-09-13 07:54:15:     readyForQuery: true,
+2026-09-13 07:54:15:     hasExecuted: true,
+2026-09-13 07:54:15:     _poolUseCount: 1,
+2026-09-13 07:54:15:     Symbol(shapeMode): false,
+2026-09-13 07:54:15:     Symbol(kCapture): false
+2026-09-13 07:54:15:   }
+2026-09-13 07:54:15: }
+2026-09-13 07:54:19: Failed to load gateway config: 
+2026-09-13 07:54:19: Failed to load providers: 
+2026-09-13 07:54:19: Failed to load keys: 
+2026-09-13 07:54:19: Failed to load config: 
+2026-09-13 08:00:19: Failed to load keys: the database system is shutting down
+2026-09-13 08:00:19: Session cleanup error: the database system is shutting down
+2026-09-13 08:00:19: Failed to load gateway config: the database system is shutting down
+2026-09-13 08:01:19: Failed to load keys: 
+2026-09-13 08:01:19: Session cleanup error: 
+2026-09-13 08:01:19: Failed to load gateway config: 
+2026-09-13 08:02:19: Failed to load keys: 
+2026-09-13 08:02:19: Session cleanup error: 
+2026-09-13 08:02:19: Failed to load gateway config: 
+2026-09-13 08:03:19: Failed to load keys: 
+2026-09-13 08:03:19: Session cleanup error: 
+2026-09-13 08:03:19: Failed to load gateway config: 
+2026-09-13 08:04:41: error: terminating connection due to administrator command
+2026-09-13 08:04:41:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 08:04:41:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 08:04:41:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 08:04:41:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 08:04:41:     at Socket.emit (node:events:514:28)
+2026-09-13 08:04:41:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 08:04:41:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 08:04:41:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 08:04:41:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 08:04:41:   length: 116,
+2026-09-13 08:04:41:   severity: 'FATAL',
+2026-09-13 08:04:41:   code: '57P01',
+2026-09-13 08:04:41:   detail: undefined,
+2026-09-13 08:04:41:   hint: undefined,
+2026-09-13 08:04:41:   position: undefined,
+2026-09-13 08:04:41:   internalPosition: undefined,
+2026-09-13 08:04:41:   internalQuery: undefined,
+2026-09-13 08:04:41:   where: undefined,
+2026-09-13 08:04:41:   schema: undefined,
+2026-09-13 08:04:41:   table: undefined,
+2026-09-13 08:04:41:   column: undefined,
+2026-09-13 08:04:41:   dataType: undefined,
+2026-09-13 08:04:41:   constraint: undefined,
+2026-09-13 08:04:41:   file: 'postgres.c',
+2026-09-13 08:04:41:   line: '3211',
+2026-09-13 08:04:41:   routine: 'ProcessInterrupts',
+2026-09-13 08:04:41:   client: Client {
+2026-09-13 08:04:41:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 08:04:41:     _eventsCount: 1,
+2026-09-13 08:04:41:     _maxListeners: undefined,
+2026-09-13 08:04:41:     connectionParameters: ConnectionParameters {
+2026-09-13 08:04:41:       user: 'hivv',
+2026-09-13 08:04:41:       database: 'hivv',
+2026-09-13 08:04:41:       port: 5432,
+2026-09-13 08:04:41:       host: 'localhost',
+2026-09-13 08:04:41:       binary: false,
+2026-09-13 08:04:41:       options: undefined,
+2026-09-13 08:04:41:       ssl: false,
+2026-09-13 08:04:41:       sslnegotiation: undefined,
+2026-09-13 08:04:41:       client_encoding: '',
+2026-09-13 08:04:41:       replication: undefined,
+2026-09-13 08:04:41:       isDomainSocket: false,
+2026-09-13 08:04:41:       application_name: undefined,
+2026-09-13 08:04:41:       fallback_application_name: undefined,
+2026-09-13 08:04:41:       statement_timeout: false,
+2026-09-13 08:04:41:       lock_timeout: false,
+2026-09-13 08:04:41:       idle_in_transaction_session_timeout: false,
+2026-09-13 08:04:41:       query_timeout: false,
+2026-09-13 08:04:41:       connect_timeout: 0
+2026-09-13 08:04:41:     },
+2026-09-13 08:04:41:     user: 'hivv',
+2026-09-13 08:04:41:     database: 'hivv',
+2026-09-13 08:04:41:     port: 5432,
+2026-09-13 08:04:41:     host: 'localhost',
+2026-09-13 08:04:41:     replication: undefined,
+2026-09-13 08:04:41:     _Promise: [Function: Promise],
+2026-09-13 08:04:41:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 08:04:41:     _ending: true,
+2026-09-13 08:04:41:     _ended: false,
+2026-09-13 08:04:41:     _connecting: false,
+2026-09-13 08:04:41:     _connected: true,
+2026-09-13 08:04:41:     _connectionError: false,
+2026-09-13 08:04:41:     _queryable: false,
+2026-09-13 08:04:41:     _activeQuery: null,
+2026-09-13 08:04:41:     _txStatus: 'I',
+2026-09-13 08:04:41:     enableChannelBinding: false,
+2026-09-13 08:04:41:     scramMaxIterations: 100000,
+2026-09-13 08:04:41:     connection: Connection {
+2026-09-13 08:04:41:       _events: [Object: null prototype],
+2026-09-13 08:04:41:       _eventsCount: 23,
+2026-09-13 08:04:41:       _maxListeners: undefined,
+2026-09-13 08:04:41:       stream: [Socket],
+2026-09-13 08:04:41:       _keepAlive: false,
+2026-09-13 08:04:41:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 08:04:41:       parsedStatements: {},
+2026-09-13 08:04:41:       ssl: false,
+2026-09-13 08:04:41:       sslNegotiation: 'postgres',
+2026-09-13 08:04:41:       _ending: false,
+2026-09-13 08:04:41:       _emitMessage: false,
+2026-09-13 08:04:41:       _connecting: true,
+2026-09-13 08:04:41:       Symbol(shapeMode): false,
+2026-09-13 08:04:41:       Symbol(kCapture): false
+2026-09-13 08:04:41:     },
+2026-09-13 08:04:41:     _queryQueue: [],
+2026-09-13 08:04:41:     binary: false,
+2026-09-13 08:04:41:     processID: 220173,
+2026-09-13 08:04:41:     secretKey: -1941910111,
+2026-09-13 08:04:41:     ssl: false,
+2026-09-13 08:04:41:     sslNegotiation: 'postgres',
+2026-09-13 08:04:41:     _connectionTimeoutMillis: 0,
+2026-09-13 08:04:41:     _connectionCallback: null,
+2026-09-13 08:04:41:     release: [Function (anonymous)],
+2026-09-13 08:04:41:     readyForQuery: true,
+2026-09-13 08:04:41:     hasExecuted: true,
+2026-09-13 08:04:41:     _poolUseCount: 1,
+2026-09-13 08:04:41:     Symbol(shapeMode): false,
+2026-09-13 08:04:41:     Symbol(kCapture): false
+2026-09-13 08:04:41:   }
+2026-09-13 08:04:41: }
+2026-09-13 08:04:45: Failed to load gateway config: 
+2026-09-13 08:04:45: Failed to load providers: 
+2026-09-13 08:04:45: Failed to load keys: 
+2026-09-13 08:04:45: Failed to load config: 
+2026-09-13 08:05:45: Failed to load keys: 
+2026-09-13 08:05:45: Session cleanup error: 
+2026-09-13 08:05:45: Failed to load gateway config: 
+2026-09-13 08:06:45: Failed to load keys: 
+2026-09-13 08:06:45: Session cleanup error: 
+2026-09-13 08:06:45: Failed to load gateway config: 
+2026-09-13 08:12:12: error: terminating connection due to administrator command
+2026-09-13 08:12:12:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 08:12:12:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 08:12:12:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 08:12:12:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 08:12:12:     at Socket.emit (node:events:514:28)
+2026-09-13 08:12:12:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 08:12:12:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 08:12:12:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 08:12:12:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 08:12:12:   length: 116,
+2026-09-13 08:12:12:   severity: 'FATAL',
+2026-09-13 08:12:12:   code: '57P01',
+2026-09-13 08:12:12:   detail: undefined,
+2026-09-13 08:12:12:   hint: undefined,
+2026-09-13 08:12:12:   position: undefined,
+2026-09-13 08:12:12:   internalPosition: undefined,
+2026-09-13 08:12:12:   internalQuery: undefined,
+2026-09-13 08:12:12:   where: undefined,
+2026-09-13 08:12:12:   schema: undefined,
+2026-09-13 08:12:12:   table: undefined,
+2026-09-13 08:12:12:   column: undefined,
+2026-09-13 08:12:12:   dataType: undefined,
+2026-09-13 08:12:12:   constraint: undefined,
+2026-09-13 08:12:12:   file: 'postgres.c',
+2026-09-13 08:12:12:   line: '3211',
+2026-09-13 08:12:12:   routine: 'ProcessInterrupts',
+2026-09-13 08:12:12:   client: Client {
+2026-09-13 08:12:12:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 08:12:12:     _eventsCount: 1,
+2026-09-13 08:12:12:     _maxListeners: undefined,
+2026-09-13 08:12:12:     connectionParameters: ConnectionParameters {
+2026-09-13 08:12:12:       user: 'hivv',
+2026-09-13 08:12:12:       database: 'hivv',
+2026-09-13 08:12:12:       port: 5432,
+2026-09-13 08:12:12:       host: 'localhost',
+2026-09-13 08:12:12:       binary: false,
+2026-09-13 08:12:12:       options: undefined,
+2026-09-13 08:12:12:       ssl: false,
+2026-09-13 08:12:12:       sslnegotiation: undefined,
+2026-09-13 08:12:12:       client_encoding: '',
+2026-09-13 08:12:12:       replication: undefined,
+2026-09-13 08:12:12:       isDomainSocket: false,
+2026-09-13 08:12:12:       application_name: undefined,
+2026-09-13 08:12:12:       fallback_application_name: undefined,
+2026-09-13 08:12:12:       statement_timeout: false,
+2026-09-13 08:12:12:       lock_timeout: false,
+2026-09-13 08:12:12:       idle_in_transaction_session_timeout: false,
+2026-09-13 08:12:12:       query_timeout: false,
+2026-09-13 08:12:12:       connect_timeout: 0
+2026-09-13 08:12:12:     },
+2026-09-13 08:12:12:     user: 'hivv',
+2026-09-13 08:12:12:     database: 'hivv',
+2026-09-13 08:12:12:     port: 5432,
+2026-09-13 08:12:12:     host: 'localhost',
+2026-09-13 08:12:12:     replication: undefined,
+2026-09-13 08:12:12:     _Promise: [Function: Promise],
+2026-09-13 08:12:12:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 08:12:12:     _ending: true,
+2026-09-13 08:12:12:     _ended: false,
+2026-09-13 08:12:12:     _connecting: false,
+2026-09-13 08:12:12:     _connected: true,
+2026-09-13 08:12:12:     _connectionError: false,
+2026-09-13 08:12:12:     _queryable: false,
+2026-09-13 08:12:12:     _activeQuery: null,
+2026-09-13 08:12:12:     _txStatus: 'I',
+2026-09-13 08:12:12:     enableChannelBinding: false,
+2026-09-13 08:12:12:     scramMaxIterations: 100000,
+2026-09-13 08:12:12:     connection: Connection {
+2026-09-13 08:12:12:       _events: [Object: null prototype],
+2026-09-13 08:12:12:       _eventsCount: 23,
+2026-09-13 08:12:12:       _maxListeners: undefined,
+2026-09-13 08:12:12:       stream: [Socket],
+2026-09-13 08:12:12:       _keepAlive: false,
+2026-09-13 08:12:12:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 08:12:12:       parsedStatements: {},
+2026-09-13 08:12:12:       ssl: false,
+2026-09-13 08:12:12:       sslNegotiation: 'postgres',
+2026-09-13 08:12:12:       _ending: false,
+2026-09-13 08:12:12:       _emitMessage: false,
+2026-09-13 08:12:12:       _connecting: true,
+2026-09-13 08:12:12:       Symbol(shapeMode): false,
+2026-09-13 08:12:12:       Symbol(kCapture): false
+2026-09-13 08:12:12:     },
+2026-09-13 08:12:12:     _queryQueue: [],
+2026-09-13 08:12:12:     binary: false,
+2026-09-13 08:12:12:     processID: 225144,
+2026-09-13 08:12:12:     secretKey: -1853673358,
+2026-09-13 08:12:12:     ssl: false,
+2026-09-13 08:12:12:     sslNegotiation: 'postgres',
+2026-09-13 08:12:12:     _connectionTimeoutMillis: 0,
+2026-09-13 08:12:12:     _connectionCallback: null,
+2026-09-13 08:12:12:     release: [Function (anonymous)],
+2026-09-13 08:12:12:     readyForQuery: true,
+2026-09-13 08:12:12:     hasExecuted: true,
+2026-09-13 08:12:12:     _poolUseCount: 1,
+2026-09-13 08:12:12:     Symbol(shapeMode): false,
+2026-09-13 08:12:12:     Symbol(kCapture): false
+2026-09-13 08:12:12:   }
+2026-09-13 08:12:12: }
+2026-09-13 08:22:31: error: terminating connection due to administrator command
+2026-09-13 08:22:31:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 08:22:31:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 08:22:31:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 08:22:31:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 08:22:31:     at Socket.emit (node:events:514:28)
+2026-09-13 08:22:31:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 08:22:31:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 08:22:31:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 08:22:31:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 08:22:31:   length: 116,
+2026-09-13 08:22:31:   severity: 'FATAL',
+2026-09-13 08:22:31:   code: '57P01',
+2026-09-13 08:22:31:   detail: undefined,
+2026-09-13 08:22:31:   hint: undefined,
+2026-09-13 08:22:31:   position: undefined,
+2026-09-13 08:22:31:   internalPosition: undefined,
+2026-09-13 08:22:31:   internalQuery: undefined,
+2026-09-13 08:22:31:   where: undefined,
+2026-09-13 08:22:31:   schema: undefined,
+2026-09-13 08:22:31:   table: undefined,
+2026-09-13 08:22:31:   column: undefined,
+2026-09-13 08:22:31:   dataType: undefined,
+2026-09-13 08:22:31:   constraint: undefined,
+2026-09-13 08:22:31:   file: 'postgres.c',
+2026-09-13 08:22:31:   line: '3211',
+2026-09-13 08:22:31:   routine: 'ProcessInterrupts',
+2026-09-13 08:22:31:   client: Client {
+2026-09-13 08:22:31:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 08:22:31:     _eventsCount: 1,
+2026-09-13 08:22:31:     _maxListeners: undefined,
+2026-09-13 08:22:31:     connectionParameters: ConnectionParameters {
+2026-09-13 08:22:31:       user: 'hivv',
+2026-09-13 08:22:31:       database: 'hivv',
+2026-09-13 08:22:31:       port: 5432,
+2026-09-13 08:22:31:       host: 'localhost',
+2026-09-13 08:22:31:       binary: false,
+2026-09-13 08:22:31:       options: undefined,
+2026-09-13 08:22:31:       ssl: false,
+2026-09-13 08:22:31:       sslnegotiation: undefined,
+2026-09-13 08:22:31:       client_encoding: '',
+2026-09-13 08:22:31:       replication: undefined,
+2026-09-13 08:22:31:       isDomainSocket: false,
+2026-09-13 08:22:31:       application_name: undefined,
+2026-09-13 08:22:31:       fallback_application_name: undefined,
+2026-09-13 08:22:31:       statement_timeout: false,
+2026-09-13 08:22:31:       lock_timeout: false,
+2026-09-13 08:22:31:       idle_in_transaction_session_timeout: false,
+2026-09-13 08:22:31:       query_timeout: false,
+2026-09-13 08:22:31:       connect_timeout: 0
+2026-09-13 08:22:31:     },
+2026-09-13 08:22:31:     user: 'hivv',
+2026-09-13 08:22:31:     database: 'hivv',
+2026-09-13 08:22:31:     port: 5432,
+2026-09-13 08:22:31:     host: 'localhost',
+2026-09-13 08:22:31:     replication: undefined,
+2026-09-13 08:22:31:     _Promise: [Function: Promise],
+2026-09-13 08:22:31:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 08:22:31:     _ending: true,
+2026-09-13 08:22:31:     _ended: false,
+2026-09-13 08:22:31:     _connecting: false,
+2026-09-13 08:22:31:     _connected: true,
+2026-09-13 08:22:31:     _connectionError: false,
+2026-09-13 08:22:31:     _queryable: false,
+2026-09-13 08:22:31:     _activeQuery: null,
+2026-09-13 08:22:31:     _txStatus: 'I',
+2026-09-13 08:22:31:     enableChannelBinding: false,
+2026-09-13 08:22:31:     scramMaxIterations: 100000,
+2026-09-13 08:22:31:     connection: Connection {
+2026-09-13 08:22:31:       _events: [Object: null prototype],
+2026-09-13 08:22:31:       _eventsCount: 23,
+2026-09-13 08:22:31:       _maxListeners: undefined,
+2026-09-13 08:22:31:       stream: [Socket],
+2026-09-13 08:22:31:       _keepAlive: false,
+2026-09-13 08:22:31:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 08:22:31:       parsedStatements: {},
+2026-09-13 08:22:31:       ssl: false,
+2026-09-13 08:22:31:       sslNegotiation: 'postgres',
+2026-09-13 08:22:31:       _ending: false,
+2026-09-13 08:22:31:       _emitMessage: false,
+2026-09-13 08:22:31:       _connecting: true,
+2026-09-13 08:22:31:       Symbol(shapeMode): false,
+2026-09-13 08:22:31:       Symbol(kCapture): false
+2026-09-13 08:22:31:     },
+2026-09-13 08:22:31:     _queryQueue: [],
+2026-09-13 08:22:31:     binary: false,
+2026-09-13 08:22:31:     processID: 227558,
+2026-09-13 08:22:31:     secretKey: 1909933851,
+2026-09-13 08:22:31:     ssl: false,
+2026-09-13 08:22:31:     sslNegotiation: 'postgres',
+2026-09-13 08:22:31:     _connectionTimeoutMillis: 0,
+2026-09-13 08:22:31:     _connectionCallback: null,
+2026-09-13 08:22:31:     release: [Function (anonymous)],
+2026-09-13 08:22:31:     readyForQuery: true,
+2026-09-13 08:22:31:     hasExecuted: true,
+2026-09-13 08:22:31:     _poolUseCount: 1,
+2026-09-13 08:22:31:     Symbol(shapeMode): false,
+2026-09-13 08:22:31:     Symbol(kCapture): false
+2026-09-13 08:22:31:   }
+2026-09-13 08:22:31: }
+2026-09-13 08:22:36: Failed to load gateway config: the database system is shutting down
+2026-09-13 08:22:36: Failed to load providers: the database system is shutting down
+2026-09-13 08:22:36: Failed to load keys: the database system is shutting down
+2026-09-13 08:22:36: Failed to load config: the database system is shutting down
+2026-09-13 08:23:53: error: terminating connection due to administrator command
+2026-09-13 08:23:53:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-09-13 08:23:53:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-09-13 08:23:53:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-09-13 08:23:53:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-09-13 08:23:53:     at Socket.emit (node:events:514:28)
+2026-09-13 08:23:53:     at addChunk (node:internal/streams/readable:568:12)
+2026-09-13 08:23:53:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-09-13 08:23:53:     at Readable.push (node:internal/streams/readable:399:5)
+2026-09-13 08:23:53:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-09-13 08:23:53:   length: 116,
+2026-09-13 08:23:53:   severity: 'FATAL',
+2026-09-13 08:23:53:   code: '57P01',
+2026-09-13 08:23:53:   detail: undefined,
+2026-09-13 08:23:53:   hint: undefined,
+2026-09-13 08:23:53:   position: undefined,
+2026-09-13 08:23:53:   internalPosition: undefined,
+2026-09-13 08:23:53:   internalQuery: undefined,
+2026-09-13 08:23:53:   where: undefined,
+2026-09-13 08:23:53:   schema: undefined,
+2026-09-13 08:23:53:   table: undefined,
+2026-09-13 08:23:53:   column: undefined,
+2026-09-13 08:23:53:   dataType: undefined,
+2026-09-13 08:23:53:   constraint: undefined,
+2026-09-13 08:23:53:   file: 'postgres.c',
+2026-09-13 08:23:53:   line: '3211',
+2026-09-13 08:23:53:   routine: 'ProcessInterrupts',
+2026-09-13 08:23:53:   client: Client {
+2026-09-13 08:23:53:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-09-13 08:23:53:     _eventsCount: 1,
+2026-09-13 08:23:53:     _maxListeners: undefined,
+2026-09-13 08:23:53:     connectionParameters: ConnectionParameters {
+2026-09-13 08:23:53:       user: 'hivv',
+2026-09-13 08:23:53:       database: 'hivv',
+2026-09-13 08:23:53:       port: 5432,
+2026-09-13 08:23:53:       host: 'localhost',
+2026-09-13 08:23:53:       binary: false,
+2026-09-13 08:23:53:       options: undefined,
+2026-09-13 08:23:53:       ssl: false,
+2026-09-13 08:23:53:       sslnegotiation: undefined,
+2026-09-13 08:23:53:       client_encoding: '',
+2026-09-13 08:23:53:       replication: undefined,
+2026-09-13 08:23:53:       isDomainSocket: false,
+2026-09-13 08:23:53:       application_name: undefined,
+2026-09-13 08:23:53:       fallback_application_name: undefined,
+2026-09-13 08:23:53:       statement_timeout: false,
+2026-09-13 08:23:53:       lock_timeout: false,
+2026-09-13 08:23:53:       idle_in_transaction_session_timeout: false,
+2026-09-13 08:23:53:       query_timeout: false,
+2026-09-13 08:23:53:       connect_timeout: 0
+2026-09-13 08:23:53:     },
+2026-09-13 08:23:53:     user: 'hivv',
+2026-09-13 08:23:53:     database: 'hivv',
+2026-09-13 08:23:53:     port: 5432,
+2026-09-13 08:23:53:     host: 'localhost',
+2026-09-13 08:23:53:     replication: undefined,
+2026-09-13 08:23:53:     _Promise: [Function: Promise],
+2026-09-13 08:23:53:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-09-13 08:23:53:     _ending: true,
+2026-09-13 08:23:53:     _ended: false,
+2026-09-13 08:23:53:     _connecting: false,
+2026-09-13 08:23:53:     _connected: true,
+2026-09-13 08:23:53:     _connectionError: false,
+2026-09-13 08:23:53:     _queryable: false,
+2026-09-13 08:23:53:     _activeQuery: null,
+2026-09-13 08:23:53:     _txStatus: 'I',
+2026-09-13 08:23:53:     enableChannelBinding: false,
+2026-09-13 08:23:53:     scramMaxIterations: 100000,
+2026-09-13 08:23:53:     connection: Connection {
+2026-09-13 08:23:53:       _events: [Object: null prototype],
+2026-09-13 08:23:53:       _eventsCount: 23,
+2026-09-13 08:23:53:       _maxListeners: undefined,
+2026-09-13 08:23:53:       stream: [Socket],
+2026-09-13 08:23:53:       _keepAlive: false,
+2026-09-13 08:23:53:       _keepAliveInitialDelayMillis: 0,
+2026-09-13 08:23:53:       parsedStatements: {},
+2026-09-13 08:23:53:       ssl: false,
+2026-09-13 08:23:53:       sslNegotiation: 'postgres',
+2026-09-13 08:23:53:       _ending: false,
+2026-09-13 08:23:53:       _emitMessage: false,
+2026-09-13 08:23:53:       _connecting: true,
+2026-09-13 08:23:53:       Symbol(shapeMode): false,
+2026-09-13 08:23:53:       Symbol(kCapture): false
+2026-09-13 08:23:53:     },
+2026-09-13 08:23:53:     _queryQueue: [],
+2026-09-13 08:23:53:     binary: false,
+2026-09-13 08:23:53:     processID: 228238,
+2026-09-13 08:23:53:     secretKey: 1390576985,
+2026-09-13 08:23:53:     ssl: false,
+2026-09-13 08:23:53:     sslNegotiation: 'postgres',
+2026-09-13 08:23:53:     _connectionTimeoutMillis: 0,
+2026-09-13 08:23:53:     _connectionCallback: null,
+2026-09-13 08:23:53:     release: [Function (anonymous)],
+2026-09-13 08:23:53:     readyForQuery: true,
+2026-09-13 08:23:53:     hasExecuted: true,
+2026-09-13 08:23:53:     _poolUseCount: 1,
+2026-09-13 08:23:53:     Symbol(shapeMode): false,
+2026-09-13 08:23:53:     Symbol(kCapture): false
+2026-09-13 08:23:53:   }
+2026-09-13 08:23:53: }

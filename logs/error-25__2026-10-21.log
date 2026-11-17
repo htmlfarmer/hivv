@@ -1,0 +1,112 @@
+2026-10-20 20:29:13: error: terminating connection due to administrator command
+2026-10-20 20:29:13:     at parseErrorMessage (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-10-20 20:29:13:     at Parser.handlePacket (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-10-20 20:29:13:     at Parser.parse (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-10-20 20:29:13:     at Socket.<anonymous> (/var/www/vhosts/hivv.org/api/node_modules/pg-protocol/dist/index.js:12:42)
+2026-10-20 20:29:13:     at Socket.emit (node:events:514:28)
+2026-10-20 20:29:13:     at addChunk (node:internal/streams/readable:568:12)
+2026-10-20 20:29:13:     at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)
+2026-10-20 20:29:13:     at Readable.push (node:internal/streams/readable:399:5)
+2026-10-20 20:29:13:     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-10-20 20:29:13:   length: 116,
+2026-10-20 20:29:13:   severity: 'FATAL',
+2026-10-20 20:29:13:   code: '57P01',
+2026-10-20 20:29:13:   detail: undefined,
+2026-10-20 20:29:13:   hint: undefined,
+2026-10-20 20:29:13:   position: undefined,
+2026-10-20 20:29:13:   internalPosition: undefined,
+2026-10-20 20:29:13:   internalQuery: undefined,
+2026-10-20 20:29:13:   where: undefined,
+2026-10-20 20:29:13:   schema: undefined,
+2026-10-20 20:29:13:   table: undefined,
+2026-10-20 20:29:13:   column: undefined,
+2026-10-20 20:29:13:   dataType: undefined,
+2026-10-20 20:29:13:   constraint: undefined,
+2026-10-20 20:29:13:   file: 'postgres.c',
+2026-10-20 20:29:13:   line: '3211',
+2026-10-20 20:29:13:   routine: 'ProcessInterrupts',
+2026-10-20 20:29:13:   client: Client {
+2026-10-20 20:29:13:     _events: [Object: null prototype] { error: [Function (anonymous)] },
+2026-10-20 20:29:13:     _eventsCount: 1,
+2026-10-20 20:29:13:     _maxListeners: undefined,
+2026-10-20 20:29:13:     connectionParameters: ConnectionParameters {
+2026-10-20 20:29:13:       user: 'hivv',
+2026-10-20 20:29:13:       database: 'hivv',
+2026-10-20 20:29:13:       port: 5432,
+2026-10-20 20:29:13:       host: 'localhost',
+2026-10-20 20:29:13:       binary: false,
+2026-10-20 20:29:13:       options: undefined,
+2026-10-20 20:29:13:       ssl: false,
+2026-10-20 20:29:13:       sslnegotiation: undefined,
+2026-10-20 20:29:13:       client_encoding: '',
+2026-10-20 20:29:13:       replication: undefined,
+2026-10-20 20:29:13:       isDomainSocket: false,
+2026-10-20 20:29:13:       application_name: undefined,
+2026-10-20 20:29:13:       fallback_application_name: undefined,
+2026-10-20 20:29:13:       statement_timeout: false,
+2026-10-20 20:29:13:       lock_timeout: false,
+2026-10-20 20:29:13:       idle_in_transaction_session_timeout: false,
+2026-10-20 20:29:13:       query_timeout: false,
+2026-10-20 20:29:13:       connect_timeout: 0
+2026-10-20 20:29:13:     },
+2026-10-20 20:29:13:     user: 'hivv',
+2026-10-20 20:29:13:     database: 'hivv',
+2026-10-20 20:29:13:     port: 5432,
+2026-10-20 20:29:13:     host: 'localhost',
+2026-10-20 20:29:13:     replication: undefined,
+2026-10-20 20:29:13:     _Promise: [Function: Promise],
+2026-10-20 20:29:13:     _types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2026-10-20 20:29:13:     _ending: true,
+2026-10-20 20:29:13:     _ended: false,
+2026-10-20 20:29:13:     _connecting: false,
+2026-10-20 20:29:13:     _connected: true,
+2026-10-20 20:29:13:     _connectionError: false,
+2026-10-20 20:29:13:     _queryable: false,
+2026-10-20 20:29:13:     _activeQuery: null,
+2026-10-20 20:29:13:     _txStatus: 'I',
+2026-10-20 20:29:13:     enableChannelBinding: false,
+2026-10-20 20:29:13:     scramMaxIterations: 100000,
+2026-10-20 20:29:13:     connection: Connection {
+2026-10-20 20:29:13:       _events: [Object: null prototype],
+2026-10-20 20:29:13:       _eventsCount: 23,
+2026-10-20 20:29:13:       _maxListeners: undefined,
+2026-10-20 20:29:13:       stream: [Socket],
+2026-10-20 20:29:13:       _keepAlive: false,
+2026-10-20 20:29:13:       _keepAliveInitialDelayMillis: 0,
+2026-10-20 20:29:13:       parsedStatements: {},
+2026-10-20 20:29:13:       ssl: false,
+2026-10-20 20:29:13:       sslNegotiation: 'postgres',
+2026-10-20 20:29:13:       _ending: true,
+2026-10-20 20:29:13:       _emitMessage: false,
+2026-10-20 20:29:13:       _connecting: true,
+2026-10-20 20:29:13:       Symbol(shapeMode): false,
+2026-10-20 20:29:13:       Symbol(kCapture): false
+2026-10-20 20:29:13:     },
+2026-10-20 20:29:13:     _queryQueue: [],
+2026-10-20 20:29:13:     binary: false,
+2026-10-20 20:29:13:     processID: 2973888,
+2026-10-20 20:29:13:     secretKey: 844452960,
+2026-10-20 20:29:13:     ssl: false,
+2026-10-20 20:29:13:     sslNegotiation: 'postgres',
+2026-10-20 20:29:13:     _connectionTimeoutMillis: 0,
+2026-10-20 20:29:13:     _connectionCallback: null,
+2026-10-20 20:29:13:     release: [Function (anonymous)],
+2026-10-20 20:29:13:     readyForQuery: true,
+2026-10-20 20:29:13:     hasExecuted: true,
+2026-10-20 20:29:13:     _poolUseCount: 3,
+2026-10-20 20:29:13:     Symbol(shapeMode): false,
+2026-10-20 20:29:13:     Symbol(kCapture): false
+2026-10-20 20:29:13:   }
+2026-10-20 20:29:13: }
+2026-10-20 20:29:13: [2026-10-21T03:29:13.779Z] UNCAUGHT: terminating connection due to administrator command
+2026-10-20 20:29:14: [HONEY] goal reset check failed: the database system is shutting down
+2026-10-20 20:29:14: Failed to load keys: the database system is shutting down
+2026-10-20 20:29:14: Session cleanup error: the database system is shutting down
+2026-10-20 20:29:14: Failed to load gateway config: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush masjid failed: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush yalla failed: the database system is shutting down
+2026-10-20 20:29:14: [HEALTH] Monitor error: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush ashy failed: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush test-token-123 failed: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush no-secret-token failed: the database system is shutting down
+2026-10-20 20:29:14: [HONEY] flush custom-port-token failed: the database system is shutting down

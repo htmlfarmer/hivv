@@ -1,0 +1,412 @@
+2026-09-17 12:01:54: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:01:54:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:01:54:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:01:54:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:01:54:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:01:54: }
+2026-09-17 12:01:54: [2026-09-17T19:01:54.695Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:01:54: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:01:54:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:01:54:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:01:54:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:01:54:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:01:54:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:01:54:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:01:54:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:01:54:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:01:54:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:01:54:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:13: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:13:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:13:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:13: }
+2026-09-17 12:02:13: [2026-09-17T19:02:13.482Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:13:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:13:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:13:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:13:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:13:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:13:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:13: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:13:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:13:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:13: }
+2026-09-17 12:02:13: [2026-09-17T19:02:13.598Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:13:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:13:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:13:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:13:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:13:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:13:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:13: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:13:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:13:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:13: }
+2026-09-17 12:02:13: [2026-09-17T19:02:13.713Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:13:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:13:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:13:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:13:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:13:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:13:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:13:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:13:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:13:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:22: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:22:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:22:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:22:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:22: }
+2026-09-17 12:02:22: [2026-09-17T19:02:22.059Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:22: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:22:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:22:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:22:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:22:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:22:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:22:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:22:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:22:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:22:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:31: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:31:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:31:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:31:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:31:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:31: }
+2026-09-17 12:02:31: [2026-09-17T19:02:31.066Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:31: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:31:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:31:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:31:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:31:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:31:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:31:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:31:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:31:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:31:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:31:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:35: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:35:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:35:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:35:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:35:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:35: }
+2026-09-17 12:02:35: [2026-09-17T19:02:35.460Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:35: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:35:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:35:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:35:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:35:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:35:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:35:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:35:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:35:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:35:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:35:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:02:54: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:54:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:54:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:02:54:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:02:54:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:02:54: }
+2026-09-17 12:02:54: [2026-09-17T19:02:54.319Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:02:54: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:02:54:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:02:54:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:02:54:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:02:54:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:02:54:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:02:54:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:02:54:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:02:54:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:02:54:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:02:54:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:03:01: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:03:01:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:03:01:     at /var/www/vhosts/hivv.org/api/server.js:1687:17
+2026-09-17 12:03:01:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:03:01:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:03:01: }
+2026-09-17 12:03:01: [2026-09-17T19:03:01.742Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:03:01: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:03:01:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:03:01:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:03:01:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:03:01:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:03:01:     at /var/www/vhosts/hivv.org/api/server.js:2763:21
+2026-09-17 12:03:01:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:03:01:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:03:01:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:03:01:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:03:01:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:20:05: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:20:05:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:20:05:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:20:05:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:20:05:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:20:05: }
+2026-09-17 12:20:05: [2026-09-17T19:20:05.461Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:20:05: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:20:05:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:20:05:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:20:05:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:20:05:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:20:05:     at /var/www/vhosts/hivv.org/api/server.js:2769:21
+2026-09-17 12:20:05:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:20:05:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:20:05:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:20:05:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:20:05:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:34:59: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:34:59:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:34:59:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:34:59:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:34:59:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:34:59: }
+2026-09-17 12:34:59: [2026-09-17T19:34:59.837Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:34:59: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:34:59:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:34:59:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:34:59:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:34:59:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:34:59:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:34:59:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:34:59:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:34:59:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:34:59:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:34:59:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:35:09: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:35:09:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:35:09:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:35:09:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:35:09:     at /var/www/vhosts/hivv.org/api/server.js:1697:36
+2026-09-17 12:35:09:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:35:09:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:35:09: }
+2026-09-17 12:35:09: [2026-09-17T19:35:09.662Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:35:09:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:35:09:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:35:09:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:35:09:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:35:09:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:35:09:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:35:09:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:35:09:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:35:09:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:35:09:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:37:44: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:37:44:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:37:44:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:37:44:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:37:44:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:37:44: }
+2026-09-17 12:37:44: [2026-09-17T19:37:44.989Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:37:44: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:37:44:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:37:44:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:37:44:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:37:44:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:37:44:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:37:44:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:37:44:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:37:44:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:37:44:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:37:44:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:37:51: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:37:51:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:37:51:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:37:51:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:37:51:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:37:51: }
+2026-09-17 12:37:51: [2026-09-17T19:37:51.142Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:37:51: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:37:51:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:37:51:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:37:51:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:37:51:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:37:51:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:37:51:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:37:51:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:37:51:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:37:51:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:37:51:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:38:22: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:22:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:38:22:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:38:22:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:38:22: }
+2026-09-17 12:38:22: [2026-09-17T19:38:22.618Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:38:22: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:22:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:38:22:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:38:22:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:38:22:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:38:22:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:38:22:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:38:22:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:38:22:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:38:22:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:38:33: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:33:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:33:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:38:33:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:38:33:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:38:33: }
+2026-09-17 12:38:33: [2026-09-17T19:38:33.717Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:38:33: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:33:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:33:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:38:33:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:38:33:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:38:33:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:38:33:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:38:33:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:38:33:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:38:33:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:38:33:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:38:43: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:43:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:43:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:38:43:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:38:43:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:38:43: }
+2026-09-17 12:38:43: [2026-09-17T19:38:43.034Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:38:43: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:38:43:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:38:43:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:38:43:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:38:43:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:38:43:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:38:43:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:38:43:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:38:43:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:38:43:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:38:43:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:39:22: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:39:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:39:22:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:39:22:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:39:22:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:39:22: }
+2026-09-17 12:39:22: [2026-09-17T19:39:22.327Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:39:22: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:39:22:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:39:22:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:39:22:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:39:22:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:39:22:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:39:22:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:39:22:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:39:22:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:39:22:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:39:22:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:42:17: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:42:17:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:42:17:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 12:42:17:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 12:42:17:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 12:42:17: }
+2026-09-17 12:42:17: [2026-09-17T19:42:17.017Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 12:42:17: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 12:42:17:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 12:42:17:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 12:42:17:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 12:42:17:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 12:42:17:     at /var/www/vhosts/hivv.org/api/server.js:2778:21
+2026-09-17 12:42:17:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 12:42:17:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 12:42:17:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 12:42:17:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 12:42:17:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 12:45:34: [KEYS] donate error: error: null value in column "display_name" of relation "ai_providers" violates not-null constraint
+2026-09-17 12:45:34:     at /var/www/vhosts/hivv.org/api/node_modules/pg-pool/index.js:45:11
+2026-09-17 12:45:34:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-09-17 12:45:34:     at async /var/www/vhosts/hivv.org/api/server.js:2375:13 {
+2026-09-17 12:45:34:   length: 287,
+2026-09-17 12:45:34:   severity: 'ERROR',
+2026-09-17 12:45:34:   code: '23502',
+2026-09-17 12:45:34:   detail: 'Failing row contains (24, test, null, null, openai, , f, f, [], t, 2026-09-17 12:45:34.073862).',
+2026-09-17 12:45:34:   hint: undefined,
+2026-09-17 12:45:34:   position: undefined,
+2026-09-17 12:45:34:   internalPosition: undefined,
+2026-09-17 12:45:34:   internalQuery: undefined,
+2026-09-17 12:45:34:   where: undefined,
+2026-09-17 12:45:34:   schema: 'public',
+2026-09-17 12:45:34:   table: 'ai_providers',
+2026-09-17 12:45:34:   column: 'display_name',
+2026-09-17 12:45:34:   dataType: undefined,
+2026-09-17 12:45:34:   constraint: undefined,
+2026-09-17 12:45:34:   file: 'execMain.c',
+2026-09-17 12:45:34:   line: '2023',
+2026-09-17 12:45:34:   routine: 'ExecConstraints'
+2026-09-17 12:45:34: }
+2026-09-17 12:45:51: [KEYS] donate error: error: column "name" of relation "ai_keys" does not exist
+2026-09-17 12:45:51:     at /var/www/vhosts/hivv.org/api/node_modules/pg-pool/index.js:45:11
+2026-09-17 12:45:51:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-09-17 12:45:51:     at async /var/www/vhosts/hivv.org/api/server.js:2392:9 {
+2026-09-17 12:45:51:   length: 124,
+2026-09-17 12:45:51:   severity: 'ERROR',
+2026-09-17 12:45:51:   code: '42703',
+2026-09-17 12:45:51:   detail: undefined,
+2026-09-17 12:45:51:   hint: undefined,
+2026-09-17 12:45:51:   position: '46',
+2026-09-17 12:45:51:   internalPosition: undefined,
+2026-09-17 12:45:51:   internalQuery: undefined,
+2026-09-17 12:45:51:   where: undefined,
+2026-09-17 12:45:51:   schema: undefined,
+2026-09-17 12:45:51:   table: undefined,
+2026-09-17 12:45:51:   column: undefined,
+2026-09-17 12:45:51:   dataType: undefined,
+2026-09-17 12:45:51:   constraint: undefined,
+2026-09-17 12:45:51:   file: 'parse_target.c',
+2026-09-17 12:45:51:   line: '1075',
+2026-09-17 12:45:51:   routine: 'checkInsertTargets'
+2026-09-17 12:45:51: }
+2026-09-17 13:05:41: Chat completion error: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 13:05:41:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 13:05:41:     at /var/www/vhosts/hivv.org/api/server.js:1693:17
+2026-09-17 13:05:41:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+2026-09-17 13:05:41:   code: 'ERR_HTTP_HEADERS_SENT'
+2026-09-17 13:05:41: }
+2026-09-17 13:05:41: [2026-09-17T20:05:41.998Z] ERROR POST /v1/chat/completions: Cannot set headers after they are sent to the client
+2026-09-17 13:05:41: Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+2026-09-17 13:05:41:     at ServerResponse.setHeader (node:_http_outgoing:684:11)
+2026-09-17 13:05:41:     at ServerResponse.header (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:686:10)
+2026-09-17 13:05:41:     at ServerResponse.send (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:163:12)
+2026-09-17 13:05:41:     at ServerResponse.json (/var/www/vhosts/hivv.org/api/node_modules/express/lib/response.js:252:15)
+2026-09-17 13:05:41:     at /var/www/vhosts/hivv.org/api/server.js:2844:21
+2026-09-17 13:05:41:     at Layer.handleError (/var/www/vhosts/hivv.org/api/node_modules/router/lib/layer.js:116:17)
+2026-09-17 13:05:41:     at trimPrefix (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:340:13)
+2026-09-17 13:05:41:     at /var/www/vhosts/hivv.org/api/node_modules/router/index.js:297:9
+2026-09-17 13:05:41:     at processParams (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:582:12)
+2026-09-17 13:05:41:     at next (/var/www/vhosts/hivv.org/api/node_modules/router/index.js:291:5)
+2026-09-17 14:25:12: [KEYS] donate error: Error: HIVV_ENCRYPTION_KEY environment variable is required for key encryption
+2026-09-17 14:25:12:     at getEncryptionKey (/var/www/vhosts/hivv.org/api/lib/crypto-utils.js:10:15)
+2026-09-17 14:25:12:     at encryptKey (/var/www/vhosts/hivv.org/api/lib/crypto-utils.js:22:17)
+2026-09-17 14:25:12:     at /var/www/vhosts/hivv.org/api/server.js:2392:30
+2026-09-17 14:25:12:     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

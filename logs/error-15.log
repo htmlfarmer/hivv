@@ -1,0 +1,10 @@
+2026-10-25 22:07:08: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:12: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:16: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:20: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:24: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:29: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:33: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:37: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:41: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD
+2026-10-25 22:07:45: FATAL: Missing required environment variables in production: HIVV_SESSION_SECRET, HIVV_DB_PASSWORD

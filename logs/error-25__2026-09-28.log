@@ -1,0 +1,2 @@
+2026-09-27 18:53:18: [PERF] flush masjid::gemma-4-E2B-it-GGUF failed: there is no unique or exclusion constraint matching the ON CONFLICT specification
+2026-09-27 18:53:18: [PERF] flush masjid::Qwen2.5-0.5B-Instruct-GGUF failed: there is no unique or exclusion constraint matching the ON CONFLICT specification

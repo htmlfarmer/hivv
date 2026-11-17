@@ -1,0 +1,2 @@
+2026-11-04 22:43:18: [2026-11-05T06:43:18.043Z] ERROR POST /v1/chat/completions: request entity too large
+2026-11-04 22:43:25: [2026-11-05T06:43:25.070Z] ERROR POST /v1/chat/completions: request entity too large
