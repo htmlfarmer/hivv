@@ -46,7 +46,25 @@ fi
 DB_NAME="${DB_NAME:-hivv}"
 DB_USER="${DB_USER:-hivv}"
 DB_HOST="${DB_HOST:-localhost}"
-DB_PASSWORD="${HIVV_DB_PASSWORD:-REDACTED_DEFAULT_DB_PASSWORD}"
+# NO default password. A known default in the repo means every clone has an
+# open database. Generate one on first run and persist it to .db-password (0600).
+if [ -z "${HIVV_DB_PASSWORD:-}" ]; then
+    DB_PW_FILE="$SCRIPT_DIR/.db-password"
+    if [ -f "$DB_PW_FILE" ]; then
+        DB_PASSWORD="$(cat "$DB_PW_FILE")"
+    elif command -v openssl >/dev/null 2>&1; then
+        DB_PASSWORD="$(openssl rand -hex 24)"
+        printf '%s' "$DB_PASSWORD" > "$DB_PW_FILE"
+        chmod 600 "$DB_PW_FILE"
+        print_warning "Generated a DB password into $DB_PW_FILE (mode 0600)"
+    else
+        print_error "HIVV_DB_PASSWORD is not set and openssl is unavailable to generate one."
+        print_error "Set it: export HIVV_DB_PASSWORD=\$(openssl rand -hex 24)"
+        exit 1
+    fi
+else
+    DB_PASSWORD="$HIVV_DB_PASSWORD"
+fi
 
 print_step "Testing database connection..."
 if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" &> /dev/null; then
