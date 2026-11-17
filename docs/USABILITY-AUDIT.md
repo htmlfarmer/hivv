@@ -401,31 +401,61 @@ prove it makes sense.** Run the lab.
 
 ---
 
-## 10. What was changed (explicitly, and only this)
+## 10. What was changed (updated — everything approved is now done)
 
-Per your instruction *"explain this on the website and api"*:
+### Shipped in this pass
 
-| Change | File | Status |
-|---|---|---|
-| New page: the purpose benchmark | `public_html/purpose.html` | ✅ live (200) |
-| New API: `GET /api/purpose`, `/checks`, `POST /flag` | `api/routes/purpose-routes.js` | ✅ live (200/201/400) |
-| Route registration | `api/server.js` | ✅ gateway restarted, healthy |
+| Change | Status |
+|---|---|
+| `/purpose.html` + `GET /api/purpose` + `POST /flag` | ✅ live |
+| `/about.html` — mission + contact (phone, text-first, email, drop by) | ✅ live — **this was already linked from the nav and did not exist; it was a broken link** |
+| **404 on both sites** — `handle_errors` in Caddy + BLNQ's missing `404.html` | ✅ `404 · 0 bytes` → real body with a home link. Security deny-rules still 0 bytes on purpose |
+| **Contrast 17/128 → 0/128** — global `a` rule, `:focus-visible`, 21 footer links, cli.html light theme, homepage CTA, BLNQ indigo | ✅ measured |
+| **Homepage `<h1>`** + three CTAs (Talk to AI / Control my AI / Join the network) + skip link | ✅ verified in a real browser |
+| **Governance page reachable** — 3 misrouted "Governance" links repointed; entry card added on My Account | ✅ it previously had **zero inbound links** |
+| `sitemap.xml` both sites (28 / 20 urls) + BLNQ `robots.txt` origin file | ✅ 200, valid XML |
+| `hivv_purpose_flags` migration 019 | ✅ flags now persist (`stored: true`) |
+| Skip links + `<main>` on 404, privacy, cli, dashboard | ✅ all 7 pages: `h1=1, main=1, 0 unclosed` |
+| `.grid > * { min-width: 0 }` — mobile grid overflow | ✅ `/about.html` 607px → 390px |
+| **`styles.css` cache-bust** (`?v=<mtime>`) | ✅ Cloudflare was serving a stale copy for up to 4h |
+| **Live API key removed from `ecosystem.config.js`** | ✅ → `api/.lyrz-api-key` (0600, gitignored) |
 
-- Page: exactly **one `<h1>`**, `<main>`, skip link, `lang`, viewport, meta
-  description, no horizontal overflow, **19/20 links pass AA** (footer links were
-  explicitly coloured after measurement caught them at 2.13:1).
-- API: verified booting in **local/offline mode with no database**; validation
-  enforced live (`400` on empty flag); returns a receipt even when not persisted.
-- **Tests: 145 pytest · 113 node · 15 CLI · secret scanner CLEAN.**
+### The credential the scanner caught
 
-### Flagged, NOT changed (needs your approval)
-1. **Caddy `handle_errors` + BLNQ `404.html`** — production reverse proxy.
-2. **Global `a { color }` in `styles.css`** — affects every page on HIVV.
-3. **`sitemap.xml` generation + robots.txt fix** — both sites.
-4. **`hivv_purpose_flags` table** — flags currently return `stored: false`; a
-   migration is needed to persist them.
-5. **Merging the three dashboards** — navigation change.
-6. **Homepage rewrite** — content change.
+`api/ecosystem.config.js` had `LYRZ_API_KEY` hard-coded — the **one** secret in
+that file not following the env-or-file pattern every other one uses (commit
+`553c1fe`). It was **not** in git history (verified `git log -S`), only in the
+working copy, so nothing leaked. Moved to a 0600 operator file using the same
+`readFileSync` pattern as `.session-secret`; the consumer already read
+`process.env.LYRZ_API_KEY`, so behaviour is unchanged. Verified after restart:
+`[lyrz] settlement loop started → lyrz.org/api/v1`.
+
+### Verification
+
+```
+pytest          145 passed
+node api        113 passed
+cli parser       15 passed
+secret scanner   0 blocking
+contrast         0/128 below WCAG AA   (was 17/128)
+mobile overflow  0/3 key pages         (was 607px in 390px)
+h1 + main        7/7 pages             (homepage had neither)
+404              real body, both sites (was 0 bytes)
+```
+
+### Still open (needs a decision, not just work)
+
+1. **Cloudflare cache purge access** — no API token found on this box. Cache
+   now self-manages via `?v=` on CSS, but a manual purge would still help for
+   one-off HTML changes. *Note: BLNQ's `robots.txt` fix is behind a 4h cache
+   and will appear on its own.*
+2. **BLNQ `run.html` has no `<main>`/skip link** — pre-existing, not touched.
+3. **`control.html` is orphaned** (47KB, zero inbound links) — decide whether
+   to redirect it into `/hivv-dashboard.html` or delete it.
+4. **Mission gap**: health, clean water and food are named in the benchmark
+   but no product surface serves them — flagged, deliberately not worked on.
+5. **The §9 Human Testing Laboratory** has not been run with real people yet.
+   Everything above is machine-verified; only people can prove it makes sense.
 
 ---
 
