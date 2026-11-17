@@ -17673,3 +17673,4 @@
 [2026-11-17T13:35:56.252Z] ERROR POST /v1/chat/completions: request entity too large
 [2026-11-17T13:36:35.801Z] ERROR POST /v1/chat/completions: request entity too large
 [2026-11-17T13:39:19.839Z] ERROR POST /v1/chat/completions: request entity too large
+[2026-11-17T20:18:43.492Z] ERROR POST /api/nodes/masjid/heartbeat: request aborted

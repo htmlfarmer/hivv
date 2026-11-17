@@ -1,0 +1,318 @@
+[
+  {
+    "id": "J1",
+    "title": "First-timer starts an AI conversation",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "land on hivv.org",
+        "shot": "/tmp/opencode/usability/journeys/J1-1-home.png",
+        "h1": [],
+        "words": 1536
+      },
+      {
+        "step": "links mentioning chat",
+        "found": [
+          {
+            "t": "\ud83d\udde3\ufe0f Chat",
+            "h": "/chat/"
+          },
+          {
+            "t": "\ud83c\udfa4 Open Voice Chat \u2192",
+            "h": "/chat/"
+          },
+          {
+            "t": "\ud83d\udde3\ufe0f Voice Chat",
+            "h": "/chat/"
+          }
+        ]
+      },
+      {
+        "step": "clicked first chat link",
+        "url": "https://hivv.org/chat/",
+        "shot": "/tmp/opencode/usability/journeys/J1-2-chat.png"
+      },
+      {
+        "step": "inputs on chat page",
+        "inputs": [
+          {
+            "tag": "TEXTAREA",
+            "ph": "Ask HIVV anything\u2026",
+            "vis": true
+          },
+          {
+            "tag": "TEXTAREA",
+            "ph": "Custom instructions for the AI\u2026",
+            "vis": true
+          }
+        ]
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J2",
+    "title": "Understand AI routing options (fast/cheap/private/smart)",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "homepage mentions modes",
+        "found": [
+          "balanced",
+          "quality",
+          "fast",
+          "cost",
+          "private",
+          "trusted",
+          "cheap",
+          "auto"
+        ]
+      },
+      {
+        "step": "homepage explains routing in plain words",
+        "found": true
+      },
+      {
+        "step": "chat page mode mentions",
+        "found": [
+          "balanced",
+          "quality",
+          "fast",
+          "private",
+          "trusted",
+          "cheap",
+          "auto"
+        ]
+      },
+      {
+        "step": "opened chat settings",
+        "shot": "/tmp/opencode/usability/journeys/J2-settings.png",
+        "text": "\ud83d\udc1d\nHIVV\n+ New Chat\nNew chat\n\u2715\n\ud83c\udf10 Auto\n\ud83d\udda5\ufe0f Local\nOpenAI\nAnthropic\nGoogle\nDeepSeek\n\u2696\ufe0f Balanced\n\u2728 Quality\n\u26a1 Fast\n\ud83d\udcb0 Cheap\n\ud83d\udd12 Private\n\ud83e\udd1d Trusted\n\ud83d\udc1d Bella\n\ud83c\udf1f Sarah\n\u2728 Nova\n\ud83d\udcbc Nicole\n\ud83d\udc22\n\ud83d\udc07\n\u26a1\n\ud83d\ude80\n\ud83d\udd0a\n\u2197\n\u2699\ufe0f\n\ud83d\udc1d\nChat with HIVV\n\nA distributed AI gateway \u2014 your questions routed across a network of intelligent nodes. Attach files, tune generation params, and control every aspect of the response.\n\nExplain how the HIVV network works\nWhat nodes are currently online?\nHelp me write a Python script\nCompare local vs cloud AI providers\n\ud83d\udcce\n\ud83c\udfa4\n\u27a4\n\u2699\ufe0f Settings\n\u2715\nPresets\n\ud83c\udfa8 Creative\n\ud83c\udfaf Precise\n\u2696\ufe0f Balanced\nTemperature 0.7\nHigher = more creative, lower = more focused\n0\n2\nTop P 0.95\nNucleus sampling cutoff\n0\n1\nMax Tokens 2048\nMaximum response"
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J3",
+    "title": "Find and understand YES/MAYBE/NO permissions",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "scan /control.html",
+        "keywords": {
+          "maybe": false,
+          "approve": false,
+          "permission": false,
+          "grant": false,
+          "revoke": false
+        }
+      },
+      {
+        "step": "scan /dashboard.html",
+        "keywords": {
+          "maybe": false,
+          "approve": false,
+          "permission": false,
+          "grant": false,
+          "revoke": false
+        }
+      },
+      {
+        "step": "scan /hivv-dashboard.html",
+        "keywords": {
+          "maybe": true,
+          "approve": true,
+          "permission": true,
+          "grant": false,
+          "revoke": false
+        }
+      },
+      {
+        "step": "FOUND on this page",
+        "shot": "/tmp/opencode/usability/journeys/J3-hivv-dashboard.html.png"
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J4",
+    "title": "Understand where my data goes",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "privacy links on homepage",
+        "found": [
+          {
+            "t": "Terms",
+            "h": "/terms.html"
+          },
+          {
+            "t": "Privacy",
+            "h": "/privacy.html"
+          }
+        ]
+      },
+      {
+        "step": "privacy page",
+        "shot": "/tmp/opencode/usability/journeys/J4-privacy.png",
+        "words": 728,
+        "first_400": "HIVV.org\nHome\nDatabase\nDonate\nSystem\nConnect\nNodes\nAPI\nAccount\nTerms of Service\n\nLast updated: August 2026\n\nOperator\n\nHIVV.org is operated by the HIVV project. For questions, concerns, or legal inquiries, submit a problem on the site with the title \"Legal Inquiry\" or contact us through the API.\n\n1. Acceptance of Terms\n\nBy accessing or using HIVV.org (the \"Service\"), you agree to these Terms of Ser"
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J5",
+    "title": "Volunteer my computer to the network",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "homepage CTAs",
+        "ctas": [
+          "copy",
+          "copy",
+          "\ud83d\udd04 refresh",
+          "Python",
+          "Node.js",
+          "curl",
+          "Open WebUI",
+          "\ud83d\udccb Copy",
+          "\ud83d\udccb Copy",
+          "\ud83d\udccb Copy",
+          "\ud83d\udccb Copy"
+        ]
+      },
+      {
+        "step": "homepage offers a join path",
+        "found": true
+      },
+      {
+        "step": "join-ish links",
+        "found": [
+          {
+            "t": "\ud83d\udc1d Install CLI",
+            "h": "/cli.html"
+          }
+        ]
+      },
+      {
+        "step": "followed",
+        "url": "https://hivv.org/cli.html",
+        "shot": "/tmp/opencode/usability/journeys/J5-join.png"
+      },
+      {
+        "step": "shows an install command",
+        "found": true
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J6",
+    "title": "BLNQ: submit my first job",
+    "site": "blnq",
+    "steps": [
+      {
+        "step": "land on blnq.org",
+        "shot": "/tmp/opencode/usability/journeys/J6-1-home.png",
+        "h1": [
+          "Here to help ALL life\nmake work easy."
+        ],
+        "first_400": "bLNQ.ORG\nInstall\nRun\nJobs\nLeaderboard\nCatalog\nVisualize\nInspect\nVerify\nAPI\nnetwork live\nopen source\nverify offline\nno dependencies\nHere to help ALL life\nmake work easy.\n\nrun code anywhere, safely.\n\nPoint blnq at a file and it runs on someone else's machine \u2014 then the output comes back to you. Independent AIs read the script first and sign what it does, so you can check the claim instead of taking "
+      },
+      {
+        "step": "submit-ish links",
+        "found": [
+          {
+            "t": "Run",
+            "h": "/run.html"
+          },
+          {
+            "t": "Submit a script",
+            "h": "/submit.html"
+          }
+        ]
+      },
+      {
+        "step": "followed",
+        "url": "https://blnq.org/run.html",
+        "shot": "/tmp/opencode/usability/journeys/J6-2-form.png"
+      },
+      {
+        "step": "form fields",
+        "fields": [
+          {
+            "tag": "SELECT",
+            "type": "select-one",
+            "ph": "",
+            "lbl": "",
+            "vis": true
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "ph": "Enter your code...",
+            "lbl": "",
+            "vis": true
+          },
+          {
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "ph": "Standard input...",
+            "lbl": "",
+            "vis": true
+          }
+        ]
+      },
+      {
+        "step": "page explains what to submit",
+        "found": false
+      }
+    ],
+    "reached": true,
+    "confusions": [],
+    "help_needed": []
+  },
+  {
+    "id": "J7",
+    "title": "Mobile: read the homepage on a 390px phone",
+    "site": "hivv",
+    "steps": [
+      {
+        "step": "horizontal overflow",
+        "scrollW": 390,
+        "clientW": 390,
+        "overflows": false,
+        "shot": "/tmp/opencode/usability/journeys/J7-mobile-home.png"
+      },
+      {
+        "step": "tap targets",
+        "total": 33,
+        "tooSmall": 10,
+        "samples": [
+          "copy",
+          "\u2b07 ai.txt (machine-readabl",
+          "\ud83d\udcd6 Swagger UI",
+          "\ud83d\udccb Copy",
+          "Control Center",
+          "\ud83d\udde3\ufe0f Voice Chat"
+        ]
+      }
+    ],
+    "reached": true,
+    "confusions": [
+      "10/33 tap targets under 24px tall"
+    ],
+    "help_needed": []
+  }
+]

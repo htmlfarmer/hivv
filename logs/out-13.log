@@ -5367,3 +5367,23 @@
 2026-11-17 07:05:08: Gateway config loaded: API v2, Frontend v2
 2026-11-17 07:06:08: Gateway config loaded: API v2, Frontend v2
 2026-11-17 07:07:08: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:17:42: [ORCH] Loaded 3 persisted node(s)
+2026-11-17 12:17:42: [HONEY] bee-identity sweep started (every 60s)
+2026-11-17 12:17:42: [PERF] model-performance tracker started (flush 30s)
+2026-11-17 12:17:42: [POLICY] audit sweep started (every 24h)
+2026-11-17 12:17:42: Redis not configured, using in-memory cache only
+2026-11-17 12:17:42: HIVV.org AI Gateway v2.0 — Distributed Orchestrator running on port 3011
+2026-11-17 12:17:42: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:17:42: [CAPS] registry loaded (15 capabilities)
+2026-11-17 12:17:42: Discovered local AI: remote-localhost at http://localhost:8090/v1/chat/completions
+2026-11-17 12:17:42: AI Gateway initialized
+2026-11-17 12:18:10: [ORCH] New node online: __node_auth_e2e__ (undefined) caps: heartbeat
+2026-11-17 12:18:17: [ORCH] Node re-registered: __node_auth_e2e__
+2026-11-17 12:18:17: [NODE-AUTH] __node_auth_e2e__: secret re-issued (lost local copy, hw_id proven)
+2026-11-17 12:18:18: [REPAIR] __node_auth_e2e__ <- rp_mwl4x4abxmbxk5 [{"op":"cli_update","force":true}] reason=e2e canonical parity
+2026-11-17 12:18:18: [UPGRADE-REVIEW] upgrade_suspicious on __node_auth_e2e__: e2e blocked row
+2026-11-17 12:18:42: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:19:42: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:20:42: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:21:42: Gateway config loaded: API v2, Frontend v2
+2026-11-17 12:22:42: Gateway config loaded: API v2, Frontend v2

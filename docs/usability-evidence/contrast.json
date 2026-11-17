@@ -1,0 +1,2562 @@
+[
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Home",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.61,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Purpose",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.59,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Privacy",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.59,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Terms",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.61,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Acceptable Use",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.58,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "API",
+    "fg": [
+      0,
+      0,
+      238
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.55,
+    "size": 16,
+    "ratio": 2.13,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Terms of Service",
+    "fg": [
+      85,
+      85,
+      85
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.69,
+    "size": 13.6,
+    "ratio": 2.69,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Privacy Policy",
+    "fg": [
+      85,
+      85,
+      85
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.67,
+    "size": 13.6,
+    "ratio": 2.69,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Acceptable Use",
+    "fg": [
+      85,
+      85,
+      85
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.64,
+    "size": 13.6,
+    "ratio": 2.69,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "Download OpenAPI spec",
+    "fg": [
+      217,
+      119,
+      6
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.78,
+    "size": 15.2,
+    "ratio": 2.8,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "Interactive API docs",
+    "fg": [
+      217,
+      119,
+      6
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.78,
+    "size": 15.2,
+    "ratio": 2.8,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "\u2190 Back to hivv.org",
+    "fg": [
+      217,
+      119,
+      6
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.8,
+    "size": 15.2,
+    "ratio": 2.8,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "Download OpenAPI",
+    "fg": [
+      217,
+      119,
+      6
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.86,
+    "size": 15.2,
+    "ratio": 2.8,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "View CLI guide \u2192",
+    "fg": [
+      254,
+      243,
+      199
+    ],
+    "bg": [
+      216,
+      112,
+      0
+    ],
+    "bg_share": 0.9,
+    "size": 14.72,
+    "ratio": 3.02,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "Read the API docs \u2192",
+    "fg": [
+      255,
+      255,
+      255
+    ],
+    "bg": [
+      216,
+      112,
+      0
+    ],
+    "bg_share": 0.9,
+    "size": 15.2,
+    "ratio": 3.37,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "blnq",
+    "fg": [
+      99,
+      102,
+      241
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.67,
+    "size": 24,
+    "ratio": 4.48,
+    "pass_AA": false,
+    "pass_AA_large": true
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Browse Runs",
+    "fg": [
+      99,
+      102,
+      241
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.58,
+    "size": 16,
+    "ratio": 4.48,
+    "pass_AA": false,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\u2b07 OpenAPI Spec (YAML)",
+    "fg": [
+      168,
+      85,
+      247
+    ],
+    "bg": [
+      16,
+      16,
+      32
+    ],
+    "bg_share": 0.83,
+    "size": 12,
+    "ratio": 4.75,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Home",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.9,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Chat",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.91,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Purpose",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Nodes",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Privacy",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "API",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.92,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Account",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Home",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.9,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Database",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Donate",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "System",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Connect",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Nodes",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "API",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.92,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "Account",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 15.2,
+    "ratio": 5.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Control Center",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.88,
+    "size": 13.6,
+    "ratio": 5.9,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Governance",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.89,
+    "size": 13.6,
+    "ratio": 5.9,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Status",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.9,
+    "size": 13.6,
+    "ratio": 5.9,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "API Docs",
+    "fg": [
+      136,
+      136,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.9,
+    "size": 13.6,
+    "ratio": 5.9,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "home",
+    "fg": [
+      146,
+      64,
+      14
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.71,
+    "size": 13.6,
+    "ratio": 6.22,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "CLI",
+    "fg": [
+      146,
+      64,
+      14
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.79,
+    "size": 13.6,
+    "ratio": 6.22,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "docs",
+    "fg": [
+      146,
+      64,
+      14
+    ],
+    "bg": [
+      240,
+      240,
+      240
+    ],
+    "bg_share": 0.71,
+    "size": 13.6,
+    "ratio": 6.22,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\u2b07 ai.txt (machine-readable manifest)",
+    "fg": [
+      192,
+      132,
+      252
+    ],
+    "bg": [
+      0,
+      16,
+      24
+    ],
+    "bg_share": 0.44,
+    "size": 12,
+    "ratio": 7.31,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "Home",
+    "fg": [
+      160,
+      160,
+      176
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.89,
+    "size": 16,
+    "ratio": 7.7,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "Database",
+    "fg": [
+      160,
+      160,
+      176
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.87,
+    "size": 16,
+    "ratio": 7.7,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "Neural Command",
+    "fg": [
+      160,
+      160,
+      176
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.87,
+    "size": 16,
+    "ratio": 7.7,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "API",
+    "fg": [
+      160,
+      160,
+      176
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.92,
+    "size": 16,
+    "ratio": 7.7,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Control Center",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.67,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udde3\ufe0f Voice Chat",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.58,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Live Status",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.67,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "API Docs",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.65,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Terms",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.67,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "Privacy",
+    "fg": [
+      148,
+      163,
+      184
+    ],
+    "bg": [
+      0,
+      8,
+      8
+    ],
+    "bg_share": 0.66,
+    "size": 13.6,
+    "ratio": 7.89,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Install",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Run",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Verify",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Jobs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Runs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Workers",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Leaderboard",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.83,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Catalog",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Visualize",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.85,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "Inspect",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "API",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Install",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Run",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Verify",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.88,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Jobs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.88,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Runs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.88,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Workers",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.88,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Leaderboard",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Catalog",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.86,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Visualize",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.88,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "Inspect",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "API",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.89,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Install",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.85,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Run",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.85,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Verify",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.85,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Jobs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.85,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Runs",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Workers",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Leaderboard",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.82,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Catalog",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.83,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Visualize",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "Inspect",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "API",
+    "fg": [
+      159,
+      176,
+      189
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 11.84,
+    "ratio": 8.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/privacy.html",
+    "text": "donation page",
+    "fg": [
+      255,
+      159,
+      67
+    ],
+    "bg": [
+      8,
+      16,
+      16
+    ],
+    "bg_share": 0.59,
+    "size": 16,
+    "ratio": 9.43,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\u2b07 OpenAPI",
+    "fg": [
+      251,
+      191,
+      36
+    ],
+    "bg": [
+      32,
+      32,
+      32
+    ],
+    "bg_share": 0.47,
+    "size": 14.72,
+    "ratio": 9.76,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "View",
+    "fg": [
+      78,
+      205,
+      196
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.62,
+    "size": 16,
+    "ratio": 9.78,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "/openapi.yaml",
+    "fg": [
+      251,
+      191,
+      36
+    ],
+    "bg": [
+      24,
+      24,
+      16
+    ],
+    "bg_share": 0.71,
+    "size": 15.2,
+    "ratio": 10.69,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/cli.html",
+    "text": "/docs",
+    "fg": [
+      251,
+      191,
+      36
+    ],
+    "bg": [
+      24,
+      24,
+      16
+    ],
+    "bg_share": 0.68,
+    "size": 15.2,
+    "ratio": 10.69,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Privacy page",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      40,
+      40,
+      56
+    ],
+    "bg_share": 0.6,
+    "size": 16,
+    "ratio": 10.79,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udc1d Install CLI",
+    "fg": [
+      251,
+      191,
+      36
+    ],
+    "bg": [
+      24,
+      16,
+      8
+    ],
+    "bg_share": 0.85,
+    "size": 13.6,
+    "ratio": 11.27,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "API docs",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      40,
+      24
+    ],
+    "bg_share": 0.59,
+    "size": 14.72,
+    "ratio": 11.8,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Partner API",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      40,
+      24
+    ],
+    "bg_share": 0.61,
+    "size": 14.72,
+    "ratio": 11.8,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "API",
+    "fg": [
+      255,
+      198,
+      218
+    ],
+    "bg": [
+      32,
+      16,
+      32
+    ],
+    "bg_share": 0.57,
+    "size": 11.84,
+    "ratio": 12.4,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udcd6 Swagger UI",
+    "fg": [
+      0,
+      240,
+      255
+    ],
+    "bg": [
+      8,
+      24,
+      32
+    ],
+    "bg_share": 0.8,
+    "size": 12,
+    "ratio": 12.83,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "/trust.html",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      24,
+      24,
+      48
+    ],
+    "bg_share": 0.46,
+    "size": 13.6,
+    "ratio": 12.92,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udcc4 Full API Docs",
+    "fg": [
+      255,
+      217,
+      61
+    ],
+    "bg": [
+      24,
+      24,
+      16
+    ],
+    "bg_share": 0.81,
+    "size": 12,
+    "ratio": 12.95,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udde3\ufe0f Chat",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      24,
+      16
+    ],
+    "bg_share": 0.87,
+    "size": 13.6,
+    "ratio": 13.76,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Install",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      24,
+      16,
+      32
+    ],
+    "bg_share": 0.48,
+    "size": 11.84,
+    "ratio": 13.81,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Run",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      24,
+      16,
+      32
+    ],
+    "bg_share": 0.45,
+    "size": 11.84,
+    "ratio": 13.81,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Jobs",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      24,
+      16,
+      32
+    ],
+    "bg_share": 0.61,
+    "size": 11.84,
+    "ratio": 13.81,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Leaderboard",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      32
+    ],
+    "bg_share": 0.84,
+    "size": 11.84,
+    "ratio": 14.02,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Catalog",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      32
+    ],
+    "bg_share": 0.49,
+    "size": 11.84,
+    "ratio": 14.02,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Visualize",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.35,
+    "size": 11.84,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "\u25c8 Live visualization\nTrust graph, capabi",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.65,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "\u2315 Inspect a machine\nExactly what code ra",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.66,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "\u2630 Script catalog\nWhat people actually ru",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.66,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "\u2191 Leaderboard\nWho ran work, who validate",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.66,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "$ Install the CLI\nOne command, zero depe",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.66,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "{ } API & OpenAPI\nInteractive docs, /ope",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      16,
+      16,
+      24
+    ],
+    "bg_share": 0.67,
+    "size": 16,
+    "ratio": 14.12,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Inspect",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.41,
+    "size": 11.84,
+    "ratio": 14.8,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Verify",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.73,
+    "size": 11.84,
+    "ratio": 14.8,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "/changelog.json",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.69,
+    "size": 11.84,
+    "ratio": 14.88,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/run.html",
+    "text": "bLNQ.ORG",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.78,
+    "size": 11.84,
+    "ratio": 14.88,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/jobs.html",
+    "text": "bLNQ.ORG",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.83,
+    "size": 11.84,
+    "ratio": 14.88,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/trust.html",
+    "text": "bLNQ.ORG",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      16
+    ],
+    "bg_share": 0.77,
+    "size": 11.84,
+    "ratio": 14.88,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Back to home",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.6,
+    "size": 16,
+    "ratio": 14.93,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/purpose.html",
+    "text": "Talk to the hive",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      8,
+      8,
+      8
+    ],
+    "bg_share": 0.62,
+    "size": 16,
+    "ratio": 14.93,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Knowledge graph",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.73,
+    "size": 11.84,
+    "ratio": 15.6,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Interactive terminal",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.76,
+    "size": 11.84,
+    "ratio": 15.6,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "Submit a script",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.76,
+    "size": 11.84,
+    "ratio": 15.6,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "changelog.json",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.74,
+    "size": 11.84,
+    "ratio": 15.6,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "blnq",
+    "url": "https://blnq.org/",
+    "text": "199 free tools",
+    "fg": [
+      0,
+      255,
+      136
+    ],
+    "bg": [
+      0,
+      0,
+      8
+    ],
+    "bg_share": 0.78,
+    "size": 11.84,
+    "ratio": 15.6,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\ud83d\udc1d 3 online",
+    "fg": [
+      254,
+      243,
+      199
+    ],
+    "bg": [
+      16,
+      16,
+      16
+    ],
+    "bg_share": 0.74,
+    "size": 13.6,
+    "ratio": 17.09,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "Nodes",
+    "fg": [
+      255,
+      255,
+      255
+    ],
+    "bg": [
+      16,
+      16,
+      40
+    ],
+    "bg_share": 0.88,
+    "size": 16,
+    "ratio": 18.64,
+    "pass_AA": true,
+    "pass_AA_large": null
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "+",
+    "fg": [
+      0,
+      0,
+      0
+    ],
+    "bg": [
+      248,
+      248,
+      248
+    ],
+    "bg_share": 0.91,
+    "size": 22,
+    "ratio": 19.77,
+    "pass_AA": true,
+    "pass_AA_large": true
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/",
+    "text": "\u2212",
+    "fg": [
+      0,
+      0,
+      0
+    ],
+    "bg": [
+      248,
+      248,
+      248
+    ],
+    "bg_share": 0.84,
+    "size": 22,
+    "ratio": 19.77,
+    "pass_AA": true,
+    "pass_AA_large": true
+  },
+  {
+    "site": "hivv",
+    "url": "https://hivv.org/nodes.html",
+    "text": "\u26a1\nHIVV",
+    "fg": [
+      255,
+      255,
+      255
+    ],
+    "bg": [
+      8,
+      8,
+      24
+    ],
+    "bg_share": 0.52,
+    "size": 16,
+    "ratio": 19.84,
+    "pass_AA": true,
+    "pass_AA_large": null
+  }
+]

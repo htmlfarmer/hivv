@@ -3199,6 +3199,14 @@ app.use('/api/database', DatabaseRoutes);
 const ProvenanceRoutes = require('./routes/provenance-routes');
 app.use('/api/provenance', ProvenanceRoutes);
 
+// The purpose benchmark ("does this help all life on Earth?") — public, no auth,
+// and it MUST answer with no database attached (local-first). This is the
+// machine-readable twin of /purpose.html; if the two ever disagree, the API
+// is right and the page is a bug.
+const PurposeRoutes = require('./routes/purpose-routes');
+PurposeRoutes.inject(pool);
+app.use('/api/purpose', PurposeRoutes);
+
 // PUBLIC PARTNER SURFACE — the stable, versioned integration API for any
 // website, agent, or tool that wants to use HIVV (not just OpenCode).
 const PartnerRoutes = require('./routes/partner-routes');

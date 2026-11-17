@@ -1,0 +1,857 @@
+[
+  {
+    "site": "blnq",
+    "path": "index.html",
+    "dims": {
+      "Clarity": 10.0,
+      "Simplicity": 7.002,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 1,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 1.9230769230769234,
+      "Speed": 4.9025,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 5.4,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "submit.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 6.34,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.7,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "jobs.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 3.348,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.6125,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.2,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "runs.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 6.0,
+      "Speed": 7.535,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.5,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "run.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 8.125,
+      "Speed": 7.615,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.7,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "catalog.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.18,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.8,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "leaderboard.html",
+    "dims": {
+      "Clarity": 6.5,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.635,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.8,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "workers.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.645,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.9,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "trust.html",
+    "dims": {
+      "Clarity": 6.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.65,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.8,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "inspect.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 8.338,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 1.1764705882352935,
+      "Speed": 7.6525,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.8,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "tools.html",
+    "dims": {
+      "Clarity": 10.0,
+      "Simplicity": 0.0,
+      "Discoverability": 8.0,
+      "Feedback": 6.0,
+      "Trust": 1,
+      "Accessibility": 9,
+      "Recovery": 0.0,
+      "Mobile": 9.910979228486648,
+      "Speed": 7.407500000000001,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.6,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "docs.html",
+    "dims": {
+      "Clarity": 6.0,
+      "Simplicity": 0.0,
+      "Discoverability": 4.0,
+      "Feedback": 6.0,
+      "Trust": 1,
+      "Accessibility": 6,
+      "Recovery": 0.0,
+      "Mobile": 5.5963302752293576,
+      "Speed": 6.0125,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.0,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "cli.html",
+    "dims": {
+      "Clarity": 10.0,
+      "Simplicity": 6.311999999999999,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 1,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 2.7586206896551717,
+      "Speed": 7.3125,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 5.6,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "love.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.7725,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.9,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "study.html",
+    "dims": {
+      "Clarity": 3.0,
+      "Simplicity": 10.0,
+      "Discoverability": 4.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 6,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 5.785,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.0,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "terminal.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.915,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.9,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "visualize.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 8.872,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.395,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.7,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "graph/index.html",
+    "dims": {
+      "Clarity": 6.0,
+      "Simplicity": 10.0,
+      "Discoverability": 9.0,
+      "Feedback": 6.0,
+      "Trust": 1,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 6.25,
+      "Speed": 6.029999999999999,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.7,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "space/index.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 6.0649999999999995,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.7,
+    "measured": 10
+  },
+  {
+    "site": "blnq",
+    "path": "status/index.html",
+    "dims": {
+      "Clarity": 6.5,
+      "Simplicity": 10.0,
+      "Discoverability": 1.0,
+      "Feedback": 6.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.9350000000000005,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.4,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "index.html",
+    "dims": {
+      "Clarity": 6.0,
+      "Simplicity": 0.0,
+      "Discoverability": 7.0,
+      "Feedback": 5.0,
+      "Trust": 1,
+      "Accessibility": 7,
+      "Recovery": 0.0,
+      "Mobile": 3.4782608695652177,
+      "Speed": 2.9425,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 4.2,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "chat/index.html",
+    "dims": {
+      "Clarity": 6.5,
+      "Simplicity": 10.0,
+      "Discoverability": 1.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 0.5999999999999996,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 5.1,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "command-center.html",
+    "dims": {
+      "Clarity": 2.5,
+      "Simplicity": 10.0,
+      "Discoverability": 0.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 6,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 6.5375,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.5,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "nodes.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.5725,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.8,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "status.html",
+    "dims": {
+      "Clarity": 5.5,
+      "Simplicity": 10.0,
+      "Discoverability": 4.0,
+      "Feedback": 5.0,
+      "Trust": 1,
+      "Accessibility": 6,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.0175,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.4,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "dashboard.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 4.0,
+      "Speed": 7.0575,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.1,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "hivv-dashboard.html",
+    "dims": {
+      "Clarity": 5.0,
+      "Simplicity": 8.879999999999999,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 5.3125,
+      "Speed": 6.654999999999999,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 5.4,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "control.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 1.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 6.875,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.3,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "aihub.html",
+    "dims": {
+      "Clarity": 5.5,
+      "Simplicity": 10.0,
+      "Discoverability": 1.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 6.4,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.1,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "account.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.5725,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.8,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "admin.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.475,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.7,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "database.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 2,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 3.0769230769230766,
+      "Speed": 7.57,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.3,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "system.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 2,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.625,
+      "Speed": 6.85,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.9,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "connect.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 8.818,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.54,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.6,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "bee.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.0975,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.7,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "donate.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 2,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.625,
+      "Speed": 7.5875,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.0,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "docs.html",
+    "dims": {
+      "Clarity": 5.5,
+      "Simplicity": 0.0,
+      "Discoverability": 0.0,
+      "Feedback": 5.0,
+      "Trust": 1,
+      "Accessibility": 6,
+      "Recovery": 0.0,
+      "Mobile": 2.5,
+      "Speed": 4.9775,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 3.0,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "api.html",
+    "dims": {
+      "Clarity": 5.5,
+      "Simplicity": 6.496,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 4.545454545454545,
+      "Speed": 7.0075,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.7,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "cli.html",
+    "dims": {
+      "Clarity": 9.5,
+      "Simplicity": 7.558,
+      "Discoverability": 1.0,
+      "Feedback": 5.0,
+      "Trust": 1,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.0125,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 4.9,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "privacy.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 8.32,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 7,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 1.4285714285714288,
+      "Speed": 7.5625,
+      "Value": 10.0
+    },
+    "overall": 0.0,
+    "mean": 5.9,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "terms.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 8.032,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 7,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 0.0,
+      "Speed": 7.5625,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.3,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "aup.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 9.544,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 7,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 3.0769230769230766,
+      "Speed": 7.57,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.7,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "404.html",
+    "dims": {
+      "Clarity": 7.0,
+      "Simplicity": 10.0,
+      "Discoverability": 1.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 10.0,
+      "Speed": 7.5675,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 5.4,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "hivv-page.html",
+    "dims": {
+      "Clarity": 5.0,
+      "Simplicity": 8.879999999999999,
+      "Discoverability": 5.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 8,
+      "Recovery": 0.0,
+      "Mobile": 5.3125,
+      "Speed": 7.1025,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 4.9,
+    "measured": 10
+  },
+  {
+    "site": "hivv",
+    "path": "hivv-agent-spec.html",
+    "dims": {
+      "Clarity": 3.0,
+      "Simplicity": 4.066,
+      "Discoverability": 0.0,
+      "Feedback": 5.0,
+      "Trust": 0.0,
+      "Accessibility": 2,
+      "Recovery": 0.0,
+      "Mobile": 6.0,
+      "Speed": 7.115,
+      "Value": 5.0
+    },
+    "overall": 0.0,
+    "mean": 3.2,
+    "measured": 10
+  }
+]

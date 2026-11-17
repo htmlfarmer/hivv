@@ -1,0 +1,98 @@
+[
+  {
+    "id": "I1",
+    "test": "Send a real chat message end-to-end",
+    "ok": true,
+    "seconds": 1.0,
+    "reply": "\ud83d\udccb\n\ud83d\udc1d\n\nHello there!\n\nmasjid/Qwen2.5-0.5B-Instruct-GGUF (direct) \u00b7 ALLOW default:compute\n\ud83d\udccb\n\ud83d\udd0a\n\ud83d\udcce\n\ud83c\udfa4\n\u27a4\n\u2699\ufe0f Settings\n\u2715\nPresets\n\ud83c\udfa8 Creative\n\ud83c\udfaf Precise\n\u2696\ufe0f Balanced\nTemperature 0.7\nHigher = more creative, lower = more focused\n0\n2\nTop P 0.95\nNucleus sampling cutoff\n0\n1\nMax Tokens 2048\nMaximum response length\n64\n16",
+    "shot": "/tmp/opencode/usability/interactive/I1-chat-reply.png"
+  },
+  {
+    "id": "I2",
+    "test": "Hit a page that doesn't exist",
+    "status": "https://hivv.org/this-page-does-not-exist-xyz",
+    "text": "",
+    "shot": "/tmp/opencode/usability/interactive/I2-404.png",
+    "has_home_link": false,
+    "has_search": false,
+    "ok": false
+  },
+  {
+    "id": "I3",
+    "test": "Simulate network failure (offline)",
+    "clicked": "a[href='/nodes.html']",
+    "url": "chrome-error://chromewebdata/",
+    "shows_error": false,
+    "shot": "/tmp/opencode/usability/interactive/I3-offline.png",
+    "text": ""
+  },
+  {
+    "id": "I4",
+    "test": "Guest tries to approve a MAYBE permission",
+    "spectator": true,
+    "signin_cta": true,
+    "approve_buttons": [],
+    "shot": "/tmp/opencode/usability/interactive/I4-guest.png",
+    "banner": [
+      "Guest (Spectator)",
+      "Sign In",
+      "PUBLIC SPECTATOR LENS ACTIVE Viewing live public agent mesh & telemetry. Sign in with your account to govern private agents and approve pending actions.",
+      "Sign In to Govern Agents"
+    ]
+  },
+  {
+    "id": "I5",
+    "test": "Find onboarding/help affordances sitewide",
+    "pages": {
+      "hivv/index.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "hivv/chat/index.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "hivv/nodes.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "hivv/hivv-dashboard.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "blnq/index.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "blnq/run.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      },
+      "blnq/submit.html": {
+        "tour": false,
+        "tooltip_help": false,
+        "faq": false,
+        "first_run_hint": false,
+        "undo": false
+      }
+    }
+  }
+]
