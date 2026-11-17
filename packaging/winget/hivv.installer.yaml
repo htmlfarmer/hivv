@@ -1,0 +1,17 @@
+# WinGet manifest — submit to https://github.com/Microsoft/winget-pkgs
+# Layout: manifests/h/HIVV/hivv/<version>/
+#   HIVV.hivv.installer.yaml   (this file)
+#   HIVV.hivv.version.yaml     (PackageVersion)
+#   HIVV.hivv.locale.yaml      (descriptions, license link)
+# Fill VERSION + SHA256 from the GitHub Release asset (build-cli-binaries.yml):
+#   sha256sum hivv-windows-x86_64.exe
+PackageIdentifier: HIVV.hivv
+PackageVersion: 0.3.0
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/hivv-org/hivv/releases/download/v0.3.0/hivv-windows-x86_64.exe
+    InstallerSha256: REPLACE_WITH_SHA256
+    PortableCommandAlias: hivv
+ManifestType: installer
+ManifestVersion: 1.6.0

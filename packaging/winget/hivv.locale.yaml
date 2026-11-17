@@ -1,0 +1,15 @@
+PackageIdentifier: HIVV.hivv
+PackageVersion: 0.3.0
+PackageLocale: en-US
+Publisher: HIVV.org
+PublisherUrl: https://hivv.org
+PackageName: hivv
+License: ISC
+ShortDescription: Join the people's distributed AI network from your Windows PC.
+Description: >
+  hivv turns spare computers into a shared AI supercomputer. Install, run
+  "hivv start", and your machine joins the hive: chat with open models,
+  volunteer idle CPU/GPU, and watch the network live at hivv.org.
+Tags: [ai, distributed-computing, llm, open-weights, cli]
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -1,0 +1,55 @@
+{
+  "contract": "blnq.attestation.v2",
+  "envelope_version": 2,
+  "principal_prefix": "hivv_",
+  "principal_fingerprint_length": 32,
+  "principal_pattern": "^hivv_[0-9a-f]{32}$",
+  "signature_algorithm": "ed25519",
+  "signature_encoding": "base64",
+  "public_key_encoding": "base64",
+  "public_key_bytes": 32,
+  "canonical_json": {
+    "object_key_order": "utf8_bytes",
+    "whitespace": "none",
+    "numbers": "safe_integers_only",
+    "strings": "standard_json_escaping"
+  },
+  "kinds": ["source.review", "run.request", "io.record", "run.record"],
+  "subjects": {
+    "source.review": "sha256(source_bytes)",
+    "run.request": "sha256(source_bytes)",
+    "io.record": "sha256(input_bytes) || sha256(output_bytes)",
+    "run.record": "run_id"
+  },
+  "review_body_required": [
+    "source_sha256",
+    "verdict",
+    "statement",
+    "risk_score",
+    "risk_level",
+    "reviewed_at",
+    "reviewer_name",
+    "reviewer_system"
+  ],
+  "review_body_optional": [
+    "language",
+    "bytes",
+    "lines",
+    "commands",
+    "files",
+    "network",
+    "most_used_commands",
+    "riskiest_operations",
+    "reasons",
+    "model",
+    "scanner"
+  ],
+  "verdict_values": ["safe", "unsafe", "review"],
+  "risk_level_values": ["safe", "low", "medium", "high", "critical"],
+  "compatibility": {
+    "legacy_principal_prefix": "pri_",
+    "legacy_prefix_policy": "read-only verification only; never issued by new signers",
+    "old_public_keys": "retain in principal history for historical verification",
+    "new_key_policy": "replace immediately; new key receives a fresh principal and history"
+  }
+}

@@ -1,0 +1,54 @@
+name: Local install problem
+description: Something went wrong running HIVV from a git clone
+labels: ['local-first', 'bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the self-hosted path! Please fill in what you can —
+        even a partial report helps.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux
+        - macOS
+        - Windows (PowerShell)
+        - Windows (WSL)
+        - Windows (Git Bash)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      placeholder: v20.11.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command you ran
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The full error output, please — not a screenshot.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: local-models
+    attributes:
+      label: What local model server are you running?
+      description: llama.cpp, ollama, LM Studio, or none?

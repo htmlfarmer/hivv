@@ -1,0 +1,68 @@
+# HIVV — a distributed AI network (at home and around the world)
+#
+# Runtime state and secrets NEVER belong in the repository.
+
+# ── dependencies ───────────────────────────────────────────────────────────
+node_modules/
+api/node_modules/
+vendor/
+
+# ── secrets and keys (NEVER commit these) ──────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+api/.keys/
+api/.secrets.key
+api/.control-token
+api/.session-secret
+api/.p2p.json
+public_html/.secrets.key
+
+# ── runtime data ───────────────────────────────────────────────────────────
+logs/
+backups/
+nohup.out
+public_html/uploads/
+public_html/space/
+public_html/studies/
+public_html/logs/
+public_html/data/temp/
+coder-test/
+tmp/
+
+# ── python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# ── editors / OS ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── coverage ───────────────────────────────────────────────────────────────
+coverage/
+*.lcov
+htmlcov/
+
+# ── local scratch ──────────────────────────────────────────────────────────
+*.local
+*.bak
+*.bak2
+*.bak3

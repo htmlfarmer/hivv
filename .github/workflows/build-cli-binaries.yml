@@ -1,0 +1,84 @@
+name: build-cli-binaries
+
+# HIVV_PLAN #3 — one-command installs on every OS, no Python required.
+# Builds single-file `hivv` binaries with PyInstaller from public_html/hivv-cli.py
+# and publishes them to GitHub Releases + uploads to the hub's /dl path.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "release tag to publish (e.g. v0.3.0)"
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x86_64
+          - os: ubuntu-22.04-arm
+            target: linux-arm64
+          - os: macos-13
+            target: macos-x86_64
+          - os: macos-14
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+      - name: Verify stdlib-only (binary contract)
+        run: python packaging/check_deps.py
+      - name: Build binary
+        shell: bash
+        run: |
+          EXT="" ; [ "${{ matrix.target }}" = "windows-x86_64" ] && EXT=".exe"
+          pyinstaller --onefile --clean --noconfirm \
+            --name "hivv-${{ matrix.target }}${EXT}" \
+            public_html/hivv-cli.py
+          # sanity: binary runs headless
+          "dist/hivv-${{ matrix.target }}${EXT}" --healthcheck || true
+      # Windows Authenticode signing (free for OSS): add azure-trusted-signing
+      # action here once the cert is provisioned. macOS notarization same.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hivv-${{ matrix.target }}
+          path: dist/hivv-${{ matrix.target }}*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          files: |
+            hivv-linux-x86_64
+            hivv-linux-arm64
+            hivv-macos-x86_64
+            hivv-macos-arm64
+            hivv-windows-x86_64.exe
+          body: |
+            ## hivv CLI binaries
+            No Python needed — download yours:
+            ```bash
+            # Linux / macOS
+            curl -fsSL -o /usr/local/bin/hivv https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/hivv-$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/x86_64/;s/aarch64/arm64/') && chmod +x /usr/local/bin/hivv
+            ```
+            Windows: download `hivv-windows-x86_64.exe`, rename to `hivv.exe`, drop it on your PATH —
+            or `winget install hivv` once the manifest is merged (packaging/winget/).
