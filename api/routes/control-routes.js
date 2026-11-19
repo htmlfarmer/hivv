@@ -156,6 +156,7 @@ router.get('/nodes', async (req, res) => {
       heartbeat_age_s: n.last_heartbeat ? Math.round((now - n.last_heartbeat) / 1000) : null,
       capabilities: n.capabilities.slice(0, 8), local_models: n.local_models,
       system: { cpus: n.system?.cpus, arch: n.system?.arch, platform: n.system?.platform,
+                cpu_physical: n.metrics?.cpu_physical || n.system?.cpu_physical || 0,
                 cpu_freq_mhz: n.metrics?.cpu_freq_mhz || n.system?.cpu_freq_mhz || 0 },
       gpus: n.gpus || n.metrics?.gpus || [],
       work_status: n.work_status || '',
@@ -163,6 +164,8 @@ router.get('/nodes', async (req, res) => {
       last_status_update: n.last_status_update || null,
       location: n.location || {},
       cpu_model: n.cpu_model || '',
+      quality_score: n.quality_score ?? null,
+      selftest: n.selftest ?? null,
       tools: n.tools || [],
       tools_port: n.tools_port || 0,
       volunteer: n.volunteer || false,
@@ -374,7 +377,7 @@ router.post('/agents/:nodeId/push-update', express.json(), (req, res) => {
 // The bee independently re-verifies the HMAC, ttl, nonce and op allowlist —
 // this side only decides what may be requested and signs it with the node's
 // own secret, so a forged plan can't be injected even with control access.
-const REPAIR_OPS = new Set(['cli_update', 'agent_restart', 'reap_duplicates', 'service_restart']);
+const REPAIR_OPS = new Set(['cli_update', 'agent_restart', 'reap_duplicates', 'service_restart', 'selftest']);
 const REPAIR_UNITS = new Set(['llama.service', 'llama-server.service', 'ollama.service',
                               'mcp-bridge.service', 'mcp-web-server.service',
                               'kokoro-tts-server.service', 'whisper-stt-server.service']);
@@ -437,6 +440,35 @@ router.post('/agents/:nodeId/repair', express.json(), (req, res) => {
   const id = orchestrator.enqueueInbox(nodeId, { type: 'repair', payload: plan, ts: Date.now() });
   console.log(`[REPAIR] ${nodeId} <- ${plan.plan_id} ${JSON.stringify(clean)} reason=${plan.reason || '-'}`);
   return res.json({ ok: true, id, plan_id: plan.plan_id, ttl_s: plan.ttl_s, ops: clean });
+});
+
+// ── POST /api/control/nodes/:id/quarantine — network-side stop / release ─────
+// Shares ONE field with the crash-loop auto-detector (orchestrator register):
+// auto-quarantine fires on ≥5 re-registers/10min; ONLY a human release clears
+// it and re-arms the detector (charter: machines restrict, humans restore).
+router.post('/nodes/:id/quarantine', express.json(), (req, res) => {
+  const node = orchestrator.nodes.get(req.params.id);
+  if (!node) return res.status(404).json({ error: 'Node not found' });
+  const release = (req.body || {}).release === true;
+  if (release) {
+    node.quarantined = null;
+    node.flap_events = [];
+    if (node.status === 'quarantined') node.status = 'offline';   // next heartbeat re-lifts it
+    try { orchestrator._saveNodes(); } catch (_e) {}
+    console.log(`[QUAR] ${node.node_id} released by operator — detector re-armed`);
+    return res.json({ ok: true, released: true, node: node.name });
+  }
+  const now = Date.now();
+  node.quarantined = {
+    by: 'operator',
+    reason: String((req.body || {}).reason || 'operator quarantine').slice(0, 120),
+    since: now,
+    count: Array.isArray(node.flap_events) ? node.flap_events.length : 0,
+  };
+  node.status = 'quarantined';
+  try { orchestrator._saveNodes(); } catch (_e) {}
+  console.log(`[QUAR] ${node.node_id} quarantined by operator: ${node.quarantined.reason}`);
+  res.json({ ok: true, quarantined: true, node: node.name });
 });
 
 // Per-node live metrics

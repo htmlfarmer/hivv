@@ -2089,6 +2089,22 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     const useStream = stream === true || stream === 'true' || (req.headers.accept && req.headers.accept.includes('text/event-stream'));
 
+    // First-TOKEN latency for SSE: stamp the first frame that carries REAL
+    // content (role/null/empty frames — and reasoning-only frames — don't
+    // count). Non-stream replies get ttfb = duration: the whole JSON is the
+    // first byte. Without this, the streaming default never measured TTFB.
+    let v1TtfbMs = null;
+    if (useStream) {
+        const _origWrite = res.write.bind(res);
+        res.write = (chunk, ...rest) => {
+            if (v1TtfbMs === null && chunk != null
+                && /"content":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
+                v1TtfbMs = Date.now() - startTime;
+            }
+            return _origWrite(chunk, ...rest);
+        };
+    }
+
     try {
         // Non-streaming requests go through chatCompletion()
         if (!useStream) {
@@ -2141,7 +2157,7 @@ app.post('/v1/chat/completions', async (req, res) => {
                 started_at_ms: startTime,
                 completed_at_ms: Date.now(),
                 duration_ms: Date.now() - startTime,
-                ttfb_ms: Date.now() - startTime,
+                ttfb_ms: v1TtfbMs ?? (Date.now() - startTime),
                 cost_usd: 0,
                 cost_estimated: false,
                 tokens_per_sec: data.tokensPerSec || null,
@@ -2242,6 +2258,46 @@ app.post('/v1/chat/completions', async (req, res) => {
         }
 
         await trackAnonymousSession(visitorId, ip, req.headers['user-agent']);
+
+        // Durable provenance for the STREAMING path (the default everywhere) —
+        // same row shape as the non-stream branch, but with the real
+        // first-token time captured by the res.write stamp above.
+        requestProvenance.recordAsync({
+            request_id: crypto.randomUUID(),
+            endpoint: '/v1/chat/completions',
+            method: req.method,
+            feature: 'chat',
+            status: 'success',
+            success: true,
+            user_id: userId || null,
+            anonymous_visitor_id: userId ? null : visitorId,
+            principal: osOpts.principal,
+            api_key_id: result.keyId || null,
+            ip_address: ip,
+            user_agent: req.headers['user-agent'],
+            request_sha256: crypto.createHash('sha256')
+                .update(JSON.stringify(messages || [])).digest('hex'),
+            input_bytes: Buffer.byteLength(JSON.stringify(messages || []), 'utf8'),
+            input_tokens: tokenEstimate.inputTokens,
+            output_tokens: tokenEstimate.outputTokens,
+            provider: result.provider || null,
+            provider_id: result.providerId || null,
+            model: result.servedModel || model || 'auto',
+            answered_by: result.answeredBy || null,
+            answered_by_node: _nodeFromReceipt(result.answeredBy || ''),
+            transport: String(result.answeredBy || '').includes('relay') ? 'relay'
+                : (result.answeredBy ? 'direct' : (result.provider || 'cloud')),
+            route_mode: route?.mode || null,
+            capability: capability || 'reasoning',
+            started_at_ms: startTime,
+            completed_at_ms: Date.now(),
+            duration_ms: Date.now() - startTime,
+            ttfb_ms: v1TtfbMs ?? (Date.now() - startTime),
+            cost_usd: 0,
+            cost_estimated: false,
+            tokens_per_sec: result.tokensPerSec || null,
+            privacy: { privacy_class: 'private' },
+        });
 
     } catch (err) {
         console.error('Chat completion error:', err);
@@ -2421,6 +2477,25 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
     const chatStartTime = Date.now();
     const chatVisitorId = userId ? null : getVisitorId(req, res);
     const chatIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+    // First-TOKEN latency for SSE (the default): stamp the first frame that
+    // carries real content, and count the bytes we actually stream back.
+    // Non-stream replies record ttfb = full duration (the JSON is the first
+    // byte) — same convention as /v1.
+    let chatTtfbMs = null;
+    let chatOutBytes = 0;
+    if (useStream) {
+        const _origWrite = res.write.bind(res);
+        res.write = (chunk, ...rest) => {
+            if (chunk != null) {
+                chatOutBytes += Buffer.isBuffer(chunk) ? chunk.length
+                    : Buffer.byteLength(String(chunk), 'utf8');
+                if (chatTtfbMs === null && /"content":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
+                    chatTtfbMs = Date.now() - chatStartTime;
+                }
+            }
+            return _origWrite(chunk, ...rest);
+        };
+    }
     // fire-and-forget usage log — never delays the reply (D1: honest token counts)
     const _logChatUsage = (data) => {
         usageTracker.logRequest({
@@ -2449,6 +2524,63 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         gen,
     };
 
+    // Durable provenance for hivv's native surface (/api/chat — CLI, web chat,
+    // MCP, dial): WHO asked, which bee answered (node + transport), how long
+    // the FULL reply took, how fast the first token arrived, and tokens/s.
+    // Fire-and-forget — never blocks or delays the reply.
+    let chatProvDone = false;
+    const _provRecord = (extra = {}) => {
+        if (chatProvDone) return;
+        chatProvDone = true;
+        const now = Date.now();
+        const completed = now - chatStartTime;
+        const isErr = extra.status === 'error';
+        const outTok = Number.isFinite(extra.output_tokens) ? extra.output_tokens : 0;
+        let tps = Number.isFinite(extra.tokens_per_sec) ? extra.tokens_per_sec : null;
+        if (tps === null && outTok > 0 && completed > 0) {
+            tps = Math.round(outTok * 1000 / completed * 100) / 100;
+        }
+        requestProvenance.recordAsync({
+            request_id: crypto.randomUUID(),
+            endpoint: '/api/chat',
+            method: req.method,
+            feature: 'chat',
+            status: isErr ? 'error' : 'success',
+            success: !isErr,
+            user_id: userId || null,
+            anonymous_visitor_id: chatVisitorId,
+            principal: osOpts.principal,
+            ip_address: chatIp,
+            user_agent: req.headers['user-agent'],
+            request_sha256: crypto.createHash('sha256')
+                .update(JSON.stringify(messages || [])).digest('hex'),
+            input_bytes: Buffer.byteLength(JSON.stringify(messages || []), 'utf8'),
+            output_bytes: chatOutBytes || extra.output_bytes || 0,
+            input_tokens: extra.input_tokens || 0,
+            output_tokens: outTok,
+            provider: extra.provider || null,
+            model: extra.model || model || 'auto',
+            answered_by: extra.answeredBy || null,
+            answered_by_node: _nodeFromReceipt(extra.answeredBy || ''),
+            transport: String(extra.answeredBy || '').includes('relay') ? 'relay'
+                : (extra.answeredBy ? 'direct' : (extra.provider || 'cloud')),
+            route_mode: route?.mode || null,
+            capability: capability || 'reasoning',
+            policy_receipt: extra.policyReceipt || null,
+            policy_verdict: extra.policyReceipt ? 'allow' : null,
+            started_at_ms: chatStartTime,
+            completed_at_ms: now,
+            duration_ms: completed,
+            ttfb_ms: chatTtfbMs != null ? chatTtfbMs : completed,
+            tokens_per_sec: tps,
+            stream: useStream,
+            cost_usd: 0,
+            cost_estimated: false,
+            error_message: isErr ? String(extra.error || '').slice(0, 500) || null : null,
+            privacy: { privacy_class: 'private' },
+        });
+    };
+
     try {
         if (!useStream) {
             const localTools = req.body.local_tools === true;
@@ -2475,6 +2607,15 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                     const t = usageTracker.estimateFromCompletion(data.data, msgList);
                     _logChatUsage({ keyId: data.keyId, providerId: data.providerId, servedModel: data.servedModel,
                                     inputTokens: t.inputTokens, outputTokens: t.outputTokens });
+                    _provRecord({
+                        input_tokens: t.inputTokens,
+                        output_tokens: t.outputTokens,
+                        output_bytes: Buffer.byteLength(JSON.stringify(data.data || {}), 'utf8'),
+                        provider: data.provider || null,
+                        model: data.servedModel || model || 'auto',
+                        answeredBy: data.answeredBy || null,
+                        policyReceipt: data.policyReceipt || null,
+                    });
                     if (data.answeredBy && !res.headersSent) {
                         res.setHeader('X-Hivv-Answered-By', data.answeredBy);
                     }
@@ -2501,6 +2642,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                 // Continue the loop with updated messages
             }
             // Exceeded max rounds
+            _provRecord({ model: model || 'auto', provider: provider || null });
             return res.json(lastData);
         }
 
@@ -2524,12 +2666,24 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         if (result.ok) {
             // measured output tokens (counted SSE chunks) beat the chars-heuristic
             const t = usageTracker.estimateFromMessages(messages);
+            const outTok = Number.isFinite(result.totalTokens) && result.totalTokens > 0 ? result.totalTokens : t.outputTokens;
             _logChatUsage({ keyId: result.keyId, providerId: result.providerId, servedModel: result.servedModel,
                             inputTokens: t.inputTokens,
-                            outputTokens: Number.isFinite(result.totalTokens) && result.totalTokens > 0 ? result.totalTokens : t.outputTokens,
+                            outputTokens: outTok,
                             tokensPerSec: result.tokensPerSec });
+            _provRecord({
+                input_tokens: t.inputTokens,
+                output_tokens: outTok,
+                tokens_per_sec: result.tokensPerSec,
+                provider: result.provider || provider || null,
+                model: result.servedModel || model || 'auto',
+                answeredBy: result.answeredBy || null,
+                policyReceipt: result.policyReceipt || null,
+            });
         }
     } catch (err) {
+        // Record the failure too — a slow error is still a speed datapoint.
+        _provRecord({ status: 'error', error: err.message });
         errorLog.recordAsync({
             error: err,
             endpoint: '/api/chat',
@@ -3485,6 +3639,13 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
   const public_ip = (req.ip || req.connection?.remoteAddress || '').replace(/^::ffff:/, '');
   const updated = orch.updateHeartbeat(beeId, req.body || {}, { public_ip });
   if (!updated) return res.status(404).json({ error: 'Node not found' });
+  // Quarantined (crash-loop auto-stop or operator action): accept the poll
+  // politely but change NOTHING — no metric updates, no incident auto-resolve,
+  // no task handout — until a human runs `hivv quarantine <bee> --release`.
+  if (updated.quarantined) {
+    return res.json({ ok: true, quarantined: true,
+      note: 'quarantined — ignored by the hive until a human releases it' });
+  }
 
   // Auto-resolve stale/offline incidents when node comes back
   pool.query(`

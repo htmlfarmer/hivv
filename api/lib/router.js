@@ -2,6 +2,7 @@ const { AIProvider, AIKey, ProviderClient, StreamCapture } = require('./provider
 const CircuitBreaker = require('./circuit-breaker');
 
 const { PROVIDER_DEFAULTS } = require('./providers');
+const { looksDegenerate } = require('./degenerate');
 
 // ── token budgeting ────────────────────────────────────────────────────────
 //
@@ -1037,6 +1038,9 @@ class AIRouter {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let totalTokens = 0;
+                // Bounded sample of the actual answer text — the quality gate at
+                // stream end must never become a memory problem for long outputs.
+                let qualityBuf = '';
                 let backendTps = 0;
                 let promptTps = 0;
                 // SSE lines can split across TCP reads — buffer partial lines or the
@@ -1072,7 +1076,10 @@ class AIRouter {
                             outputLine = 'data: ' + JSON.stringify(parsed);
 
                             // Count tokens after sanitization
-                            if (parsed.choices?.[0]?.delta?.content) totalTokens++;
+                            if (parsed.choices?.[0]?.delta?.content) {
+                                totalTokens++;
+                                if (qualityBuf.length < 4000) qualityBuf += parsed.choices[0].delta.content;
+                            }
                             if (parsed.timings) {
                                 backendTps = parsed.timings.predicted_per_second || 0;
                                 if (parsed.timings.prompt_per_second > 0) promptTps = parsed.timings.prompt_per_second;
@@ -1106,7 +1113,10 @@ class AIRouter {
                         // Non-SSE line — could be a complete JSON response (tool_calls come in non-streaming)
                         try {
                             const parsed = JSON.parse(line);
-                            if (parsed.choices?.[0]?.delta?.content) totalTokens++;
+                            if (parsed.choices?.[0]?.delta?.content) {
+                                totalTokens++;
+                                if (qualityBuf.length < 4000) qualityBuf += parsed.choices[0].delta.content;
+                            }
                             if (parsed.timings) backendTps = parsed.timings.predicted_per_second || 0;
                             // Preserve tool_calls — wrap as SSE frame so parseSSE() can extract them
                             if (parsed.choices?.[0]?.message?.tool_calls) {
@@ -1134,8 +1144,11 @@ class AIRouter {
                 const elapsed = (Date.now() - startTime) / 1000;
                 const tokensPerSec = backendTps > 0 ? Math.round(backendTps) : (totalTokens > 0 ? Math.round(totalTokens / elapsed) : 0);
 
-                // measured-routing data (HIVV_PLAN #7) — receipt header was set pre-stream
-                this.perf?.record({ node: routeNode, model: routeModel, tps: tokensPerSec, latencyMs: Math.round(elapsed * 1000), ok: true, promptTps });
+                // measured-routing data (HIVV_PLAN #7) — receipt header was set pre-stream.
+                // ok:false on a degenerate answer: the EWMA reliability factor then
+                // punishes this bee's score, so a fast garbage model gets routed
+                // LESS traffic instead of winning the speed lottery (network guard).
+                this.perf?.record({ node: routeNode, model: routeModel, tps: tokensPerSec, latencyMs: Math.round(elapsed * 1000), ok: !looksDegenerate(qualityBuf), promptTps });
                 // warm-cache stickiness: same principal back within 3 min → same bee
                 this._stickySet(options, `${routeNode}::${AIRouter._prettyModel(local.model || 'local')}`);
 

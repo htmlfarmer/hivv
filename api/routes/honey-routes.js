@@ -7,6 +7,7 @@ const router = express.Router();
 
 const honey = require('../lib/honey');
 const perf = require('../lib/perf');
+const { buildBrainBoard } = require('../lib/brainboard');
 
 let orchestrator = null;
 let usageTracker = null;
@@ -78,6 +79,81 @@ router.post('/perf-report', express.json(), (req, res) => {
                   via: b.via === 'relay' ? 'relay' : 'direct' });
     res.json({ ok: true, node: node.name || node.node_id, model, tps: Math.round(tps) });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GET /api/hive/iq — PUBLIC brain board ───────────────────────────────────
+// IQ + practical score + hub-measured speed (power = IQ × speed-factor) +
+// AI-judge averages + HUMAN ratings (charter: human votes weigh more).
+// Sourced from the node registry (heartbeat summaries) + perf EWMA — no DB
+// migration; survives restarts via the orchestrator's persisted node store.
+router.get('/iq', async (req, res) => {
+  try {
+    let samples = [];
+    try { samples = await perf.snapshot(100); } catch (_e) { samples = []; }
+    const rows = buildBrainBoard([...(orchestrator?.nodes.values() || [])], samples);
+    res.json({ brains: rows.slice(0, 50), count: rows.length,
+              formula: 'power (v1) = IQ × speed-factor (unknown speed = 1.0×, else 0.5+tps/100 ∈ [0.5, 2.0])',
+              ts: Date.now() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/hive/iq/rate — a HUMAN ranks a bee (signed CLI request) ──────
+// Human votes are first-class per the governance charter: they're stored
+// alongside the AI-judge scores and shown on the public board. Last 20
+// ratings kept per bee; score strictly clamped to 1-10.
+router.post('/iq/rate', express.json(), (req, res) => {
+  try {
+    const b = req.body || {};
+    const node = orchestrator?.nodes.get(String(b.node_id || ''));
+    if (!node) return res.status(404).json({ error: 'unknown node_id' });
+    const score = Math.round(Math.max(1, Math.min(10, Number(b.score) || 0)));
+    if (!score) return res.status(400).json({ error: 'score 1-10 required' });
+    if (!Array.isArray(node.human_ratings)) node.human_ratings = [];
+    node.human_ratings.push({
+      score,
+      note: String(b.note || '').slice(0, 140),
+      by: String(b.by || 'human').slice(0, 64),
+      ts: Date.now(),
+    });
+    if (node.human_ratings.length > 20) node.human_ratings = node.human_ratings.slice(-20);
+    // Persist now-ish (debounced) — a rating that only lives in memory is
+    // lost to the next restart or re-registration.
+    if (typeof orchestrator?._debouncedSave === 'function') orchestrator._debouncedSave();
+    const h = node.human_ratings;
+    const avg = Math.round((h.reduce((a, r) => a + (r.score || 0), 0) / h.length) * 10) / 10;
+    res.json({ ok: true, node: node.name, human_avg: avg, votes: h.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/hive/security-report — a bee's local security scan ────────────
+// The bee checks its own network posture (firewall, exposed binds, perms,
+// pinning) and sends the score+findings here for hive-side analysis; the
+// report lives on the node record (persisted, survives restarts) so
+// operators can compare posture across the hive. v1 analysis = severity
+// rollup echoed back as `hub_note`.
+router.post('/security-report', express.json(), (req, res) => {
+  try {
+    const b = req.body || {};
+    const node = orchestrator?.nodes.get(String(b.node_id || ''));
+    if (!node) return res.status(404).json({ error: 'unknown node_id (run hivv start first)' });
+    const findings = (Array.isArray(b.findings) ? b.findings : []).slice(0, 30);
+    const score = Math.max(0, Math.min(100, Math.round(Number(b.score) || 0)));
+    node.security_report = { score, findings, ts: Date.now() };
+    if (typeof orchestrator._debouncedSave === 'function') orchestrator._debouncedSave();
+    const highs = findings.filter((f) => f && f.sev === 'high').length;
+    const meds = findings.filter((f) => f && f.sev === 'medium').length;
+    const hub_note = highs
+      ? `recorded — ${highs} HIGH-priority issue(s): fix these first`
+      : (meds ? `recorded — ${meds} medium issue(s), no blockers`
+              : 'recorded — looks clean from here');
+    res.json({ ok: true, node: node.name, score, hub_note });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // POST /api/hive/log-feature — CLI reports usage for features like hive-mind (#C3)

@@ -206,10 +206,23 @@ class Orchestrator {
     const existing = this.nodes.get(nodeId);
     const isNew = !existing;
 
+    // ── crash-loop / flap detection (charter: machines restrict, humans restore)
+    // Supervisor auto-recovery is wise LOCALLY — but a node that keeps dying
+    // and re-registering flaps the whole hive (jobs aimed at corpses, status
+    // thrash, incident spam). ≥5 re-registers in 10 minutes → QUARANTINE it
+    // network-side: heartbeats freeze, jobs skip it, status shows quarantined
+    // until a HUMAN releases it — and a released node that flaps again
+    // re-quarantines (the remote retest loop).
+    const flapNow = Date.now();
+    const flapEvents = (Array.isArray(existing?.flap_events) ? existing.flap_events : [])
+      .filter((t) => flapNow - Number(t) < 600000);
+    flapEvents.push(flapNow);
+
     const incoming = nodeData.system || {};
     // Populate system info from metrics if available at registration time
     if (nodeData.metrics) {
       if (nodeData.metrics.cpu_count) incoming.cpus = nodeData.metrics.cpu_count;
+      if (nodeData.metrics.cpu_physical) incoming.cpu_physical = nodeData.metrics.cpu_physical;
       if (nodeData.metrics.cpu_freq_mhz) incoming.cpu_freq_mhz = nodeData.metrics.cpu_freq_mhz;
       if (nodeData.metrics.mem_total_mb) incoming.memory_total = nodeData.metrics.mem_total_mb * 1024 * 1024;
       if (nodeData.metrics.disk_total_gb) incoming.disk_total = Math.round(nodeData.metrics.disk_total_gb * 1024 * 1024 * 1024);
@@ -240,6 +253,15 @@ class Orchestrator {
       // so an agent restart that hasn't re-announced yet doesn't wipe the tools
       tools: Array.isArray(nodeData.tools) ? nodeData.tools : (existing?.tools || []),
       tools_port: nodeData.tools_port || existing?.tools_port || 0,
+      // Exam/IQ identity + human ratings must survive re-registration — this
+      // object is rebuilt on EVERY register (same trap as secret/tools): a bee
+      // re-registering after `hivv iq` lost its score, and human votes were
+      // silently wiped (masjid's test vote, 2026-11-18).
+      quality_score: existing?.quality_score ?? null,
+      exam_summary: existing?.exam_summary || null,
+      human_ratings: Array.isArray(existing?.human_ratings) ? existing.human_ratings : [],
+      flap_events: flapEvents,
+      quarantined: existing?.quarantined || null,
       registered_at: existing?.registered_at || now,
       last_heartbeat: now,
       volunteer: nodeData.volunteer ?? existing?.volunteer ?? false,
@@ -265,6 +287,20 @@ class Orchestrator {
       last_status_update: nodeData.work_status ? now : null
     });
 
+    // Auto-quarantine on sustained flapping (manual quarantine shares the field)
+    const qNode = this.nodes.get(nodeId);
+    if (!qNode.quarantined && flapEvents.length >= 5) {
+      qNode.quarantined = {
+        by: 'auto-flap',
+        reason: `crash-loop: ${flapEvents.length} re-registrations within 10 minutes`,
+        since: flapNow,
+        count: flapEvents.length,
+      };
+      console.warn(`[ORCH] QUARANTINE ${nodeId} — ${qNode.quarantined.reason} ` +
+        `(human release: hivv quarantine ${qNode.name || nodeId} --release)`);
+    }
+    if (qNode.quarantined) qNode.status = 'quarantined';
+
     // Init rate limit if not set
     if (!this.rateLimits.perNode[nodeId]) {
       this.rateLimits.perNode[nodeId] = { rpm: 0, rpd: 0, rpm_: 0 };
@@ -283,6 +319,10 @@ class Orchestrator {
   updateHeartbeat(nodeId, data, opts = {}) {
     const node = this.nodes.get(nodeId);
     if (!node) return null;
+    // Quarantined = network-side STOP: freeze everything (last_heartbeat too —
+    // a frozen age keeps it visibly quarantined instead of flapping online).
+    // Only a human release re-opens the gates.
+    if (node.quarantined) return node;
 
     node.last_heartbeat = Date.now();
     if (opts.public_ip) node.public_ip = opts.public_ip;
@@ -309,6 +349,30 @@ class Orchestrator {
     node.total_cpu_percent = m.cpu_percent ?? node.total_cpu_percent;
     node.total_mem_percent = m.mem_pct ?? node.total_mem_percent;
     node.uptime_seconds = m.uptime_s ?? node.uptime_seconds;
+    // Exam quality score (hivv exam/iq → heartbeat → tracked per node)
+    if (data.quality_score !== undefined && data.quality_score !== null) {
+      node.quality_score = Number(data.quality_score) || null;
+    }
+    // Full iq summary for the PUBLIC brain board (/api/hive/iq)
+    if (data.exam_summary && typeof data.exam_summary === 'object') {
+      const s = data.exam_summary;
+      node.exam_summary = {
+        score: Number(s.score) || null,
+        iq: Number(s.iq) || null,
+        ts: Number(s.ts) || 0,
+        ai_avg: Number.isFinite(Number(s.ai_avg)) ? Number(s.ai_avg) : null,
+        by_cat: (s.by_cat && typeof s.by_cat === 'object') ? s.by_cat : {},
+      };
+    }
+    // Self-test battery result (hivv selftest → signed op → rides heartbeat back)
+    if (data.selftest && typeof data.selftest === 'object') {
+      const s = data.selftest;
+      node.selftest = {
+        ts: Number(s.ts) || 0,
+        ok: !!s.ok,
+        checks: (Array.isArray(s.checks) ? s.checks : []).slice(0, 24),
+      };
+    }
     node.active_tasks = data.jobs ?? m.active_jobs ?? 0;
     node.status = this.getNodeStatus(node);
     if (data.work_status !== undefined) {
