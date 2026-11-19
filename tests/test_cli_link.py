@@ -393,6 +393,11 @@ class TestFixLlmBind:
             assert "--host 0.0.0.0" in (d / name).read_text(), name
 
 
+@pytest.mark.skipif(sys.platform != "linux",
+                   reason="llm boot units are systemd-only — "
+                          "_llm_boot_probe short-circuits on other platforms "
+                          "BEFORE subprocess, so the mocks never engage "
+                          "(caught by macOS CI on c6139c3)")
 class TestBootProbeSeesPerModelUnits:
     """yalla had llama-gemma.service + llama-qwen.service BOTH enabled and
     the doctor said 'no boot unit — the LLM dies on reboot' — it only knew
