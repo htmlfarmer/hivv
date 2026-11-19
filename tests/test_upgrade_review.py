@@ -2591,3 +2591,199 @@ class TestRemoteTestHonesty:
         src = CLI_PATH.read_text()
         assert "elif not got_content:" in src
         assert "got_content = True" in src
+
+
+# ── 61. crash-loop bounds + VRAM gate (masjid 2026-11-18) ──────────────────
+# masjid's llama unit abrt-stormed forever: RestartSec=5 never trips
+# systemd's default 5-per-10s limit, and a stray qwen + full 4 GB card made
+# every big prompt die in cuMemCreate. These tests pin the three layers:
+# bounded templates · reset-failed recovery · pre-spawn VRAM gate.
+class TestCrashLoopBounds:
+    def test_installer_templates_carry_startlimit(self):
+        src = (REPO / "public_html" / "install-hivv.sh").read_text()
+        assert src.count("StartLimitIntervalSec=300") >= 2   # system + user heredocs
+        assert src.count("StartLimitBurst=3") >= 2
+
+    def test_cli_templates_carry_startlimit(self):
+        src = CLI_PATH.read_text()
+        # 3 unit templates (self-repair create, self-repair rewrite, doctor --fix)
+        assert src.count("StartLimitIntervalSec=300") >= 3
+
+    def test_unit_add_startlimit_inserts_and_is_idempotent(self):
+        unit = ("[Unit]\nDescription=x\nAfter=network.target\n\n"
+                "[Service]\nExecStart=/bin/true\n")
+        out, changed = hivv._unit_add_startlimit(unit)
+        assert changed
+        assert "StartLimitIntervalSec=300" in out and "StartLimitBurst=3" in out
+        # lands inside [Unit], before [Service]
+        assert out.index("StartLimitIntervalSec") < out.index("[Service]")
+        # second pass is a no-op
+        out2, changed2 = hivv._unit_add_startlimit(out)
+        assert not changed2 and out2 == out
+        assert out2.count("StartLimitIntervalSec") == 1
+
+    def test_unit_add_startlimit_prepends_missing_unit_section(self):
+        out, changed = hivv._unit_add_startlimit("[Service]\nExecStart=/bin/true\n")
+        assert changed
+        assert out.startswith("[Unit]")
+        assert out.index("[Unit]") < out.index("[Service]")
+
+    def test_start_and_restart_reset_failed_first(self):
+        # a start-limited unit refuses to start until reset-failed runs —
+        # without this, `hivv start` after a tripped limit could never recover
+        src = CLI_PATH.read_text()
+        assert src.count("_sd_reset_failed()") >= 3   # def + cmd_start + cmd_restart
+        restart_body = src.split("def cmd_restart(")[1].split("\ndef ")[0]
+        assert "_sd_reset_failed()" in restart_body
+        start_body = src.split("def cmd_start(")[1].split("\ndef ")[0]
+        assert "_sd_reset_failed()" in start_body
+        # the call must precede the systemctl start it unlocks
+        assert start_body.index("_sd_reset_failed()") < start_body.index(
+            '"--user", "start", "hivv-agent.service"')
+
+    def test_self_repair_hardens_old_units(self):
+        # the remote correction: every bee patches its own pre-fix units
+        src = CLI_PATH.read_text()
+        assert src.count("_harden_unit_file(") >= 2   # def + self-repair loop
+        body = src.split("def _self_repair(")[1].split("\ndef ")[0]
+        assert "_harden_unit_file" in body
+        assert "hivv-agent.service" in body and "llama.service" in body
+
+    def test_self_repair_never_prompts_for_sudo(self):
+        src = CLI_PATH.read_text()
+        seg = src.split("def _harden_unit_file(")[1].split("\ndef ")[0]
+        assert '"-n"' in seg                       # sudo -n only (CI hangs on prompt)
+        assert "sudo -n" in seg or '"sudo", "-n"' in seg
+
+
+# ──  masjid VRAM gate: refuse doomed spawns before they abort ───────────────
+class TestVramGate:
+    @staticmethod
+    def _big_file(tmp_path, mib):
+        p = tmp_path / "model.gguf"
+        with open(p, "wb") as fh:
+            fh.truncate(mib * 1024 * 1024)         # sparse — instant, exact size
+        return str(p)
+
+    def test_refuses_when_card_is_full(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: (39, 4096))
+        monkeypatch.setattr(hivv, "_llm_listener_pid", lambda p: None)
+        monkeypatch.setenv("HIVV_LLM_FORCE_START", "")  # ensure unset
+        monkeypatch.delenv("HIVV_LLM_FORCE_START", raising=False)
+        ok, msg = hivv._llm_vram_gate(self._big_file(tmp_path, 100), 8080)
+        assert not ok
+        assert "GPU is full" in msg and "39/4096" in msg
+        assert "stop llm" in msg                   # actionable: how to fix
+
+    def test_refuses_stray_server_on_tight_card(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: (1500, 4096))
+        monkeypatch.setattr(hivv, "_llm_listener_pid",
+                            lambda p: 4242 if p == 8081 else None)
+        path = self._big_file(tmp_path, 1024)      # headroom = 1024+768 = 1792 > 1500
+        ok, msg = hivv._llm_vram_gate(path, 8080)
+        assert not ok
+        assert "another llama-server" in msg and ":8081" in msg and "4242" in msg
+
+    def test_warns_but_allows_thin_headroom(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: (1500, 4096))
+        monkeypatch.setattr(hivv, "_llm_listener_pid", lambda p: None)
+        path = self._big_file(tmp_path, 1024)      # headroom 1792 > free 1500
+        ok, msg = hivv._llm_vram_gate(path, 8080)
+        assert ok and "thin VRAM headroom" in msg  # warn, don't block
+
+    def test_clean_pass_has_empty_message(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: (5500, 6144))
+        monkeypatch.setattr(hivv, "_llm_listener_pid", lambda p: None)
+        ok, msg = hivv._llm_vram_gate(self._big_file(tmp_path, 100), 8080)
+        assert ok and msg == ""
+
+    def test_skips_without_nvidia_gpu(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: None)
+        ok, msg = hivv._llm_vram_gate(self._big_file(tmp_path, 100), 8080)
+        assert ok and msg == ""
+
+    def test_force_env_overrides_refusal(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(hivv, "_gpu_free_mib", lambda: (39, 4096))
+        monkeypatch.setattr(hivv, "_llm_listener_pid", lambda p: None)
+        monkeypatch.setenv("HIVV_LLM_FORCE_START", "1")
+        ok, msg = hivv._llm_vram_gate(self._big_file(tmp_path, 100), 8080)
+        assert ok and msg == ""
+
+    def test_gate_is_wired_into_every_spawn_site(self):
+        src = CLI_PATH.read_text()
+        # def + serve-llama + setup bg + _llm_start_component
+        assert src.count("_llm_vram_gate(") >= 4
+
+    def test_start_component_is_unit_aware(self):
+        # stop knew about units but start didn't → after `hivv stop llm`
+        # killed llama.service, `hivv start llm` could never revive it
+        body = CLI_PATH.read_text().split("def _llm_start_component(")[1].split("\ndef ")[0]
+        assert '_service_state(_unit)' in body
+        assert '"llama-server.service", "llama.service"' in body
+        assert '_systemctl(_scope, "start", _unit)' in body
+        # the unit path must come BEFORE the orphan spawn (Popen)
+        assert body.index("_service_state(_unit)") < body.index("subprocess.Popen")
+        # and it must not orphan-spawn while a live unit answers on a known port
+        assert "already serving on :{_p} ({_unit})" in body
+
+
+# ── is-active can't tell "inactive" from "not-found" (ashy 2026-11-18) ──────
+# systemd is-active exits 3 for BOTH, so the old probe made a nonexistent
+# unit look like a real stopped one: start tried to launch never-installed
+# llama-server.service and returned before reaching the real llama.service.
+class TestServiceStateProbe:
+    def test_probe_uses_loadstate_not_is_active(self):
+        body = CLI_PATH.read_text().split("def _service_state(")[1].split("\ndef ")[0]
+        assert "LoadState" in body
+        assert "not-found" in body
+        assert '"is-active"' not in body      # exit code can't prove existence
+
+    def test_probe_reports_phantom_as_none(self, monkeypatch):
+        class _R:
+            def __init__(self, out):
+                self.stdout, self.returncode = out, 0
+        def fake_run(cmd, **kw):
+            if "phantom" in str(cmd):
+                return _R("LoadState=not-found\nActiveState=inactive\n")
+            return _R("LoadState=loaded\nActiveState=active\n")
+        monkeypatch.setattr(hivv.subprocess, "run", fake_run)
+        assert hivv._service_state("phantom.service") is None
+        assert hivv._service_state("real.service") == ("--user", True)
+
+
+# ── stop must reap EVERY stray, units first (masjid 2026-11-18) ─────────────
+class TestStopReapsAllStrays:
+    def test_units_stopped_first_then_every_listener(self, monkeypatch):
+        # masjid: gemma (unit-managed, :8080) + leftover qwen (:8081). The old
+        # stop killed ONE pid and returned — the unit resurrected what it
+        # killed and the qwen never died. New order: systemctl stop first,
+        # then SIGTERM every listener.
+        dead: set[int] = set()
+        calls: list[tuple] = []
+
+        monkeypatch.setattr(hivv, "read_state", lambda: {"llm": {"port": 8080}})
+        monkeypatch.setattr(hivv, "_llm_state_set", lambda **kw: None)
+        monkeypatch.setattr(hivv, "_service_state",
+                            lambda u: ("--user", True) if u == "llama.service" else None)
+        monkeypatch.setattr(hivv, "_systemctl",
+                            lambda sc, ac, u: calls.append(("unit", u)) or 0)
+        monkeypatch.setattr(hivv, "_llm_listener_pid",
+                            lambda p: {8080: 111, 8081: 222}.get(p))
+        monkeypatch.setattr(hivv, "pid_alive", lambda p: p not in dead)
+
+        def fake_kill(p, sig):
+            calls.append(("kill", p))
+            dead.add(p)
+        monkeypatch.setattr(hivv.os, "kill", fake_kill)
+
+        did, msg = hivv._llm_stop_component()
+        assert did
+        # unit stop comes FIRST — otherwise Restart= resurrects the victim
+        assert calls[0] == ("unit", "llama.service"), calls
+        # and BOTH listeners die, including the :8081 stray
+        assert {c[1] for c in calls if c[0] == "kill"} == {111, 222}, calls
+        assert "111" in msg and "222" in msg
+
+    def test_known_port_line_still_pinned(self):
+        # the original fallback-port pin must survive the rewrite
+        assert 'for p in (8080, 8090, 8081, 8082):' in CLI_PATH.read_text()

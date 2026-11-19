@@ -131,13 +131,23 @@ class TestSetupPrompts:
             assert "Install scope: just for you" in all_out, (
                 "the answer 'just for me' must be honoured"
             )
-            assert "Install a local AI model?" in all_out, (
-                "the local LLM install must be offered"
-            )
-            assert ("Skipped — you can add one any time" in all_out
-                    or "cloud API key later" in all_out), (
-                "the answer 'no local model' must be honoured"
-            )
+            # The LLM offer only fires when NO server answers setup's probe
+            # (setup.sh: FOUND_MODELS -eq 0). On a box where llama/ollama
+            # already answers — every bee, and this dev box whenever
+            # llama.service is up — setup correctly skips the offer and
+            # acknowledges the server it found instead.
+            if "model server on 127.0.0.1" in all_out:
+                assert "Install a local AI model?" not in all_out, (
+                    "with a live model server setup must not re-offer the install"
+                )
+            else:
+                assert "Install a local AI model?" in all_out, (
+                    "the local LLM install must be offered when none exists"
+                )
+                assert ("Skipped — you can add one any time" in all_out
+                        or "cloud API key later" in all_out), (
+                    "the answer 'no local model' must be honoured"
+                )
             assert "Join the hive now?" in all_out, (
                 "joining the hive must be asked"
             )
