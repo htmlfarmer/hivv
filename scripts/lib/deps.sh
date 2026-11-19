@@ -122,7 +122,17 @@ d_install_cli() {
         return 1
     fi
     $sudo_cmd mkdir -p "$lib_dir" "$prefix/bin" 2>/dev/null || return 1
-    $sudo_cmd cp "$public_dir/hivv-cli.py" "$lib_dir/hivv-cli.py" 2>/dev/null || return 1
+    # NEVER write through a clone link. `cp src dst` with dst a symlink
+    # follows it — so installing would overwrite the CLONE the user linked
+    # with these bytes (clobbering their source, or "same file" erroring).
+    # The link is the user's explicit choice (`hivv link`) — keep it.
+    if [[ -L "$lib_dir/hivv-cli.py" ]]; then
+        printf '[hivv] kept your clone link: %s -> %s\n' \
+            "$lib_dir/hivv-cli.py" "$(readlink "$lib_dir/hivv-cli.py" 2>/dev/null)" >&2
+        printf '[hivv] (run `hivv unlink` first if you want a standalone copy)\n' >&2
+    else
+        $sudo_cmd cp "$public_dir/hivv-cli.py" "$lib_dir/hivv-cli.py" 2>/dev/null || return 1
+    fi
     $sudo_cmd cp "$public_dir/hivv" "$bin_file" 2>/dev/null || return 1
     $sudo_cmd chmod 0755 "$lib_dir/hivv-cli.py" "$bin_file" 2>/dev/null || return 1
     printf '%s\n' "$bin_file"

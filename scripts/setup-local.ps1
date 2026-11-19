@@ -324,7 +324,15 @@ $CliBin    = Join-Path $CliPrefix 'bin'
 $CliLib    = Join-Path $CliPrefix 'lib\hivv'
 try {
     New-Item -ItemType Directory -Force -Path $CliBin, $CliLib | Out-Null
-    Copy-Item (Join-Path $RepoRoot 'public_html\hivv-cli.py') (Join-Path $CliLib 'hivv-cli.py') -Force
+    $CliTarget = Join-Path $CliLib 'hivv-cli.py'
+    # NEVER write through a link: Copy-Item to a linked path follows it, so
+    # installing would overwrite whatever the link points at. A link is the
+    # user's explicit choice (`hivv link`) — keep it, install the rest.
+    if (Test-Path -PathType Link $CliTarget) {
+        Write-Warn "kept existing link: $CliTarget -> $((Get-Item $CliTarget).Target)"
+    } else {
+        Copy-Item (Join-Path $RepoRoot 'public_html\hivv-cli.py') $CliTarget -Force
+    }
     Copy-Item (Join-Path $RepoRoot 'public_html\hivv.cmd')   (Join-Path $CliBin  'hivv.cmd')    -Force
     Write-Ok "hivv installed -> $CliBin\hivv.cmd"
 
