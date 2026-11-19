@@ -357,6 +357,41 @@ router.get('/upgrade-reports', async (req, res) => {
 // GET /api/hive/timeline?hours=48 — aggregated time-series of what the hive is
 // ACTUALLY doing, straight from usage_logs. Powers the dashboard's live charts
 // (throughput, latency p50/p95, model mix). Cheap, cached, public, no PII.
+// GET /api/hive/contributors — who is helping, published.
+//
+// The honey leaderboard counts COMPUTE. This counts CODE. A distributed
+// project lives on people feeling their work counted, and until this
+// existed a code contributor had no number and no card.
+//
+// Cached 30 min in-process (the GitHub API is rate-limited and a public
+// page must not burn that budget). A failed fetch serves the last good
+// cache — a GitHub outage must not blank the page.
+router.get('/contributors', async (req, res) => {
+  try {
+    const contributors = require('../lib/contributors');
+    const data = await contributors.get({
+      force: String(req.query.fresh || '') === '1',
+    });
+    res.set('Cache-Control', 'public, max-age=600');
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/hive/contributors.svg — the contributor wall as an image
+router.get('/contributors.svg', async (req, res) => {
+  try {
+    const contributors = require('../lib/contributors');
+    const data = await contributors.get();
+    res.set('Cache-Control', 'public, max-age=600');
+    res.set('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.send(contributors.shareCardSvg(data));
+  } catch (e) {
+    res.status(500).send(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="80"><text x="20" y="45" fill="#e6edf3" font-family="monospace">unavailable</text></svg>`);
+  }
+});
+
 router.get('/timeline', async (req, res) => {
   try {
     const { pool } = require('../server');
