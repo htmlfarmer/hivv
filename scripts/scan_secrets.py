@@ -23,6 +23,7 @@ Install as a git hook (runs automatically on commit):
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import re
 import subprocess
 import sys
@@ -62,9 +63,17 @@ PATTERNS = [
     # HIVV-specific: the env vars that carry real material.
     ("hivv session secret",    r"HIVV_SESSION_SECRET[ \t]*[=:][ \t]*['\"]?[0-9a-f]{32,}", "BLOCK"),
     ("hivv encryption key",    r"HIVV_ENCRYPTION_KEY[ \t]*[=:][ \t]*['\"]?[0-9a-f]{64}", "BLOCK"),
-    ("hivv control token",     r"HIVV_CONTROL_TOKEN[ \t]*[=:][ \t]*['\"]?[A-Za-z0-9][^\s'\"]{15,}", "WARN"),
+    # A control token / donor salt is only a LEAK when a LITERAL value is
+    # committed. `HIVV_CONTROL_TOKEN: process.env.HIVV_CONTROL_TOKEN || …` is
+    # an env-var READ — the safe pattern the gateway actually ships (since
+    # 553c1fe "never ship runtime secrets in the repository"). The old regex
+    # matched `process.env.HIVV_CONTROL_TOKEN` as a 30+ char literal, so the
+    # scanner failed-closed on the SAFEST line in the repo and every push
+    # needed a manual bypass — which trains people to bypass the scanner.
+    # These match a literal (quoted or bare) and explicitly NOT `process.env`.
+    ("hivv control token",     r"HIVV_CONTROL_TOKEN[ \t]*[=:][ \t]*(?!process\.env\b)(?!require\b)['\"]?[A-Za-z0-9][^\s'\"]{15,}", "WARN"),
     ("hivv scan key",          r"HIVV_SCAN_KEY[ \t]*[=:][ \t]*['\"]?[0-9a-f]{32,}", "BLOCK"),
-    ("hivv donor salt",        r"HIVV_DONOR_SALT[ \t]*[=:][ \t]*['\"]?[A-Za-z0-9][^\s'\"]{15,}", "WARN"),
+    ("hivv donor salt",        r"HIVV_DONOR_SALT[ \t]*[=:][ \t]*(?!process\.env\b)(?!require\b)['\"]?[A-Za-z0-9][^\s'\"]{15,}", "WARN"),
     ("ed25519 hex seed (32B)", r"(?i)\b[0-9a-f]{64}\b(?=[^\n]{0,40}(?:seed|priv|secret))", "WARN"),
 ]
 
@@ -132,29 +141,69 @@ def _blank_prose(text: str) -> str:
     return "".join(out)
 
 
-def _load_ignore() -> set[str]:
-    """Read .secret-guard-ignore: a set of "file:line" keys.
+def _load_ignore():
+    """Read .secret-guard-ignore.
 
-    Every entry is a place a real secret could hide, so keep it short. The
+    Two forms are supported:
+
+      `file:line`   — the original form. EXACT match. It rots the moment a
+                      line above it is added or removed: the entry stops
+                      applying, the finding reappears, and the push is
+                      blocked with nothing to say the ignore list went
+                      stale. (That is exactly how `api/ecosystem.config.js:29`
+                      became `:47` and silently rotted.)
+      `file:glob`   — a GLOB on the line number, e.g. `api/ecosystem.config.js:*`
+                      or `api/ecosystem.config.js:2*`. Survives line drift,
+                      which is what a moving file needs.
+
+    Every entry is a place a real secret could hide, so keep it short: the
     scanner checks this BEFORE reporting, so a test fixture does not drown
     the signal — but a NEW real leak is never in here.
     """
     p = ROOT / ".secret-guard-ignore"
     if not p.exists():
-        return set()
-    keys = set()
+        return set(), set()
+    exact, globs = set(), []
     for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.split("#", 1)[0].strip()
-        if line:
-            keys.add(line)
-    return keys
+        if not line:
+            continue
+        if ":" not in line:
+            continue
+        src, _, spec = line.rpartition(":")
+        # Distinguish a `file:line` entry from a bare REGEX (which belongs to
+        # the GENERIC machine-wide hook and lives in .secret-guard-suppress).
+        #
+        # A repo-relative path may or may not contain a slash:
+        #   setup.sh:66            ← no slash, still a file:line entry
+        #   api/server.js:2919     ← slash, file:line entry
+        #   process\.env\.HIVV_…   ← a regex, not a file:line entry
+        # The tell is the SPEC: a file:line entry's spec is a line number
+        # (or a glob of digits). A regex spec is anything else.
+        #
+        # Order matters: a GLOB spec ("2*", "*") also looks digit-ish, so the
+        # glob test has to come first.
+        # A path may or may not contain a slash (setup.sh, .secret-guard-…),
+        # so the glob branch must not require one — the SPEC is what tells a
+        # file:glob entry apart from a bare regex.
+        if any(ch in spec for ch in "*?["):
+            globs.append((src, spec))
+        elif spec.isdigit():
+            exact.add(line)
+        # anything else is a bare regex → belongs to the generic hook, not here
+    return exact, globs
 
 
-_IGNORE = _load_ignore()
+_IGNORE, _IGNORE_GLOBS = _load_ignore()
 
 
 def _ignored(source: str, lineno: int) -> bool:
-    return f"{source}:{lineno}" in _IGNORE
+    if f"{source}:{lineno}" in _IGNORE:
+        return True
+    for src, spec in _IGNORE_GLOBS:
+        if src == source and fnmatch.fnmatchcase(str(lineno), spec):
+            return True
+    return False
 
 
 def scan_text(text: str, source: str):
