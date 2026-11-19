@@ -625,6 +625,81 @@ d_ensure_gateway_deps() {
     return 0
 }
 
+# ── interactive prompts ──────────────────────────────────────────────────
+# d_ask_yesno "question" [default]
+#   default: "y" or "n" (used when there is no TTY). Returns 0 for yes.
+# d_ask_choice "question" "opt1|opt2|opt3" [default_index]
+#   Returns the 1-based index of the chosen option.
+#
+# NEVER prompt when stdin is not a TTY — a script piped or run in CI must
+# not hang waiting for keyboard input. The default is used instead.
+#
+# Read from stdin (NOT /dev/tty): stdin IS the terminal in a normal
+# interactive run, and /dev/tty may not be the controlling terminal (it is
+# absent under some pty harnesses, cron, containers and CI).
+d_ask_yesno() {
+    local q="$1" def="${2:-y}" ans=""
+    if [[ ! -t 0 ]]; then
+        # Not interactive → take the default silently.
+        [[ "$def" == "y" ]] && return 0 || return 1
+    fi
+    local suffix="[y/N]"
+    [[ "$def" == "y" ]] && suffix="[Y/n]"
+    printf '  %s?%s %s %s' "$D_CYN" "$D_RST" "$q" "$D_DIM$suffix$D_RST"
+    read -r ans || ans=""
+    ans="${ans:-$def}"
+    case "$ans" in
+        [Yy]|[Yy][Ee][Ss]|[Yy][Ee][Ss][Tt][Ee][Rr]*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+d_ask_choice() {
+    local q="$1" opts="$2" def="${3:-1}" ans="" i=1
+    if [[ ! -t 0 ]]; then
+        echo "$def"
+        return "$def"
+    fi
+    # The MENU goes to stderr, the INDEX to stdout. That way
+    #   choice="$(d_ask_choice ...)"
+    # captures ONLY the number — the menu still reaches the terminal.
+    {
+        printf '\n  %s%s%s\n' "$D_BLD" "$q" "$D_RST"
+        local IFS='|'
+        for o in $opts; do
+            printf '    %s%d)%s %s\n' "$D_CYN" "$i" "$D_RST" "$o"
+            i=$((i + 1))
+        done
+        unset IFS
+        printf '  %s?%s choice [%s]: ' "$D_CYN" "$D_RST" "$def"
+    } >&2
+    read -r ans || ans=""
+    ans="${ans:-$def}"
+    if [[ "$ans" =~ ^[0-9]+$ ]] && [[ "$ans" -ge 1 ]]; then
+        echo "$ans"
+        return "$ans"
+    fi
+    echo "$def"
+    return "$def"
+}
+
+# ── does this machine already have a way to become root? ─────────────────
+# Returns 0 if we CAN escalate without a password (already root, or
+# passwordless sudo). Never prompts.
+d_can_escalate() {
+    [[ "$(id -u 2>/dev/null || echo 0)" -eq 0 ]] && return 0
+    command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1 && return 0
+    return 1
+}
+
+# ── can we ASK for a password? (interactive only) ────────────────────────
+d_can_prompt_sudo() {
+    [[ ! -t 0 ]] && return 1
+    [[ "$(id -u 2>/dev/null || echo 0)" -eq 0 ]] && return 0
+    command -v sudo >/dev/null 2>&1 && return 0
+    return 1
+}
+
 # ── print a friendly "what did we detect / what to type" summary ────────
 d_print_platform_summary() {
     printf '\n  %sdetected environment%s\n' "$D_BLD" "$D_RST"

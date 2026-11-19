@@ -218,12 +218,24 @@ winget · scoop · choco`, with a no-sudo user-local fallback for Node
 `$HOME/.local/node`). If auto-install genuinely cannot proceed, the script
 prints the exact copy-paste command for that OS instead of `exit 1`.
 
-Rules the setup scripts must keep (pinned by `tests/test_setup_scripts.py`):
+Rules the setup scripts must keep (pinned by `tests/test_setup_scripts.py` +
+`tests/test_setup_prompts.py`):
 - never print a bare "X is not installed" and exit — auto-install or print
   the exact command
 - never prompt for a `sudo` password (`sudo -n` only — a prompt hangs CI)
 - PostgreSQL stays OPTIONAL — local-first mode needs no database
 - Node 18+ is the only hard requirement
+- **ASK, don't decide**: install scope (user-local vs system-wide/root),
+  local LLM install, and hive membership are all user decisions
+- a prompt with no TTY takes its default silently (never hangs CI)
+- `d_ask_choice` prints its MENU to **stderr** and only the INDEX to
+  stdout — otherwise `choice="$(d_ask_choice ...)"` captures the menu and
+  the caller's `case` silently matches nothing
+- prompts read **stdin**, not `/dev/tty` (absent under cron/containers/CI)
+- the gateway is NOT a hive node: `HIVV_HIVE_JOIN` only lets the gateway
+  QUERY the hub. Registration happens in the CLI agent (`hivv start`,
+  `POST /api/nodes/register`), so setup must start the agent when the user
+  says yes to joining.
 
 ### Partner surface (`routes/partner-routes.js`)
 

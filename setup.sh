@@ -26,6 +26,7 @@ PUBLIC_DIR="$SCRIPT_DIR/public_html"
 . "$SCRIPT_DIR/scripts/lib/deps.sh"
 
 RED="$D_RED"; GREEN="$D_GRN"; YELLOW="$D_YLW"; BLUE="$D_BLU"; NC="$D_RST"
+BOLD="$D_BLD"; DIM="$D_DIM"
 
 MODE="local"          # local | hosted
 CHECK_ONLY=0
@@ -66,6 +67,58 @@ echo ""
 detect_platform
 d_print_platform_summary
 
+# ── STEP 0: install scope — user-local or system-wide? ──────────────────
+# ASK. Do not silently pick one. A user-local install needs no password and
+# touches nothing outside $HOME; a system-wide install helps every user on
+# the machine and sets up a boot-time service. Both are legitimate — so the
+# person decides, and we tell them exactly what each one means.
+INSTALL_SCOPE="user"
+if [[ "$MODE" == "hosted" ]]; then
+    # hosted mode already implies a system service
+    INSTALL_SCOPE="system"
+elif [[ "$CHECK_ONLY" -eq 0 ]] && [[ "$(id -u 2>/dev/null || echo 0)" -ne 0 ]]; then
+    echo "  ${BOLD}Where should HIVV be installed?${NC}"
+    echo ""
+    echo "    ${BOLD}1) Just for me${NC} (recommended to start)"
+    echo "       · lives in ~/.local/share/hivv — nothing else on this computer changes"
+    echo "       · no password needed, nothing to undo"
+    echo "       · starts on login"
+    echo ""
+    echo "    ${BOLD}2) System-wide${NC} (for everyone on this machine)"
+    echo "       · lives in /usr/local — every user gets the 'hivv' command"
+    echo "       · runs as a boot-time service, even with nobody logged in"
+    echo "       · asks for your sudo password"
+    echo ""
+    SCOPE_CHOICE="$(d_ask_choice "Choose an install scope" "Just for me (no password)|System-wide (asks for your password)" 1)"
+    if [[ "$SCOPE_CHOICE" == "2" ]]; then
+        INSTALL_SCOPE="system"
+    fi
+    echo ""
+    if [[ "$INSTALL_SCOPE" == "system" ]] && ! d_can_escalate; then
+        if d_can_prompt_sudo; then
+            print_step "Requesting administrator access…"
+            if sudo -v; then
+                D_SUDO="sudo"
+                print_success "Administrator access granted"
+            else
+                print_warning "Administrator access was declined — continuing with a user-local install"
+                INSTALL_SCOPE="user"
+            fi
+        else
+            print_warning "System-wide needs administrator access — continuing with a user-local install"
+            INSTALL_SCOPE="user"
+        fi
+        echo ""
+    fi
+fi
+
+if [[ "$INSTALL_SCOPE" == "system" ]]; then
+    print_success "Install scope: system-wide (all users on this machine)"
+else
+    print_success "Install scope: just for you ($HOME)"
+fi
+echo ""
+
 # ── STEP 1: Node.js (the one hard requirement) ──────────────────────────
 print_step "Checking Node.js..."
 if ! d_install_node; then
@@ -98,7 +151,7 @@ else
     print_warning "Python unavailable — the gateway still works, only the 'hivv' CLI is missing."
 fi
 
-# ── STEP 3: local model server (optional but recommended) ───────────────
+# ── STEP 3: local model server — ASK, don't just print instructions ─────
 print_step "Probing for local model servers..."
 FOUND_MODELS=0
 for p in 8080 8081 8082 8090 11434 1234 5000 8000; do
@@ -110,25 +163,79 @@ for p in 8080 8081 8082 8090 11434 1234 5000 8000; do
         fi
     fi
 done
+
 if [[ "$FOUND_MODELS" -eq 0 ]]; then
-    print_warning "No local model server found (that is OK — you can add a cloud key later)."
-    echo "    Install one with:"
-    case "$D_OS" in
-        Linux)
-            case "$D_PKG" in
-                apt)    print_hint "sudo apt-get install -y ollama && ollama serve" ;;
-                dnf)    print_hint "sudo dnf install -y ollama && ollama serve" ;;
-                pacman) print_hint "sudo pacman -S --noconfirm ollama && ollama serve" ;;
-                apk)    print_hint "sudo apk add ollama && ollama serve" ;;
-                brew)   print_hint "brew install ollama && ollama serve" ;;
-                *)      print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
-            esac
-            ;;
-        Darwin)   print_hint "brew install ollama && ollama serve" ;;
-        windows)  print_hint "winget install Ollama.Ollama" ;;
-        *)        print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
-    esac
-    echo "    Or download llama.cpp: https://github.com/ggerganov/llama.cpp/releases"
+    print_warning "No local model server found — the gateway runs, but it has no brain yet."
+    echo ""
+    echo "  A local model is what makes this machine useful to the hive."
+    echo "  It stays on your computer — open weights, no big-tech, no API bill."
+    echo ""
+
+    # Offer the install. Skipped in --check mode (nothing may change).
+    if [[ "$CHECK_ONLY" -eq 0 ]] && [[ "$MODE" == "local" ]]; then
+        LLM_CHOICE="$(d_ask_choice \
+            "Install a local AI model?" \
+            "Yes — install llama.cpp + a recommended open model (best fit for this CPU, ~1-2GB)|Yes — install Ollama instead (simpler, one session at a time)|No — I'll add a cloud API key later (no local model)" \
+            3)"
+        case "$LLM_CHOICE" in
+            1)
+                print_step "Installing llama.cpp + a recommended model..."
+                if command -v hivv >/dev/null 2>&1; then
+                    hivv llm setup --yes && print_success "Local model installed" \
+                        || print_warning "llama.cpp setup did not finish — retry with: hivv llm setup"
+                elif [ -f "$PUBLIC_DIR/hivv-cli.py" ]; then
+                    python3 "$PUBLIC_DIR/hivv-cli.py" llm setup --yes && print_success "Local model installed" \
+                        || print_warning "llama.cpp setup did not finish — retry with: python3 public_html/hivv-cli.py llm setup"
+                else
+                    print_warning "hivv CLI not found — install a model manually:"
+                    print_hint "curl -fsSL https://ollama.com/install.sh | sh"
+                fi
+                ;;
+            2)
+                print_step "Installing Ollama..."
+                case "$D_PKG" in
+                    apt)    d_run_privileged apt-get update >/dev/null 2>&1 || true
+                            d_run_privileged apt-get install -y ollama >/dev/null 2>&1 ;;
+                    dnf)    d_run_privileged dnf install -y ollama >/dev/null 2>&1 ;;
+                    yum)    d_run_privileged yum install -y ollama >/dev/null 2>&1 ;;
+                    pacman) d_run_privileged pacman -S --noconfirm ollama >/dev/null 2>&1 ;;
+                    apk)    d_run_privileged apk add --no-cache ollama >/dev/null 2>&1 ;;
+                    brew)   brew install ollama >/dev/null 2>&1 ;;
+                    *)      curl -fsSL https://ollama.com/install.sh | sh >/dev/null 2>&1 || true ;;
+                esac
+                if command -v ollama >/dev/null 2>&1; then
+                    print_success "Ollama installed"
+                    print_hint "ollama serve    # start it, then: ollama pull gemma3:4b"
+                else
+                    print_warning "Ollama install did not finish — retry with: curl -fsSL https://ollama.com/install.sh | sh"
+                fi
+                ;;
+            3)
+                echo "  Skipped — you can add one any time:"
+                print_hint "hivv llm setup                 # local model"
+                print_hint "hivv add openai <your-key>     # or a cloud provider"
+                ;;
+        esac
+        echo ""
+    else
+        echo "  Install one with:"
+        case "$D_OS" in
+            Linux)
+                case "$D_PKG" in
+                    apt)    print_hint "sudo apt-get install -y ollama && ollama serve" ;;
+                    dnf)    print_hint "sudo dnf install -y ollama && ollama serve" ;;
+                    pacman) print_hint "sudo pacman -S --noconfirm ollama && ollama serve" ;;
+                    apk)    print_hint "sudo apk add ollama && ollama serve" ;;
+                    brew)   print_hint "brew install ollama && ollama serve" ;;
+                    *)      print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
+                esac
+                ;;
+            Darwin)   print_hint "brew install ollama && ollama serve" ;;
+            windows)  print_hint "winget install Ollama.Ollama" ;;
+            *)        print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
+        esac
+        echo "    Or download llama.cpp: https://github.com/ggerganov/llama.cpp/releases"
+    fi
 fi
 
 # ── STEP 4: database — OPTIONAL ─────────────────────────────────────────
@@ -319,8 +426,74 @@ if [[ "$MODE" == "local" ]]; then
     echo "  Logs:   $LOG"
     echo "  Stop:   kill \$(cat '$DATA_DIR/hivv.pid')"
     echo ""
-    echo "  Join the global hive:  add HIVV_HIVE_JOIN=1 to $ENV_FILE, then restart"
-    echo ""
+
+    # ── join the global hive? ─────────────────────────────────────────
+    # The gateway above is LOCAL — it does NOT register this machine as a
+    # hive node. That needs the CLI agent (`hivv start`), which registers with
+    # the hub. So we ASK and actually do it, instead of printing a README line
+    # the user has to follow by hand.
+    JOIN_HIVE=0
+    if [[ "$CHECK_ONLY" -eq 0 ]]; then
+        echo ""
+        echo "  ${BOLD}Join the global hive?${NC}"
+        echo "    Your computer becomes a bee — it shares spare CPU/GPU with the"
+        echo "    network and can serve AI requests. You can opt out any time:"
+        echo "    hivv volunteer off"
+        echo ""
+        if d_ask_yesno "Join the hive now?" "y"; then
+            JOIN_HIVE=1
+        fi
+        echo ""
+    fi
+
+    if [[ "$JOIN_HIVE" -eq 1 ]]; then
+        print_step "Installing the hivv node agent..."
+        HIVV_JOINED=0
+
+        # The node agent lives in the CLI (`hivv start`), which registers with
+        # the hub. Make sure a usable CLI exists:
+        #   1. the `hivv` wrapper on PATH
+        #   2. the CLI in this clone (works, but is not on PATH)
+        #   3. neither → install the CLI from the hub
+        HIVV_CLI=""
+        if command -v hivv >/dev/null 2>&1; then
+            HIVV_CLI="hivv"
+        elif [ -f "$PUBLIC_DIR/hivv-cli.py" ] && command -v python3 >/dev/null 2>&1; then
+            HIVV_CLI="python3 $PUBLIC_DIR/hivv-cli.py"
+        else
+            print_step "Fetching the hivv CLI..."
+            if curl -fsSL --connect-timeout 15 --max-time 90 https://hivv.org/hivv-cli.py \
+                 -o "$DATA_DIR/hivv-cli.py" 2>/dev/null && [ -s "$DATA_DIR/hivv-cli.py" ]; then
+                chmod 0755 "$DATA_DIR/hivv-cli.py"
+                HIVV_CLI="python3 $DATA_DIR/hivv-cli.py"
+                print_success "CLI downloaded to $DATA_DIR/hivv-cli.py"
+            fi
+        fi
+
+        if [ -n "$HIVV_CLI" ]; then
+            # shellcheck disable=SC2086
+            $HIVV_CLI start && HIVV_JOINED=1
+        fi
+
+        if [[ "$HIVV_JOINED" -eq 1 ]]; then
+            print_success "You're in the hive 🐝 — this machine is now a node"
+            sleep 3   # let the agent heartbeat once so the hub has it
+            echo ""
+            echo "  See the whole network:  hivv nodes"
+            echo "  Talk to the hive:      hivv chat \"hello\""
+            echo "  Opt out of sharing:    hivv volunteer off"
+            echo ""
+        else
+            print_warning "The agent did not start — try manually: hivv start"
+            echo "  (install the CLI first: curl -sSL https://hivv.org/install-hivv.sh | bash)"
+            echo ""
+        fi
+    else
+        echo "  ${DIM}Not joining the hive (local-only). To join later:${NC}"
+        print_hint "hivv start            # registers this machine as a bee"
+        print_hint "hivv nodes            # see the network"
+        echo ""
+    fi
     exit 0
 fi
 

@@ -63,11 +63,25 @@ That gives you a complete gateway on `http://127.0.0.1:3011`:
 - **no secrets** — the session key is generated and stored locally
 - **no cloud** — nothing phones home unless you ask it to
 
-**It installs what it needs.** Missing Node.js, npm, or Python are installed
-automatically for your OS (apt · dnf · yum · pacman · apk · zypper · brew ·
-winget · scoop · choco) — with a no-sudo user-local fallback. If something
-can't be installed automatically, the script prints the exact command to type
-for your machine.
+**It asks you three questions** and acts on your answers — it never silently
+decides for you:
+
+1. **Where should HIVV be installed?** — just for you (no password) or
+   system-wide (asks for your sudo password, boot-time service for all users)
+2. **Install a local AI model?** — llama.cpp + a recommended open model,
+   Ollama, or skip
+3. **Join the global hive?** — register this computer as a bee so it can
+   serve the network
+
+**It also installs what it needs.** Missing Node.js, npm, or Python are
+installed automatically for your OS (apt · dnf · yum · pacman · apk · zypper ·
+brew · winget · scoop · choco) — with a no-sudo user-local fallback. If
+something can't be installed automatically, the script prints the exact
+command to type for your machine.
+
+> **A gateway is not a hive node.** Setup starts your own local API server.
+> To appear in `hivv nodes` you also need the agent — setup offers to start
+> it for you, or run `hivv start` later.
 
 Add `--join-hive` (or `-JoinHive`) to also register with the global hive.
 Add `--db` to `setup.sh` for the hosted mode (PostgreSQL + PM2 + admin user).

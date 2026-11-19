@@ -219,10 +219,58 @@ if curl -fsS --max-time 5 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; t
     info "openai : http://127.0.0.1:$PORT/v1"
     info "logs   : $LOG"
     info "stop   : kill \$(cat '$DATA_DIR/hivv.pid')"
-    if [[ "$JOIN_HIVE" -eq 1 ]]; then
-        info "hive join enabled — start the CLI with: hivv start"
+    echo ""
+
+    # ── join the global hive? ─────────────────────────────────────────
+    # The gateway is LOCAL — it does NOT register this machine as a hive
+    # node. That needs the CLI agent (`hivv start`), which registers with
+    # the hub. So ASK and actually do it.
+    JOIN_NOW="$JOIN_HIVE"
+    if [[ "$JOIN_HIVE" -eq 0 && "$CHECK_ONLY" -eq 0 ]]; then
+        echo "  ${BLD}Join the global hive?${RST}"
+        echo "    Your computer becomes a bee — it shares spare CPU/GPU with the"
+        echo "    network and can serve AI requests. Opt out any time:"
+        echo "    hivv volunteer off"
+        echo ""
+        if d_ask_yesno "Join the hive now?" "y"; then
+            JOIN_NOW=1
+        fi
+        echo ""
+    fi
+
+    if [[ "$JOIN_NOW" -eq 1 ]]; then
+        step "Installing the hivv node agent"
+        JOINED=0
+        HIVV_CLI=""
+        if command -v hivv >/dev/null 2>&1; then
+            HIVV_CLI="hivv"
+        elif [ -f "$REPO_ROOT/public_html/hivv-cli.py" ] && command -v python3 >/dev/null 2>&1; then
+            HIVV_CLI="python3 $REPO_ROOT/public_html/hivv-cli.py"
+        elif command -v curl >/dev/null 2>&1; then
+            if curl -fsSL --connect-timeout 15 --max-time 90 https://hivv.org/hivv-cli.py \
+                 -o "$DATA_DIR/hivv-cli.py" 2>/dev/null && [ -s "$DATA_DIR/hivv-cli.py" ]; then
+                chmod 0755 "$DATA_DIR/hivv-cli.py"
+                HIVV_CLI="python3 $DATA_DIR/hivv-cli.py"
+                ok "CLI downloaded to $DATA_DIR/hivv-cli.py"
+            fi
+        fi
+        if [ -n "$HIVV_CLI" ]; then
+            # shellcheck disable=SC2086
+            $HIVV_CLI start && JOINED=1
+        fi
+        if [[ "$JOINED" -eq 1 ]]; then
+            ok "you're in the hive 🐝 — this machine is now a node"
+            sleep 3
+            info "network : hivv nodes"
+            info "talk    : hivv chat \"hello\""
+            info "opt out : hivv volunteer off"
+        else
+            warn "the agent did not start — try: hivv start"
+            warn "install the CLI first: curl -sSL https://hivv.org/install-hivv.sh | bash"
+        fi
     else
-        info "running local-only (set HIVV_HIVE_JOIN=1 to join the global hive)"
+        info "running local-only (not registered as a hive node)"
+        info "to join later: hivv start"
     fi
 else
     fail "gateway did not come up — see $LOG"

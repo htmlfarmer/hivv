@@ -12,10 +12,19 @@ There are three ways in, depending on what you want.
 
 ---
 
-## 0. It installs what it can
+## 0. It asks you, and it installs what it can
 
-Both setup scripts **install missing dependencies for you** instead of
-stopping at an error:
+The setup script **asks** three questions and acts on your answers — it never
+silently decides for you:
+
+| Question | Options | Default |
+|---|---|---|
+| **Where should HIVV be installed?** | 1) Just for me (`~/.local/share/hivv`, no password) · 2) System-wide (`/usr/local`, all users, asks for your sudo password) | Just for me |
+| **Install a local AI model?** | 1) llama.cpp + a recommended open model · 2) Ollama · 3) Skip (add a cloud key later) | Skip |
+| **Join the global hive?** | Your computer becomes a bee — it registers with hivv.org and can serve AI requests. Opt out any time with `hivv volunteer off`. | Yes |
+
+The scripts **install missing dependencies for you** instead of stopping at
+an error:
 
 | Missing | What happens |
 |---|---|
@@ -30,6 +39,21 @@ guessing.
 
 Supported package managers: `apt`, `dnf`, `yum`, `pacman`, `apk`, `zypper`,
 `brew`, `winget`, `scoop`, `choco`.
+
+### The gateway is not the same thing as a hive node
+
+This trips people up, so it is worth being precise:
+
+- The **gateway** (`setup.sh`) is your own local AI API server. It runs on
+  `127.0.0.1:3011` and talks to your own models. That is the gateway.
+- A **hive node** (bee) is your computer *registered with hivv.org*, visible
+  to everyone in the network and able to serve requests to peers.
+
+Registering as a node is done by the **CLI agent** (`hivv start`), not by the
+gateway. `HIVV_HIVE_JOIN=1` only lets the gateway *check* the hub's health —
+it never registers anything. So when setup asks "Join the global hive?" and
+you say yes, it runs the agent for you and the machine appears in
+`hivv nodes`.
 
 ---
 
@@ -260,8 +284,10 @@ See `CONTRIBUTING.md` and `docs/PARTNER-API.md`.
 | `node not found` | The setup script installs it for you. If it couldn't, it prints the exact command for your OS — run it, then re-run setup |
 | `npm not found` | It ships with Node.js — reinstall Node.js |
 | `python not found` | Optional. Only the `hivv` CLI needs it: `sudo apt-get install -y python3` |
-| `no local model server found` | Start llama.cpp / ollama, or add a provider key |
+| `no local model server found` | Setup offers to install one — answer "yes" at the prompt, or run `hivv llm setup` later |
 | `PostgreSQL client is not installed` | Only needed for `./setup.sh --db`. Local-first mode needs no database |
+| `hivv nodes` shows nothing / my machine is missing | The gateway is not a hive node. Run `hivv start` to register this computer as a bee, then `hivv nodes` again |
+| `hivv chat` says nothing | The agent is not running. Check `hivv status`, then `hivv start` |
 | gateway won't start | check `$HIVV_DATA_DIR/logs/hivv-local.log` |
 | port already in use | `--port 3020` |
 | want the old behaviour (DB required) | `./setup.sh --db` |
