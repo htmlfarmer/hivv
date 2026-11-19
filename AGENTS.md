@@ -95,6 +95,7 @@ install keeps working with its own models.
 ├── tests/                  # Regression tests — python3 -m pytest tests/ -q
 │   ├── test_upgrade_review.py  # upgrade-gate FP/FN canaries + display helpers
 │   ├── test_setup_scripts.py   # setup scripts MUST auto-install deps, never dead-end
+│   ├── test_cli_install.py     # the `hivv` COMMAND on PATH + update never touches source
 │   └── local_install/      # clone-and-run harness (no DB, no internet)
 ├── docs/
 │   └── PARTNER-API.md     # the public /api/partner surface
@@ -232,6 +233,34 @@ Rules the setup scripts must keep (pinned by `tests/test_setup_scripts.py` +
   stdout — otherwise `choice="$(d_ask_choice ...)"` captures the menu and
   the caller's `case` silently matches nothing
 - prompts read **stdin**, not `/dev/tty` (absent under cron/containers/CI)
+
+**The setup scripts must also install the `hivv` COMMAND (not just the
+clone's copy).** A clone holds a working CLI but nothing put it on PATH, so
+`hivv chat` said "command not found" right after a successful setup while the
+script's own next-step text said "hivv chat" (pinned by
+`tests/test_cli_install.py`). The layout is a CONTRACT — do not invent
+another one:
+
+```
+<prefix>/bin/hivv              ← the wrapper (bash)
+<prefix>/lib/hivv/hivv-cli.py   ← the client (python)
+```
+
+The wrapper resolves the client relative to ITSELF, and `hivv-cli.py` derives
+`INSTALL_DIR`/`BIN_DIR` from its own location the same way. So in this layout
+`hivv update` updates the **installed** copy. `deps.sh` does it via
+`d_install_cli <prefix> <use_sudo> <public_dir>` (user → `~/.local`,
+system → `/usr/local`); `d_ensure_path` keeps the bin dir on PATH in future
+shells.
+
+> ⚠ **`hivv update` must never write into a git checkout.** Run from a clone
+> with no install prefix, the old code fell back to "the file I am executing"
+> and silently replaced the repo's own CLI with the hub's copy. The CLI now
+> refuses (`_in_git_worktree` + `_update_target`), `--force` overrides, and an
+> identical file still updates cleanly — so `hivv update` keeps working on the
+> hub host, where the served file *is* the source of truth.
+
+
 - the gateway is NOT a hive node: `HIVV_HIVE_JOIN` only lets the gateway
   QUERY the hub. Registration happens in the CLI agent (`hivv start`,
   `POST /api/nodes/register`), so setup must start the agent when the user
@@ -585,6 +614,7 @@ hivv explain kubernetes           # also sends to the LLM
 
 ## What's Next
 
+- [x] `hivv` command on PATH + update-never-touches-source — 2026-11-18: after `./setup.sh` the CLI existed in the clone but NOT on PATH, so `hivv chat` said "command not found" while the script's own next-step text said "hivv chat"; `hivv update` from a clone silently replaced the repo's own `public_html/hivv-cli.py` with the hub's copy (dirty `git status`). Fixed: `d_install_cli`/`d_ensure_path` install the contract layout `<prefix>/bin/hivv` + `<prefix>/lib/hivv/hivv-cli.py` from all three setup scripts (bash ×2 + PowerShell); `_in_git_worktree`/`_update_target` make an update REFUSE a source file (`--force` overrides, an identical file still updates); 3 latent UnboundLocalErrors fixed (`cmd_doctor` tempfile — `hivv doctor --fix` always crashed without ollama; `_do_chat` urllib — the hub-fallback path crashed; `cmd_call` urllib — the hive-routing path crashed) + a scope-aware AST audit that pins the whole bug class; new `tests/test_cli_install.py` (18 tests); 381 pytest green
 - [x] Speed ledger + macOS parity + chat fail-fast + LLM one-shot — 2026-11-18: request provenance wired into `/api/chat` (both branches) + `/v1` streaming with a real SSE **TTFB hook** (first content-bearing frame) + `hivv speeds` command; Darwin metric collectors (`sysctl`/`vm_stat`/`kern.boottime`/`system_profiler`) + loadavg-derived `cpu_percent` (was 0 for EVERY bee); `hivv nodes` auto-measures missing pings (TCP preflight to tools/model ports, seeds the hub cache); name/CPU column widths (16/22); 160 pytest green
 - [x] Chat >60s fix — 2026-11-18: direct-node loop now TCP-preflights each candidate (≤0.8s vs 3s+15s socket timeouts on dead bees) and skips recently-failed nodes for 120s (falls to the fast hub path instead of burning the shuffle); plus `hivv llm setup` one-shot (build→download→serve) + `hivv install llm` alias (was: smart-default chat trap!) + every llm step prints its NEXT command + `pull-gguf` uses wget→**curl fallback** with resume + GGUF-magic check (macOS has no wget — FileNotFoundError crash)
 - [x] Upgrade-review regression suite + self-trip defuse + emergency network update — 2026-11-14 (`tests/test_upgrade_review.py` 97 tests incl. shipped-file canaries; `scripts/emergency-update.py` signed force-push; defused docstring/print-hint wording, `line_no` off-by-one fix, bytes-literal blanking, `socket.socket…connect` pattern fix, `opencode.ai` allowlist)
