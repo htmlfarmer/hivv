@@ -309,3 +309,40 @@ try {
     if (Test-Path $Log) { Get-Content $Log -Tail 20 }
     exit 1
 }
+
+# ── 9. put the `hivv` COMMAND on PATH ─────────────────────────────────────
+# A clone holds a working CLI, but NOT on PATH — `hivv chat` said "command
+# not found" right after a successful setup, while the next lines told the
+# user to run `hivv chat`. Install the standard layout:
+#     %USERPROFILE%\.local\bin\hivv.cmd          ← wrapper
+#     %USERPROFILE%\.local\lib\hivv\hivv-cli.py  ← client
+# In that layout `hivv update` updates the INSTALLED copy instead of
+# overwriting the source tree it was run from.
+Write-Step "Installing the hivv command"
+$CliPrefix = Join-Path $env:USERPROFILE '.local'
+$CliBin    = Join-Path $CliPrefix 'bin'
+$CliLib    = Join-Path $CliPrefix 'lib\hivv'
+try {
+    New-Item -ItemType Directory -Force -Path $CliBin, $CliLib | Out-Null
+    Copy-Item (Join-Path $RepoRoot 'public_html\hivv-cli.py') (Join-Path $CliLib 'hivv-cli.py') -Force
+    Copy-Item (Join-Path $RepoRoot 'public_html\hivv.cmd')   (Join-Path $CliBin  'hivv.cmd')    -Force
+    Write-Ok "hivv installed -> $CliBin\hivv.cmd"
+
+    # Make the bin dir reachable in FUTURE shells (registry PATH).
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if (-not $userPath) { $userPath = '' }
+    if ($userPath -notlike "*$CliBin*") {
+        [Environment]::SetEnvironmentVariable('Path', ($userPath.TrimEnd(';') + ';' + $CliBin), 'User')
+        Write-Ok "Added $CliBin to your PATH (new terminals)"
+    }
+    if ($env:Path -notlike "*$CliBin*") { $env:Path = $env:Path + ';' + $CliBin }
+    if (Get-Command hivv.cmd -ErrorAction SilentlyContinue) {
+        Write-Ok "'hivv' resolves -> $CliBin\hivv.cmd"
+    } else {
+        Write-Warn "'hivv' is not on PATH in this shell - open a new terminal, or run:"
+        Write-Cmd "`$env:Path = `$env:Path + ';$CliBin'"
+    }
+} catch {
+    Write-Warn "could not install the hivv command - you can still run it from the clone:"
+    Write-Cmd "python `"$RepoRoot\public_html\hivv-cli.py`" chat `"hello`""
+}

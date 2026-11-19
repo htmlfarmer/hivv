@@ -92,6 +92,63 @@ d_run_privileged() {
     fi
 }
 
+# ── the `hivv` COMMAND itself ───────────────────────────────────────────
+# THE FAILURE THIS FIXES
+# ----------------------
+# A clone contains a working CLI, but NOT on PATH. Right after setup the
+# script printed "hivv chat ..." as the next step while `hivv` did not
+# exist → "command not found" (2026-11-18). The agent even started fine,
+# so nothing looked broken until the first real command.
+#
+# The LAYOUT IS THE CONTRACT — do not invent another one:
+#
+#     <prefix>/bin/hivv              ← the wrapper (bash)
+#     <prefix>/lib/hivv/hivv-cli.py   ← the client (python)
+#
+# hivv-cli.py derives INSTALL_DIR from its own location (<prefix>/lib/hivv)
+# and BIN_DIR from that (<prefix>/bin). The wrapper resolves the client
+# relative to ITSELF the same way. So in this layout `hivv update` updates
+# the INSTALLED copy — never a source checkout.
+#
+# Usage: d_install_cli <prefix> <use_sudo:0|1> <public_dir>
+# Echoes the installed wrapper path on success; returns 1 on failure.
+d_install_cli() {
+    local prefix="${1:-$HOME/.local}" use_sudo="${2:-0}" public_dir="${3:-}"
+    local lib_dir="$prefix/lib/hivv" bin_file="$prefix/bin/hivv"
+    local sudo_cmd=""
+    [[ "$use_sudo" == "1" ]] && sudo_cmd="$D_SUDO"
+
+    if [[ ! -f "$public_dir/hivv-cli.py" ]] || [[ ! -f "$public_dir/hivv" ]]; then
+        return 1
+    fi
+    $sudo_cmd mkdir -p "$lib_dir" "$prefix/bin" 2>/dev/null || return 1
+    $sudo_cmd cp "$public_dir/hivv-cli.py" "$lib_dir/hivv-cli.py" 2>/dev/null || return 1
+    $sudo_cmd cp "$public_dir/hivv" "$bin_file" 2>/dev/null || return 1
+    $sudo_cmd chmod 0755 "$lib_dir/hivv-cli.py" "$bin_file" 2>/dev/null || return 1
+    printf '%s\n' "$bin_file"
+    return 0
+}
+
+# ── PATH: keep the CLI's bin dir reachable in FUTURE shells ─────────────
+# The current shell is fixed by the caller (export PATH=...); a new terminal
+# needs the rc file. Prints the rc file it touched, or nothing if PATH was
+# already fine.
+d_ensure_path() {
+    local bin_dir="${1:-$HOME/.local/bin}" rc="" line=""
+    case "${SHELL:-/bin/bash}" in
+        */zsh)  rc="$HOME/.zshrc" ;;
+        */fish) return 0 ;;   # fish needs `fish_add_path` — printed by the caller
+        *)      rc="$HOME/.bashrc" ;;
+    esac
+    [[ -n "$rc" ]] || return 0
+    [[ -f "$rc" ]] || : > "$rc" 2>/dev/null || return 0
+    grep -qF "$bin_dir" "$rc" 2>/dev/null && return 0
+    line="export PATH=\"$bin_dir:\$PATH\""
+    printf '\n# hivv CLI\n%s\n' "$line" >> "$rc" 2>/dev/null || return 0
+    printf '%s\n' "$rc"
+    return 0
+}
+
 # ── the manual fallback table ───────────────────────────────────────────
 # Every OS gets an exact command. This is the "at the minimum tell them
 # what to type" requirement — always shown when auto-install is impossible.

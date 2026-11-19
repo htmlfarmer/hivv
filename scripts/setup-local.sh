@@ -221,6 +221,35 @@ if curl -fsS --max-time 5 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; t
     info "stop   : kill \$(cat '$DATA_DIR/hivv.pid')"
     echo ""
 
+    # ── put the `hivv` COMMAND on PATH ─────────────────────────────────
+    # A clone holds a working CLI, but NOT on PATH — `hivv chat` said
+    # "command not found" right after a successful setup, while the next
+    # lines told the user to run `hivv chat`. Install the standard layout:
+    #     ~/.local/bin/hivv              ← wrapper
+    #     ~/.local/lib/hivv/hivv-cli.py   ← client
+    # In that layout `hivv update` updates the INSTALLED copy instead of
+    # overwriting the source tree it was run from.
+    step "Installing the hivv command"
+    CLI_PREFIX="$HOME/.local"
+    if CLI_BIN_PATH="$(d_install_cli "$CLI_PREFIX" 0 "$REPO_ROOT/public_html")"; then
+        ok "hivv installed → $CLI_BIN_PATH"
+        case ":$PATH:" in
+            *":$CLI_PREFIX/bin:"*) ;;
+            *)
+                export PATH="$CLI_PREFIX/bin:$PATH"
+                d_ensure_path "$CLI_PREFIX/bin" >/dev/null
+                ok "Added $CLI_PREFIX/bin to PATH (this shell + your rc file)"
+                ;;
+        esac
+        command -v hivv >/dev/null 2>&1 \
+            && ok "'hivv' resolves → $(command -v hivv)" \
+            || warn "'hivv' is not on PATH in this shell — run: export PATH=\"$CLI_PREFIX/bin:\$PATH\""
+    else
+        warn "could not install the hivv command — you can still run it from the clone:"
+        info "python3 $REPO_ROOT/public_html/hivv-cli.py chat \"hello\""
+    fi
+    echo ""
+
     # ── join the global hive? ─────────────────────────────────────────
     # The gateway is LOCAL — it does NOT register this machine as a hive
     # node. That needs the CLI agent (`hivv start`), which registers with

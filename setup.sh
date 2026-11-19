@@ -414,6 +414,48 @@ if [[ "$MODE" == "local" ]]; then
         exit 1
     fi
 
+    # ── STEP 6b: put the `hivv` COMMAND on PATH ─────────────────────────
+    # The clone holds a working CLI, but not on PATH — so `hivv chat` said
+    # "command not found" right after a successful setup, while the very
+    # next lines told the user to run `hivv chat`. Install the standard
+    # layout so the command exists:
+    #     <prefix>/bin/hivv              ← wrapper
+    #     <prefix>/lib/hivv/hivv-cli.py   ← client
+    # In that layout `hivv update` updates the INSTALLED copy instead of
+    # overwriting the source tree it was run from.
+    print_step "Installing the hivv command..."
+    CLI_PREFIX="$HOME/.local"
+    CLI_USE_SUDO=0
+    if [[ "$INSTALL_SCOPE" == "system" ]]; then
+        if [[ -n "$D_SUDO" ]]; then
+            CLI_PREFIX="/usr/local"
+            CLI_USE_SUDO=1
+        else
+            print_warning "No admin rights for /usr/local — installing the CLI for you only"
+        fi
+    fi
+    CLI_BIN_PATH=""
+    if CLI_BIN_PATH="$(d_install_cli "$CLI_PREFIX" "$CLI_USE_SUDO" "$PUBLIC_DIR")"; then
+        print_success "hivv installed → $CLI_BIN_PATH"
+        case ":$PATH:" in
+            *":$CLI_PREFIX/bin:"*) ;;
+            *)
+                export PATH="$CLI_PREFIX/bin:$PATH"
+                d_ensure_path "$CLI_PREFIX/bin" >/dev/null
+                print_success "Added $CLI_PREFIX/bin to PATH (this shell + your rc file)"
+                ;;
+        esac
+        # Prove the command actually resolves — the whole point of this step.
+        if command -v hivv >/dev/null 2>&1; then
+            print_success "'hivv' resolves → $(command -v hivv)"
+        else
+            print_warning "'hivv' is not on PATH in this shell — run: export PATH=\"$CLI_PREFIX/bin:\$PATH\""
+        fi
+    else
+        print_warning "Could not install the hivv command — you can still run it from the clone:"
+        print_hint "python3 $PUBLIC_DIR/hivv-cli.py chat \"hello\""
+    fi
+
     echo ""
     echo "========================================"
     echo "  Access Points"
@@ -452,7 +494,9 @@ if [[ "$MODE" == "local" ]]; then
 
         # The node agent lives in the CLI (`hivv start`), which registers with
         # the hub. Make sure a usable CLI exists:
-        #   1. the `hivv` wrapper on PATH
+        #   1. the `hivv` wrapper on PATH (STEP 6b installed it — this is the
+        #      one that matters: the agent's systemd unit then points at the
+        #      INSTALLED client, not at this clone)
         #   2. the CLI in this clone (works, but is not on PATH)
         #   3. neither → install the CLI from the hub
         HIVV_CLI=""
