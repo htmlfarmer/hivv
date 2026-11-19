@@ -48,15 +48,44 @@ class TestFindRepoRoot:
 
     def test_no_repo_is_none(self, tmp_path, monkeypatch):
         """A directory with tests/ but no .git is NOT the repo — running
-        the wrong suite would report a false verdict."""
+        the wrong suite would report a false verdict.
+
+        chdir matters: _find_repo_root also probes the CWD (so an
+        INSTALLED CLI can find the clone the user is standing in), and
+        without leaving the real repo the cwd probe would find it."""
         (tmp_path / "tests").mkdir()
+        monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(hivv, "__file__", str(tmp_path / "hivv-cli.py"))
         assert hivv._find_repo_root() is None
 
     def test_bare_tests_dir_without_git_is_none(self, tmp_path, monkeypatch):
         (tmp_path / "tests").mkdir()
         (tmp_path / "tests" / "test_x.py").write_text("")
+        monkeypatch.chdir(tmp_path)
         monkeypatch.setattr(hivv, "__file__", str(tmp_path / "hivv-cli.py"))
+        assert hivv._find_repo_root() is None
+
+    def test_installed_cli_finds_the_clone_via_cwd(self, tmp_path, monkeypatch):
+        """THE developer flow: the CLI runs from an install prefix
+        (~/.local/lib/hivv — no .git above it) while the user is cd'd into
+        their clone. Without the cwd probe this refused with 'no repo
+        found' even though the clone was right there."""
+        monkeypatch.chdir(REPO)                       # standing in the clone
+        monkeypatch.setattr(hivv, "__file__",
+                            str(tmp_path / "prefix" / "lib" / "hivv" / "hivv-cli.py"))
+        found = hivv._find_repo_root()
+        assert found is not None
+        assert (found / "public_html" / "hivv-cli.py").exists()
+
+    def test_unrelated_repo_is_never_mistaken_for_ours(self, tmp_path, monkeypatch):
+        """The cwd probe must only accept an HIVV repo — standing in some
+        other project must not make us run the wrong suite."""
+        other = tmp_path / "other-project"
+        (other / ".git").mkdir(parents=True)
+        (other / "tests").mkdir()
+        (other / "tests" / "test_x.py").write_text("")
+        monkeypatch.chdir(other)
+        monkeypatch.setattr(hivv, "__file__", str(tmp_path / "noinstall" / "hivv-cli.py"))
         assert hivv._find_repo_root() is None
 
 

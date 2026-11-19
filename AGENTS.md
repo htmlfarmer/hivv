@@ -433,6 +433,30 @@ python3 -m pytest tests/ -q        # no network, no $HOME writes
 cd api && node --test              # live-gateway suite (gateway must run)
 python3 tests/local_install/test_local_install.py   # clone-and-run (no DB, no net)
 ```
+
+### Which tests do I run for THIS edit? (`hivv tests-for`)
+Before running everything (~90s), ask the map:
+
+```bash
+hivv tests-for public_html/hivv-cli.py     # → the 15 test files that exercise it
+hivv tests-for scripts/lib/deps.sh         # → 4 test files + the exact pytest line
+hivv tests-for --diff                      # everything YOU changed vs HEAD
+hivv tests-for --diff origin/main          # everything changed vs GitHub
+hivv tests-for --refresh <file>            # rebuild the map first
+```
+
+The map is `tests/TESTMAP.json` (+ `TESTMAP.md` for humans), built by
+STATIC analysis in `tests/gen_testmap.py` — no test is run to produce it.
+**Freshness is enforced**: `tests/test_testmap.py` regenerates and compares
+byte-for-byte, so a new test file or reference turns the suite red with
+"run `python3 tests/gen_testmap.py`" — the map rots loudly or not at all.
+
+Honest limits, both by design:
+- the map UNDER-claims (a test reaching a file through a runtime-computed
+  path is invisible to static analysis) → an unmapped file always falls
+  back to "run the full suite", never a false "you're covered";
+- tests that reference a DIRECTORY (`REPO / "public_html"`) cover the
+  files inside it — reported as `tests/x.py (via public_html/)`.
 `tests/test_upgrade_review.py` pins the 2026-11-14 failure modes (the new file's
 own docstrings/print-hints re-tripping the critical-pattern scan, `line_no`
 off-by-one, bytes-literal blanking) AND the true positives that must stay
