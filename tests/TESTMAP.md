@@ -27,7 +27,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `public_html` | `tests/test_cli_install.py`, `tests/test_cli_link.py` |
 | `public_html/chat/app.js` | `tests/test_testmap.py` |
 | `public_html/hivv` | `tests/test_cli_install.py` |
-| `public_html/hivv-cli.py` | `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_nodes_table.py`, `tests/test_rollback.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_upgrade_review.py`, `tests/test_verify_drift.py` |
+| `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_nodes_table.py`, `tests/test_rollback.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_upgrade_review.py`, `tests/test_verify_drift.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
 | `scripts/emergency-update.py` | `tests/test_upgrade_review.py` |
 | `scripts/lib/deps.sh` | `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_setup_prompts.py`, `tests/test_setup_scripts.py`, `tests/test_testmap.py` |
@@ -53,6 +53,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/node-auth.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/provenance-schema.test.js` | `api/lib/request-provenance.js` |
 | `api/tests/request-provenance.test.js` | `api/lib/request-provenance.js` |
+| `tests/test_ask_flags.py` | `public_html/hivv-cli.py` |
 | `tests/test_bee_chat.py` | `public_html/hivv-cli.py` |
 | `tests/test_boot_command.py` | `public_html/hivv-cli.py` |
 | `tests/test_cli_chat_diagnostics.py` | `public_html/hivv-cli.py` |

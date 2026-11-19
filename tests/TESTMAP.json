@@ -55,6 +55,7 @@
    "tests/test_cli_install.py"
   ],
   "public_html/hivv-cli.py": [
+   "tests/test_ask_flags.py",
    "tests/test_bee_chat.py",
    "tests/test_boot_command.py",
    "tests/test_cli_chat_diagnostics.py",
@@ -136,6 +137,9 @@
   ],
   "api/tests/request-provenance.test.js": [
    "api/lib/request-provenance.js"
+  ],
+  "tests/test_ask_flags.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_bee_chat.py": [
    "public_html/hivv-cli.py"
