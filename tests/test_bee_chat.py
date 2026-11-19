@@ -20,6 +20,7 @@ from __future__ import annotations
 import importlib.util
 import pathlib
 import sys
+import urllib.parse
 
 import pytest
 
@@ -50,12 +51,13 @@ def test_ask_and_talk_are_registered(cli):
     (which would SEND the verb to the LLM as a chat prompt)."""
     for verb in ("ask", "talk", "node-chat"):
         assert verb in cli.COMMANDS, f"{verb} missing from COMMANDS"
-        assert cli.COMMANDS[verb] == "cmd_node_chat"
+        assert cli.COMMANDS[verb] is cli.cmd_node_chat
 
 
 def test_hive_chat_stays_separate(cli):
     """`hivv chat` = the HIVE. It must NOT be repointed at one bee."""
-    assert cli.COMMANDS["chat"] == "cmd_chat"
+    assert cli.COMMANDS["chat"] is cli.cmd_chat
+    assert cli.COMMANDS["chat"] is not cli.cmd_node_chat
 
 
 def test_chat_verbs_cover_node_subcommand(cli):
@@ -127,9 +129,11 @@ def test_relay_endpoints_include_detected_port_first(cli):
 
 def test_relay_endpoints_keep_legacy_backstop(cli):
     """Detected ports are probed, but the legacy list stays as a fallback for
-    a box where detection fails."""
-    eps = cli._relay_endpoints()
-    assert "http://localhost:8080/v1/chat/completions" in eps
+    a box where detection fails. Checked by PORT (not exact URL) because an
+    alive :8080 is added as 127.0.0.1 and shadows the legacy localhost form."""
+    ports = {urllib.parse.urlsplit(e).port for e in cli._relay_endpoints()}
+    for p in (8080, 11434, 1234, 8081, 8090):
+        assert p in ports, f"legacy port {p} missing from relay backstop"
 
 
 def test_relay_endpoints_dedup(cli):
@@ -138,9 +142,13 @@ def test_relay_endpoints_dedup(cli):
 
 
 def test_relay_endpoints_dont_duplicate_8090(cli):
-    """8090 must be present exactly once even though the legacy list now has it."""
-    hits = [e for e in cli._relay_endpoints() if ":8090/" in e]
-    assert len(hits) == 1, hits
+    """8090 must appear once even though `127.0.0.1:8090` (detected) and
+    `localhost:8090` (legacy) are the same llama-server — loopback aliases
+    canonicalise to one key."""
+    eps = cli._relay_endpoints()
+    ports = [urllib.parse.urlsplit(e).port for e in eps]
+    assert ports.count(8090) == 1, [e for e in eps if ":8090" in e]
+    assert len(ports) == len(set(ports)), "same host:port tried twice"
 
 
 # ── the fallback never lies about who answered ──────────────────────────
