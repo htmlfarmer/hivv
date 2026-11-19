@@ -39,7 +39,7 @@ $ApiDir = Join-Path $RepoRoot 'api'
 function Write-Step($m) { if (-not $Quiet) { Write-Host "==> $m" -ForegroundColor Cyan } }
 function Write-Ok($m)   { if (-not $Quiet) { Write-Host "  [ok] $m" -ForegroundColor Green } }
 function Write-Warn($m) { if (-not $Quiet) { Write-Host "  [!] $m"  -ForegroundColor Yellow } }
-function Write-Fail($m) { Write-Host "  [x] $m" -ForegroundColor Red } }
+function Write-Fail($m) { Write-Host "  [x] $m" -ForegroundColor Red }
 function Write-Cmd($m)  { if (-not $Quiet) { Write-Host "    `$ $m" -ForegroundColor Cyan } }
 
 # ── PATH refresh (winget writes to the registry, not the live session) ──
