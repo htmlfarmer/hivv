@@ -515,7 +515,8 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv nodes` — table view of all registered nodes (VERSION column flags bees behind the hub CLI; ends with a models-by-bee section)
 - `hivv models [--bees]` — model catalog (FC/CTX/speed) + which bee runs which local model; `--bees` = only the by-bee view
 - `hivv node <name>` — details about a specific node
-- `hivv node-chat <name> <msg>` — chat directly with a node's LLM
+- `hivv ask <name> <msg>` — chat with ONE bee (direct → hub relay fallback); aliases `talk`, `node-chat`
+- `hivv chat <msg>` — ask the HIVE (any bee answers)
 - `hivv reach <name>` — test connectivity to another node
 - `hivv stats` — per-node stats + cluster totals
 - `hivv top` — real-time cluster activity
@@ -546,7 +547,7 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv approve [--list|--all|G_xxx]` / `hivv deny G_xxx` — answer a MAYBE (standing grants by default)
 - `hivv route [q] --mode=X [--json]` — dry-run routing planner (who answers & why, never executes)
 - `hivv exec '<code>' [--lang python|bash|node] [--file F] [--timeout ms]` — run code in the isolated hub sandbox (MAYBE→admin-approve→docker/bwrap jail: no net, quotas, ephemeral)
-- `hivv node-chat <name> "msg"` — chat directly with a specific node
+- `hivv ask <name> "msg"` — chat with ONE bee (pins it; direct → hub relay). Aliases: `talk`, `node-chat`
 - `hivv completions "msg"` — OpenAI-compatible completions endpoint
 - `hivv add <provider> <key>` — add any AI to the network
 - `hivv volunteer [on|off|status]` — opt in/out of contributing compute

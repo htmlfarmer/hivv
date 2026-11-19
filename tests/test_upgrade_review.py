@@ -2787,3 +2787,73 @@ class TestStopReapsAllStrays:
     def test_known_port_line_still_pinned(self):
         # the original fallback-port pin must survive the rewrite
         assert 'for p in (8080, 8090, 8081, 8082):' in CLI_PATH.read_text()
+
+
+# ── 56. LLM flow: install → run → ASK about boot; serve never double-binds ───
+class TestLlmBootFlow:
+    """2026-11-18 (yalla): `hivv llm setup` already launched the background
+    server, yet its final hint said "foreground: hivv llm serve-llama" —
+    following it died with llama-server's raw `couldn't bind HTTP server
+    socket ... port: 8080`. And boot persistence was a dangling
+    "start on boot: hivv doctor --fix" that only fixes the AGENT's unit.
+
+    The flow is now install AND run AND ask about boot (default yes, --yes
+    answers, non-TTY skips with the exact command), with `hivv llm boot
+    on|off|status` as the standalone tool — separate from setup on purpose,
+    so each step still works alone."""
+
+    def test_llm_boot_registered_and_parses(self):
+        assert hivv.COMMANDS.get("llm boot") is hivv.cmd_llm_boot
+        assert hivv.build_parser().parse_args(["llm", "boot", "on"]).action == "on"
+        assert hivv.build_parser().parse_args(["llm", "boot"]).action == "status"
+
+    def test_setup_asks_about_boot_and_never_suggests_a_double_bind(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_setup(")[1].split("\ndef ")[0]
+        # ASK (default yes); --yes answers it; no TTY → skip with the command
+        assert "start {model} on boot?" in body
+        assert "_llm_boot_enable(" in body
+        assert "llm boot on" in body
+        # the old final line lied twice: `doctor --fix` does NOT set up the
+        # LLM's boot unit, and serve-llama fights the background server
+        assert "doctor --fix   · foreground" not in body
+        assert "stop llm && {APP} llm serve-llama" in body
+
+    def test_serve_llama_preflights_the_port_before_spawning(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_serve_llama(")[1].split("\ndef ")[0]
+        # already serving → friendly no-op, NOT llama-server's bind error
+        assert body.index("_llm_alive_port(") < body.index("subprocess.Popen")
+        # a llama still loading (listening, no /v1/models yet) is named too
+        assert "_llm_listener_pid(" in body
+        # and a foreign squatter gets "port in use", not "couldn't bind"
+        assert "already in use" in body
+
+    def test_boot_unit_is_the_one_start_stop_already_manage(self):
+        # `_llm_start_component` / `_llm_stop_component` probe these names —
+        # a NEW unit name would be invisible to `hivv stop llm`
+        body = CLI_PATH.read_text().split("def _llm_boot_enable(")[1].split("\ndef ")[0]
+        assert 'unit = "llama.service"' in body
+        # enable WITHOUT --now: setup already has a server on the port, and a
+        # second spawn would fight it for the bind
+        assert '_systemctl("--user", "enable", unit)' in body
+        assert '"--now"' not in body   # (docstring backticks don't count)
+
+    def test_doctor_reports_llm_boot(self):
+        body = CLI_PATH.read_text().split("def cmd_doctor(")[1].split("\ndef ")[0]
+        assert "_llm_boot_probe()" in body
+        assert "llm boot:" in body
+
+    def test_boot_off_leaves_the_running_server_alone(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_llm_boot_probe",
+                            lambda: ("enabled", "llama.service"))
+        calls = []
+        monkeypatch.setattr(hivv, "_systemctl",
+                            lambda sc, ac, u: calls.append((sc, ac, u)) or 0)
+        ok, msg = hivv._llm_boot_disable()
+        assert ok and calls == [("--user", "disable", "llama.service")], (ok, msg, calls)
+        assert "keeps serving" in msg        # disable ≠ stop
+
+    def test_boot_enable_refuses_a_system_scope_unit(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_llm_boot_probe",
+                            lambda: ("foreign", "llama.service"))
+        ok, msg = hivv._llm_boot_enable("gemma-4:e2b", 8080, "127.0.0.1", 4096)
+        assert not ok and "SYSTEM scope" in msg, msg

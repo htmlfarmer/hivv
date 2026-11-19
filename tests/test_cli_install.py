@@ -30,6 +30,13 @@ nested `import tempfile` in ONE branch made the name local to the whole
 function — and the branch that needed it never ran (no ollama on the box).
 The command that repairs a broken install could not repair it.
 
+And its sequel (yalla 2026-11-18): `hivv doctor` itself crashed with
+`UnboundLocalError: cannot access local variable 'platform'` — cmd_doctor
+re-imported `platform` LATER in the function (firewall section), making the
+name function-local for the whole function, so the earlier
+`platform.system()` use in the resilience section died. Module-level
+`import platform` already existed; the fix is to never re-import it.
+
 Run:
     python3 -m pytest tests/test_cli_install.py -q
     python3 tests/test_cli_install.py
@@ -419,6 +426,140 @@ class TestDoctorFixDoesNotCrash:
         assert not unique, (
             "a name imported only inside a conditional block but used where "
             "that block does not dominate → UnboundLocalError: " + repr(unique)
+        )
+
+    def test_platform_is_not_shadowed_in_cmd_doctor(self):
+        """`hivv doctor` crashed in its OWN resilience section:
+
+        `UnboundLocalError: cannot access local variable 'platform'`
+        at `if platform.system() == "Linux"` — cmd_doctor re-imported
+        `platform` LATER in the function (firewall section), which makes the
+        name function-local for the WHOLE function, so the earlier use dies
+        before the binding ever runs (yalla 2026-11-18). The conditional
+        guard above misses this: an UNCONDITIONAL import after the use has
+        no conditional ancestor to complain about — the bug is the ORDER.
+        Module-level `import platform` already exists; never re-import it.
+        """
+        code = hivv.cmd_doctor.__code__
+        shadowed = ("platform" in code.co_varnames
+                    or "platform" in code.co_cellvars)
+        assert not shadowed, (
+            "cmd_doctor binds `platform` locally — a use before that binding "
+            "raises UnboundLocalError and kills the whole report"
+        )
+        assert hasattr(hivv, "platform"), "module-level import platform must stand"
+
+    def test_no_use_of_module_name_before_local_binding(self):
+        """Whole-file guard for the ORDER half of the bug class.
+
+        The conditional test above catches 'import in one branch, use in
+        another'. This catches the other shape: a function that binds a name
+        ANYWHERE locally (import/assign) but USES a module-level name of
+        that kind EARLIER — Python makes the name local for the whole
+        function, so the earlier use raises UnboundLocalError on every path.
+        cmd_doctor/platform was exactly this (use at 10559, import at 10677).
+        """
+        tree = ast.parse(read(CLI_PATH))
+        mod_names: set[str] = set()
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                for x in node.names:
+                    mod_names.add((x.asname or x.name).split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for x in node.names:
+                    mod_names.add((x.asname or x.name).split(".")[0])
+
+        def own_scope(fn):
+            stack = list(fn.body)
+            while stack:
+                n = stack.pop()
+                yield n
+                for c in ast.iter_child_nodes(n):
+                    if isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                      ast.ClassDef, ast.Lambda)):
+                        continue
+                    stack.append(c)
+
+        def bound_names(node) -> set[str]:
+            out: set[str] = set()
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    out.add((a.asname or a.name).split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    out.add((a.asname or a.name).split(".")[0])
+            elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                ts = node.targets if isinstance(node, ast.Assign) else [node.target]
+                for t in ts:
+                    for x in ast.walk(t):
+                        if isinstance(x, ast.Name) and isinstance(x.ctx, (ast.Store, ast.Del)):
+                            out.add(x.id)
+            elif isinstance(node, ast.For):
+                for x in ast.walk(node.target):
+                    if isinstance(x, ast.Name):
+                        out.add(x.id)
+            elif isinstance(node, ast.With):
+                for it in node.items:
+                    if it.optional_vars:
+                        for x in ast.walk(it.optional_vars):
+                            if isinstance(x, ast.Name):
+                                out.add(x.id)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                out.add(node.name)
+            elif isinstance(node, ast.NamedExpr):
+                for x in ast.walk(node.target):
+                    if isinstance(x, ast.Name):
+                        out.add(x.id)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                out.add(node.name)
+            return out
+
+        offenders = []
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            own = list(own_scope(fn))
+            exempt: set[str] = set()
+            for n in own:
+                if isinstance(n, (ast.Global, ast.Nonlocal)):
+                    exempt.update(n.names)
+            argnames = {a.arg for a in
+                        fn.args.args + fn.args.kwonlyargs + fn.args.posonlyargs}
+            if fn.args.vararg:
+                argnames.add(fn.args.vararg.arg)
+            if fn.args.kwarg:
+                argnames.add(fn.args.kwarg.arg)
+            first_bind: dict[str, int] = {}
+            for n in own:
+                for nm in bound_names(n):
+                    if nm in exempt or nm in argnames:
+                        continue
+                    if nm not in first_bind or n.lineno < first_bind[nm]:
+                        first_bind[nm] = n.lineno
+            if not first_bind:
+                continue
+            for parent in ast.walk(fn):
+                for child in ast.iter_child_nodes(parent):
+                    child._parent = parent
+            for n in own:
+                if not (isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)):
+                    continue
+                # comprehension vars live in a hidden scope — skip their bodies
+                cur, in_comp = n, False
+                while cur is not fn:
+                    if isinstance(cur, ast.comprehension):
+                        in_comp = True
+                        break
+                    cur = getattr(cur, "_parent", None)
+                if in_comp:
+                    continue
+                nm = n.id
+                if nm in first_bind and nm in mod_names and n.lineno < first_bind[nm]:
+                    offenders.append((fn.name, nm, n.lineno, first_bind[nm]))
+        unique = sorted(set(offenders))
+        assert not unique, (
+            "module-level name bound locally AFTER a use → UnboundLocalError "
+            "on that path: " + repr(unique)
         )
 
 
