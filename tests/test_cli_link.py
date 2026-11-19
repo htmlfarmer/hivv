@@ -316,3 +316,139 @@ class TestInstallersNeverWriteThroughALink:
         assert "Test-Path -PathType Link" in src, (
             "the PowerShell installer must check for a link too"
         )
+
+
+# ── doctor --fix must ACTUALLY fix the bind ──────────────────────────────
+class TestFixLlmBind:
+    """The doctor reports localhost-only binds and says "run hivv doctor
+    --fix" — before this, --fix only PRINTED suggestions, so following the
+    advice changed nothing (ashy + yalla, 2026-11-19)."""
+
+    def _unit(self, tmp_path, name="llama.service", host="127.0.0.1"):
+        d = tmp_path / "units"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / name).write_text(
+            "[Unit]\nDescription=x\n\n[Service]\n"
+            f"ExecStart=/bin/llama-server --host {host} --port 8080\n"
+            "[Install]\nWantedBy=default.target\n")
+        return d
+
+    def _recorder(self, active="active"):
+        calls = []
+
+        class R:
+            stdout = active
+        def _r(cmd):
+            calls.append(cmd)
+            return R()
+        return _r, calls
+
+    def test_patches_localhost_bind(self, tmp_path):
+        d = self._unit(tmp_path)
+        _r, calls = self._recorder()
+        hivv._fix_llm_bind(_r, unit_dir=d)
+        txt = (d / "llama.service").read_text()
+        assert "--host 0.0.0.0" in txt, "the bind must be rewritten"
+        assert "--host 127.0.0.1" not in txt
+
+    def test_restarts_an_active_unit(self, tmp_path):
+        d = self._unit(tmp_path)
+        _r, calls = self._recorder()
+        hivv._fix_llm_bind(_r, unit_dir=d)
+        joined = " | ".join(calls)
+        assert "daemon-reload" in joined
+        assert "reset-failed" in joined, "a tripped limit must be cleared"
+        assert "restart llama.service" in joined
+
+    def test_dead_unit_is_patched_but_not_started(self, tmp_path):
+        """--fix patches the file but does NOT start a dead unit — the
+        dead-start block owns starting (and may deliberately skip one)."""
+        d = self._unit(tmp_path)
+        _r, calls = self._recorder(active="inactive")
+        hivv._fix_llm_bind(_r, unit_dir=d)
+        joined = " | ".join(calls)
+        assert "daemon-reload" in joined
+        assert "restart" not in joined
+        assert "--host 0.0.0.0" in (d / "llama.service").read_text()
+
+    def test_units_already_on_lan_are_untouched(self, tmp_path):
+        d = self._unit(tmp_path, host="0.0.0.0")
+        _r, calls = self._recorder()
+        hivv._fix_llm_bind(_r, unit_dir=d)
+        assert calls == [], "an already-correct unit must not be restarted"
+        assert "--host 0.0.0.0" in (d / "llama.service").read_text()
+
+    def test_no_unit_dir_is_not_an_error(self, tmp_path):
+        msgs = hivv._fix_llm_bind(lambda c: None, unit_dir=tmp_path / "nope")
+        assert msgs == []
+
+    def test_all_llama_variants_are_covered(self, tmp_path):
+        """llama.service AND the per-model scheme (llama-gemma, llama-qwen)."""
+        for name in ("llama.service", "llama-gemma.service", "llama-qwen.service"):
+            self._unit(tmp_path, name=name)
+        d = tmp_path / "units"
+        _r, _calls = self._recorder(active="inactive")
+        hivv._fix_llm_bind(_r, unit_dir=d)
+        for name in ("llama.service", "llama-gemma.service", "llama-qwen.service"):
+            assert "--host 0.0.0.0" in (d / name).read_text(), name
+
+
+class TestBootProbeSeesPerModelUnits:
+    """yalla had llama-gemma.service + llama-qwen.service BOTH enabled and
+    the doctor said 'no boot unit — the LLM dies on reboot' — it only knew
+    the two canonical names."""
+
+    def _mock_subprocess(self, monkeypatch, unit_files_stdout):
+        import subprocess as _sp
+        real_run = _sp.run
+
+        def fake_run(cmd, **kw):
+            class R:
+                returncode = 0
+                stdout = unit_files_stdout if "list-unit-files" in cmd else ""
+                stderr = ""
+            if isinstance(cmd, list) and ("list-unit-files" in cmd or "show" in cmd):
+                # `show` must be mocked too: otherwise the REAL systemctl
+                # answers and this box's own llama.service shadows the scan
+                if "show" in cmd:
+                    R.stdout = "LoadState=not-found\n"
+                return R()
+            return real_run(cmd, **kw)
+        monkeypatch.setattr(hivv.subprocess, "run", fake_run)
+
+    def test_enabled_per_model_unit_is_seen(self, monkeypatch):
+        self._mock_subprocess(monkeypatch,
+                              "llama-gemma.service enabled\nllama-qwen.service enabled\n")
+        state, unit = hivv._llm_boot_probe()
+        assert state == "enabled"
+        assert unit == "llama-gemma.service"
+
+    def test_canonical_unit_still_wins(self, monkeypatch):
+        """llama.service is owned by the loop above — the scan must not
+        shadow it with a per-model unit."""
+        import subprocess as _sp
+        real_run = _sp.run
+
+        def fake_run(cmd, **kw):
+            if isinstance(cmd, list) and "show" in cmd and "llama.service" in cmd:
+                class R:
+                    returncode = 0
+                    stdout = "LoadState=loaded\nUnitFileState=enabled\n"
+                    stderr = ""
+                return R()
+            if isinstance(cmd, list) and "list-unit-files" in cmd:
+                class R:
+                    returncode = 0
+                    stdout = "llama-gemma.service enabled\n"
+                    stderr = ""
+                return R()
+            return real_run(cmd, **kw)
+        monkeypatch.setattr(hivv.subprocess, "run", fake_run)
+        state, unit = hivv._llm_boot_probe()
+        assert (state, unit) == ("enabled", "llama.service")
+
+    def test_no_llama_units_at_all(self, monkeypatch):
+        self._mock_subprocess(monkeypatch, "")
+        state, unit = hivv._llm_boot_probe()
+        assert state == "none"
+        assert unit == ""
