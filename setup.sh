@@ -1,56 +1,171 @@
-#!/bin/bash
-# HIVV.org AI Gateway v2.0 - Setup Script
-set -e
+#!/usr/bin/env bash
+# HIVV.org AI Gateway v2.0 — Setup Script
+#
+# Two modes:
+#   • LOCAL-FIRST (default)  — no PostgreSQL, no secrets, no internet.
+#                              Runs on http://127.0.0.1:3011 out of the box.
+#   • HOSTED (--db)           — full gateway with PostgreSQL + PM2 + admin user.
+#
+# This script installs what it can and always tells you the exact command to
+# type when it can't. It never just says "not installed" and dies.
+#
+# Usage:
+#   ./setup.sh                 # local-first (recommended)
+#   ./setup.sh --db            # hosted mode with PostgreSQL
+#   ./setup.sh --check         # check only, change nothing
+#   ./setup.sh --with-llm      # also offer to install a local model server
+#   ./setup.sh --help
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-print_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
-print_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-print_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_DIR="$SCRIPT_DIR/api"
 PUBLIC_DIR="$SCRIPT_DIR/public_html"
+
+# shellcheck source=scripts/lib/deps.sh
+. "$SCRIPT_DIR/scripts/lib/deps.sh"
+
+RED="$D_RED"; GREEN="$D_GRN"; YELLOW="$D_YLW"; BLUE="$D_BLU"; NC="$D_RST"
+
+MODE="local"          # local | hosted
+CHECK_ONLY=0
+WITH_LLM=0
+ASSUME_YES=0
+PORT="${HIVV_PORT:-3011}"
+
+print_step()  { echo -e "${BLUE}[STEP]${NC} $1"; }
+print_success(){ echo -e "${GREEN}[OK]${NC} $1"; }
+print_warning(){ echo -e "${YELLOW}[WARN]${NC} $1"; }
+print_error()  { echo -e "${RED}[ERROR]${NC} $1"; }
+print_hint()   { echo -e "    ${BLUE}\$ ${NC}$1"; }
+
+usage() {
+    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --db|--hosted|--postgres) MODE="hosted"; shift ;;
+        --local|--local-first)    MODE="local"; shift ;;
+        --check)                  CHECK_ONLY=1; shift ;;
+        --with-llm)               WITH_LLM=1; shift ;;
+        --yes|-y)                 ASSUME_YES=1; shift ;;
+        --port)                   PORT="$2"; shift 2 ;;
+        --port=*)                 PORT="${1#*=}"; shift ;;
+        -h|--help)                usage ;;
+        *) echo -e "${RED}Unknown option: $1${NC}"; usage ;;
+    esac
+done
 
 echo "========================================"
 echo "  HIVV.org AI Gateway v2.0 Setup"
 echo "========================================"
 echo ""
 
-# Check if running as correct user
-if [ "$(id -u)" -eq 0 ]; then
-    print_warning "Running as root. Some operations may need the web server user."
-fi
+detect_platform
+d_print_platform_summary
 
-# Step 1: Check Node.js
+# ── STEP 1: Node.js (the one hard requirement) ──────────────────────────
 print_step "Checking Node.js..."
-if ! command -v node &> /dev/null; then
-    print_error "Node.js is not installed. Please install Node.js 18+ first."
+if ! d_install_node; then
+    echo ""
+    print_error "Node.js 18+ is required and could not be installed automatically."
+    echo ""
+    echo "  Pick whichever fits your machine, then run this script again:"
+    echo ""
+    d_node_manual_hint
+    echo ""
+    echo "  After installing, verify with:  node --version"
+    echo "  Then re-run:                   bash ./setup.sh"
+    echo ""
     exit 1
 fi
-NODE_VERSION=$(node --version)
-print_success "Node.js $NODE_VERSION found"
+print_success "Node.js $(node --version) ready"
 
-# Step 2: Check PostgreSQL
-print_step "Checking PostgreSQL..."
-if ! command -v psql &> /dev/null; then
-    print_error "PostgreSQL client is not installed."
-    exit 1
+print_step "Checking npm..."
+if command -v npm >/dev/null 2>&1; then
+    print_success "npm $(npm --version) ready"
+else
+    print_warning "npm not found — it ships with Node.js. Try reinstalling Node.js."
 fi
 
+# ── STEP 2: Python (optional — the hivv CLI needs it) ──────────────────
+print_step "Checking Python (optional — needed for the hivv CLI)..."
+if d_install_python; then
+    print_success "Python ready"
+else
+    print_warning "Python unavailable — the gateway still works, only the 'hivv' CLI is missing."
+fi
+
+# ── STEP 3: local model server (optional but recommended) ───────────────
+print_step "Probing for local model servers..."
+FOUND_MODELS=0
+for p in 8080 8081 8082 8090 11434 1234 5000 8000; do
+    if command -v curl >/dev/null 2>&1; then
+        if curl -fsS --max-time 1 "http://127.0.0.1:$p/v1/models" >/dev/null 2>&1 \
+           || curl -fsS --max-time 1 "http://127.0.0.1:$p/api/tags" >/dev/null 2>&1; then
+            print_success "model server on 127.0.0.1:$p"
+            FOUND_MODELS=1
+        fi
+    fi
+done
+if [[ "$FOUND_MODELS" -eq 0 ]]; then
+    print_warning "No local model server found (that is OK — you can add a cloud key later)."
+    echo "    Install one with:"
+    case "$D_OS" in
+        Linux)
+            case "$D_PKG" in
+                apt)    print_hint "sudo apt-get install -y ollama && ollama serve" ;;
+                dnf)    print_hint "sudo dnf install -y ollama && ollama serve" ;;
+                pacman) print_hint "sudo pacman -S --noconfirm ollama && ollama serve" ;;
+                apk)    print_hint "sudo apk add ollama && ollama serve" ;;
+                brew)   print_hint "brew install ollama && ollama serve" ;;
+                *)      print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
+            esac
+            ;;
+        Darwin)   print_hint "brew install ollama && ollama serve" ;;
+        windows)  print_hint "winget install Ollama.Ollama" ;;
+        *)        print_hint "curl -fsSL https://ollama.com/install.sh | sh" ;;
+    esac
+    echo "    Or download llama.cpp: https://github.com/ggerganov/llama.cpp/releases"
+fi
+
+# ── STEP 4: database — OPTIONAL ─────────────────────────────────────────
+print_step "Checking PostgreSQL (optional)..."
 DB_NAME="${DB_NAME:-hivv}"
 DB_USER="${DB_USER:-hivv}"
 DB_HOST="${DB_HOST:-localhost}"
-# NO default password. A known default in the repo means every clone has an
-# open database. Generate one on first run and persist it to .db-password (0600).
-if [ -z "${HIVV_DB_PASSWORD:-}" ]; then
+DB_PASSWORD=""
+DB_PASSWORD_SET=0
+
+if [[ "$MODE" == "hosted" ]]; then
+    if ! d_install_postgres; then
+        echo ""
+        print_error "Hosted mode needs PostgreSQL. Install it with one of:"
+        echo ""
+        case "$D_PKG" in
+            apt)    print_hint "sudo apt-get install -y postgresql postgresql-client" ;;
+            dnf)    print_hint "sudo dnf install -y postgresql" ;;
+            yum)    print_hint "sudo yum install -y postgresql" ;;
+            pacman) print_hint "sudo pacman -S --noconfirm postgresql" ;;
+            apk)    print_hint "sudo apk add postgresql postgresql-client" ;;
+            zypper) print_hint "sudo zypper install -y postgresql" ;;
+            brew)   print_hint "brew install postgresql@16 && brew services start postgresql@16" ;;
+            *)      print_hint "install PostgreSQL from https://www.postgresql.org/download/" ;;
+        esac
+        echo ""
+        echo "  …or skip the database entirely and run local-first:"
+        print_hint "bash ./setup.sh"
+        echo ""
+        exit 1
+    fi
+
+    # Generate (never hardcode) a DB password and persist it 0600.
     DB_PW_FILE="$SCRIPT_DIR/.db-password"
-    if [ -f "$DB_PW_FILE" ]; then
+    if [ -n "${HIVV_DB_PASSWORD:-}" ]; then
+        DB_PASSWORD="$HIVV_DB_PASSWORD"
+    elif [ -f "$DB_PW_FILE" ]; then
         DB_PASSWORD="$(cat "$DB_PW_FILE")"
     elif command -v openssl >/dev/null 2>&1; then
         DB_PASSWORD="$(openssl rand -hex 24)"
@@ -59,94 +174,205 @@ if [ -z "${HIVV_DB_PASSWORD:-}" ]; then
         print_warning "Generated a DB password into $DB_PW_FILE (mode 0600)"
     else
         print_error "HIVV_DB_PASSWORD is not set and openssl is unavailable to generate one."
-        print_error "Set it: export HIVV_DB_PASSWORD=\$(openssl rand -hex 24)"
+        print_hint "export HIVV_DB_PASSWORD=\$(openssl rand -hex 24)"
+        exit 1
+    fi
+
+    print_step "Testing database connection..."
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" &> /dev/null; then
+        print_success "Database connection OK"
+    else
+        print_warning "Database connection failed (role/db may not exist yet). Trying to create it..."
+        if command -v sudo >/dev/null 2>&1 || [ "$(id -u)" -eq 0 ]; then
+            if [ "$(id -u)" -eq 0 ]; then
+                su - postgres -c "psql -c \"CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD' SUPERUSER;\"" &>/dev/null || true
+                su - postgres -c "psql -c \"CREATE DATABASE $DB_NAME OWNER $DB_USER;\"" &>/dev/null || true
+            else
+                sudo -n su - postgres -c "psql -c \"CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD' SUPERUSER;\"" &>/dev/null || true
+                sudo -n su - postgres -c "psql -c \"CREATE DATABASE $DB_NAME OWNER $DB_USER;\"" &>/dev/null || true
+            fi
+        fi
+        if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" &> /dev/null; then
+            print_success "Database role + database created"
+        else
+            print_warning "Still cannot connect. Migrations may fail — continuing."
+            echo "    Fix it with:"
+            print_hint "sudo -u postgres psql -c \"CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD' SUPERUSER;\""
+            print_hint "sudo -u postgres psql -c \"CREATE DATABASE $DB_NAME OWNER $DB_USER;\""
+        fi
+    fi
+
+    # ── migrations ────────────────────────────────────────────────────
+    print_step "Running database migrations..."
+    if [ -d "$API_DIR/migrations" ]; then
+        for mig in "$API_DIR/migrations"/*.sql; do
+            [ -e "$mig" ] || continue
+            mlog="$(mktemp)"
+            if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f "$mig" &> "$mlog"; then
+                print_success "$(basename "$mig")"
+            else
+                print_warning "$(basename "$mig") had issues (some items may already exist)"
+                grep -i error "$mlog" | head -3 || true
+            fi
+            rm -f "$mlog"
+        done
+    fi
+else
+    print_success "Skipping PostgreSQL — local-first mode needs no database"
+fi
+
+# ── STEP 5: npm dependencies ────────────────────────────────────────────
+print_step "Installing API dependencies..."
+cd "$API_DIR" || exit 1
+if [ -f "package.json" ]; then
+    if [ -f "package-lock.json" ]; then
+        npm ci --silent --no-audit --no-fund 2>/dev/null || npm install --silent --no-audit --no-fund
+    else
+        npm install --silent --no-audit --no-fund
+    fi
+    if [ -d "node_modules" ]; then
+        print_success "Dependencies installed"
+    else
+        print_error "npm install failed"
+        echo "    Try manually:"
+        print_hint "cd api && npm install"
         exit 1
     fi
 else
-    DB_PASSWORD="$HIVV_DB_PASSWORD"
-fi
-
-print_step "Testing database connection..."
-if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" &> /dev/null; then
-    print_success "Database connection OK"
-else
-    print_warning "Database connection failed. Will attempt migration anyway."
-fi
-
-# Step 3: Run Database Migrations
-print_step "Running database migrations..."
-
-# Migration 1: Main schema (may fail on some items if already exist - that's OK)
-print_step "Running migration 001_initial_schema.sql..."
-if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f "$API_DIR/migrations/001_initial_schema.sql" &> /tmp/migration1.log; then
-    print_success "Migration 1 completed"
-else
-    print_warning "Migration 1 had issues (some tables may already exist)"
-    grep -i error /tmp/migration1.log | head -5 || true
-fi
-
-# Migration 2: Anonymous sessions
-print_step "Running migration 002_anonymous_sessions.sql..."
-if [ -f "$API_DIR/migrations/002_anonymous_sessions.sql" ]; then
-    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f "$API_DIR/migrations/002_anonymous_sessions.sql" &> /tmp/migration2.log; then
-        print_success "Migration 2 completed"
-    else
-        print_warning "Migration 2 had issues"
-        grep -i error /tmp/migration2.log | head -5 || true
-    fi
-fi
-
-# Step 4: Install/Update npm dependencies
-print_step "Installing dependencies..."
-cd "$API_DIR"
-if [ -f "package.json" ]; then
-    npm install --silent 2>&1 | tail -5
-    print_success "Dependencies installed"
-else
-    print_error "package.json not found"
+    print_error "package.json not found in $API_DIR"
     exit 1
 fi
 
-# Step 5: Check PM2
-print_step "Checking PM2..."
-if ! command -v pm2 &> /dev/null; then
-    print_warning "PM2 not found. Installing globally..."
-    npm install -g pm2 --silent
+# ── STEP 6: local-first environment (no DB, no secrets) ─────────────────
+DATA_DIR="${HIVV_DATA_DIR:-}"
+if [ -z "$DATA_DIR" ]; then
+    case "$D_OS" in
+        windows) DATA_DIR="${LOCALAPPDATA:-$HOME/AppData/Local}/hivv" ;;
+        Darwin)  DATA_DIR="$HOME/Library/Application Support/hivv" ;;
+        *)       DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/hivv" ;;
+    esac
 fi
-print_success "PM2 available"
 
-# Step 6: Stop existing instance
-print_step "Stopping existing server..."
+if [[ "$MODE" == "local" ]]; then
+    print_step "Preparing local-first data directory..."
+    if mkdir -p "$DATA_DIR" "$DATA_DIR/keys" "$DATA_DIR/logs" 2>/dev/null; then
+        chmod 700 "$DATA_DIR" 2>/dev/null || true
+        ENV_FILE="$DATA_DIR/hivv.env"
+        if [ -f "$ENV_FILE" ]; then
+            print_success "$ENV_FILE (kept — your settings are preserved)"
+        else
+            {
+                echo "# HIVV local-first environment (generated $(date -u +%Y-%m-%dT%H:%M:%SZ))"
+                echo "HIVV_MODE=local"
+                echo "HIVV_DB_REQUIRED=0"
+                echo "HIVV_DATA_DIR=$DATA_DIR"
+                echo "HIVV_PORT=$PORT"
+                echo "HIVV_HIVE_JOIN=0"
+                echo "HIVV_HIVE_URL=https://hivv.org"
+                echo "HIVV_SESSION_SECRET=$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
+                echo "NODE_ENV=production"
+            } > "$ENV_FILE"
+            chmod 600 "$ENV_FILE" 2>/dev/null || true
+            print_success "$ENV_FILE (created)"
+        fi
+    else
+        print_warning "Could not create $DATA_DIR — falling back to a temp dir"
+        DATA_DIR="$(mktemp -d)"
+        mkdir -p "$DATA_DIR/keys" "$DATA_DIR/logs"
+    fi
+
+    if [[ "$CHECK_ONLY" -eq 1 ]]; then
+        print_success "Check complete — nothing was started or changed"
+        exit 0
+    fi
+
+    # ── start local-first gateway ─────────────────────────────────────
+    print_step "Starting the local gateway..."
+    LOG="$DATA_DIR/logs/hivv-local.log"
+    set -a
+    # shellcheck disable=SC1090
+    [ -f "$ENV_FILE" ] && . "$ENV_FILE"
+    set +a
+    export PORT
+    nohup node server.js > "$LOG" 2>&1 &
+    GW_PID=$!
+    echo "$GW_PID" > "$DATA_DIR/hivv.pid"
+    sleep 3
+
+    if curl -fsS --max-time 5 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
+        print_success "Gateway is healthy on http://127.0.0.1:$PORT"
+    else
+        print_warning "Gateway did not come up — see $LOG"
+        tail -20 "$LOG" 2>/dev/null || true
+        exit 1
+    fi
+
+    echo ""
+    echo "========================================"
+    echo "  Access Points"
+    echo "========================================"
+    echo -e "  ${GREEN}Main Site:${NC}     http://127.0.0.1:$PORT/"
+    echo -e "  ${GREEN}Health:${NC}        http://127.0.0.1:$PORT/api/health"
+    echo -e "  ${GREEN}OpenAPI:${NC}       http://127.0.0.1:$PORT/v1"
+    echo -e "  ${GREEN}Partner API:${NC}   http://127.0.0.1:$PORT/api/partner/manifest"
+    echo ""
+    echo "  Logs:   $LOG"
+    echo "  Stop:   kill \$(cat '$DATA_DIR/hivv.pid')"
+    echo ""
+    echo "  Join the global hive:  add HIVV_HIVE_JOIN=1 to $ENV_FILE, then restart"
+    echo ""
+    exit 0
+fi
+
+# ── HOSTED MODE from here on ────────────────────────────────────────────
+if [[ "$CHECK_ONLY" -eq 1 ]]; then
+    print_success "Check complete — nothing was started or changed"
+    exit 0
+fi
+
+print_step "Checking PM2..."
+if ! d_install_pm2; then
+    print_error "PM2 is required for hosted mode"
+    print_hint "npm install -g pm2"
+    exit 1
+fi
+
+print_step "Stopping existing instance..."
 pm2 stop hivv-ai-gateway 2>/dev/null || true
 pm2 delete hivv-ai-gateway 2>/dev/null || true
 print_success "Stopped previous instance"
 
-# Step 7: Start server
 print_step "Starting AI Gateway server..."
 export NODE_ENV=production
-export PORT=3011
+export PORT="$PORT"
 export DB_HOST="${DB_HOST}"
 export DB_PORT="${DB_PORT:-5432}"
 export DB_NAME="$DB_NAME"
 export DB_USER="$DB_USER"
 export HIVV_DB_PASSWORD="$DB_PASSWORD"
-export HIVV_SESSION_SECRET="${HIVV_SESSION_SECRET:-$(openssl rand -hex 32)}"
+if [ -z "${HIVV_SESSION_SECRET:-}" ]; then
+    if command -v openssl >/dev/null 2>&1; then
+        HIVV_SESSION_SECRET="$(openssl rand -hex 32)"
+    else
+        HIVV_SESSION_SECRET="$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
+    fi
+fi
+export HIVV_SESSION_SECRET
 
+cd "$API_DIR" || exit 1
 pm2 start ecosystem.config.js --env production
 
 sleep 2
-
-# Step 8: Verify server is running
 print_step "Verifying server..."
 sleep 3
 
-if curl -s http://localhost:3011/api/health | grep -q "healthy"; then
+if curl -s "http://127.0.0.1:$PORT/api/health" | grep -q "healthy"; then
     print_success "Server is healthy and running!"
 else
     print_warning "Server may still be starting. Check: pm2 status"
+    print_hint "pm2 logs hivv-ai-gateway --lines 50"
 fi
 
-# Step 9: Show status
 echo ""
 echo "========================================"
 echo "  Server Status"
@@ -154,17 +380,16 @@ echo "========================================"
 pm2 status hivv-ai-gateway
 echo ""
 
-# Step 10: Show URLs
 echo "========================================"
 echo "  Access Points"
 echo "========================================"
-echo -e "  ${GREEN}Main Site:${NC}     http://localhost:3011/"
-echo -e "  ${GREEN}Admin Panel:${NC}   http://localhost:3011/admin.html"
-echo -e "  ${GREEN}API Health:${NC}    http://localhost:3011/api/health"
-echo -e "  ${GREEN}OpenAPI Spec:${NC}  http://localhost:3011/v1"
+echo -e "  ${GREEN}Main Site:${NC}     http://localhost:$PORT/"
+echo -e "  ${GREEN}Admin Panel:${NC}   http://localhost:$PORT/admin.html"
+echo -e "  ${GREEN}API Health:${NC}    http://localhost:$PORT/api/health"
+echo -e "  ${GREEN}OpenAPI Spec:${NC}  http://localhost:$PORT/v1"
 echo ""
 
-# Step 11: Create admin user if none exists
+# ── admin user ──────────────────────────────────────────────────────────
 print_step "Checking for admin user..."
 ADMIN_EXISTS=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM users WHERE role IN ('admin', 'owner')" 2>/dev/null || echo "0")
 ADMIN_EXISTS=$(echo "$ADMIN_EXISTS" | tr -d ' ')
@@ -174,22 +399,31 @@ if [ "$ADMIN_EXISTS" -eq "0" ]; then
     echo "========================================"
     echo "  Create Admin User"
     echo "========================================"
-    read -p "  Enter admin username: " ADMIN_USER
-    read -s -p "  Enter admin password: " ADMIN_PASS
-    echo ""
+    if [ -t 0 ]; then
+        read -p "  Enter admin username: " ADMIN_USER
+        read -s -p "  Enter admin password: " ADMIN_PASS
+        echo ""
+    else
+        ADMIN_USER="admin"
+        ADMIN_PASS="$(node -e 'console.log(require("crypto").randomBytes(12).toString("base64url"))')"
+        echo "  Non-interactive — generated credentials:"
+        echo "    username: $ADMIN_USER"
+        echo "    password: $ADMIN_PASS"
+        echo "  (change it after your first login)"
+    fi
 
-    if [ -n "$ADMIN_USER" ] && [ -n "$ADMIN_PASS" ]; then
-        # Use node to hash password
+    if [ -n "${ADMIN_USER:-}" ] && [ -n "${ADMIN_PASS:-}" ]; then
         HASH=$(node -e "
             const bcrypt = require('bcryptjs');
-            bcrypt.hash('$ADMIN_PASS', 12).then(h => console.log(h)).catch(e => console.error(e));
-        " 2>/dev/null)
+            bcrypt.hash(process.argv[1], 12).then(h => console.log(h)).catch(e => console.error(e));
+        " "$ADMIN_PASS" 2>/dev/null)
 
         if [ -n "$HASH" ]; then
-            PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "
-                INSERT INTO users (username, password_hash, display_name, role)
-                VALUES ('$ADMIN_USER', '$HASH', '$ADMIN_USER', 'admin')
-            " 2>&1 && print_success "Admin user '$ADMIN_USER' created!" || print_warning "Could not create admin user. Check if users table has correct schema."
+            PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c \
+                "INSERT INTO users (username, password_hash, display_name, role)
+                 VALUES ('$ADMIN_USER', '$HASH', '$ADMIN_USER', 'admin')" 2>&1 \
+                && print_success "Admin user '$ADMIN_USER' created!" \
+                || print_warning "Could not create admin user. Check the users table schema."
         else
             print_warning "Could not generate password hash"
         fi
@@ -206,7 +440,7 @@ echo -e "  ${GREEN}Setup Complete!${NC}"
 echo "========================================"
 echo ""
 echo "Next steps:"
-echo "  1. Open http://localhost:3011/admin.html"
+echo "  1. Open http://localhost:$PORT/admin.html"
 echo "  2. Login with your admin credentials"
 echo "  3. Add your AI API keys in Keys section"
 echo "  4. Configure user quotas in Users section"

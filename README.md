@@ -34,7 +34,7 @@ not a bottleneck: if hivv.org disappears tomorrow, your machine keeps working.
 
 | Goal | Command |
 |---|---|
-| **Run your own AI gateway** (offline-capable) | `git clone` → `./scripts/setup-local.sh` |
+| **Run your own AI gateway** (offline-capable) | `git clone` → `./setup.sh` |
 | **Join the hive** (share your compute) | `curl -sSL https://hivv.org/install-hivv.sh \| bash` |
 | **Use the hosted hive** (no install) | `https://hivv.org/v1` |
 
@@ -45,7 +45,7 @@ Full guide: [`docs/INSTALL.md`](docs/INSTALL.md).
 ```bash
 git clone https://github.com/htmlfarmer/hivv.git
 cd hivv
-./scripts/setup-local.sh
+./setup.sh
 ```
 
 Windows (PowerShell):
@@ -63,12 +63,19 @@ That gives you a complete gateway on `http://127.0.0.1:3011`:
 - **no secrets** — the session key is generated and stored locally
 - **no cloud** — nothing phones home unless you ask it to
 
+**It installs what it needs.** Missing Node.js, npm, or Python are installed
+automatically for your OS (apt · dnf · yum · pacman · apk · zypper · brew ·
+winget · scoop · choco) — with a no-sudo user-local fallback. If something
+can't be installed automatically, the script prints the exact command to type
+for your machine.
+
 Add `--join-hive` (or `-JoinHive`) to also register with the global hive.
+Add `--db` to `setup.sh` for the hosted mode (PostgreSQL + PM2 + admin user).
 
 Check it without changing anything:
 
 ```bash
-./scripts/setup-local.sh --check
+./setup.sh --check
 ```
 
 ### 2. Install the node (join the hive)

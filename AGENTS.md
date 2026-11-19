@@ -89,10 +89,12 @@ install keeps working with its own models.
 │   ├── update-ip.sh        # Public IP updater
 │   ├── update-ip.py        # Python variant
 │   ├── emergency-update.py # network-wide signed force CLI update (no per-box login)
+│   ├── lib/deps.sh         # shared cross-platform dependency installer (node/python/pg/pm2)
 │   ├── setup-local.sh      # clone-and-run setup (Linux/macOS/WSL/Git Bash)
 │   └── setup-local.ps1     # clone-and-run setup (Windows PowerShell)
 ├── tests/                  # Regression tests — python3 -m pytest tests/ -q
 │   ├── test_upgrade_review.py  # upgrade-gate FP/FN canaries + display helpers
+│   ├── test_setup_scripts.py   # setup scripts MUST auto-install deps, never dead-end
 │   └── local_install/      # clone-and-run harness (no DB, no internet)
 ├── docs/
 │   └── PARTNER-API.md     # the public /api/partner surface
@@ -205,8 +207,23 @@ When there is no database:
 - `/api/health` reports `healthy` with `database: "disabled"`.
 - The public hive is NEVER contacted unless `HIVV_HIVE_JOIN=1`.
 
-Setup: `scripts/setup-local.sh` (Linux/macOS/WSL/Git Bash) and
-`scripts/setup-local.ps1` (Windows PowerShell).
+Setup: `setup.sh` (Linux/macOS/WSL/Git Bash) or `scripts/setup-local.ps1`
+(Windows PowerShell).
+
+**Setup scripts INSTALL dependencies — they never dead-end.** The shared
+library `scripts/lib/deps.sh` handles Node.js 18+, npm, Python 3.8+,
+PostgreSQL and PM2 across `apt · dnf · yum · pacman · apk · zypper · brew ·
+winget · scoop · choco`, with a no-sudo user-local fallback for Node
+(package manager → NodeSource → fnm/nvm → official tarball into
+`$HOME/.local/node`). If auto-install genuinely cannot proceed, the script
+prints the exact copy-paste command for that OS instead of `exit 1`.
+
+Rules the setup scripts must keep (pinned by `tests/test_setup_scripts.py`):
+- never print a bare "X is not installed" and exit — auto-install or print
+  the exact command
+- never prompt for a `sudo` password (`sudo -n` only — a prompt hangs CI)
+- PostgreSQL stays OPTIONAL — local-first mode needs no database
+- Node 18+ is the only hard requirement
 
 ### Partner surface (`routes/partner-routes.js`)
 
@@ -502,6 +519,7 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 
 ### Local LLM Helper
 - `hivv llm` — show subcommands
+- `hivv llm setup [--model K] [--port N] [--yes] [--fg]` — **ONE-SHOT**: build llama.cpp (if missing) → download GGUF (if missing) → serve in background → print the next commands (alias: `hivv install llm`)
 - `hivv llm detect` — find ollama, llama.cpp, lm-studio, vllm on this box
 - `hivv llm suggest` — recommend a model for this hardware (CPU/RAM/GPU)
 - `hivv llm bench` — quick CPU/RAM/disk benchmark
@@ -511,6 +529,8 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv llm serve [model] [--port]` — serve a model in the foreground
 
 ### Fun / Social
+- `hivv iq [--show|--board|--no-judge]` — intelligence + personality index for this brain: calibrated exam battery (deterministic math/logic + philosophy judged by OTHER bees), personality probes recorded locally, IQ-style index (v1 mapping, recalibrates against the hive), history tracked in state → heartbeat `exam_summary` → **public brain board at `GET /api/hive/iq`** (IQ · score · AI avg · human votes)
+- `hivv rate <bee> <1-10> [--note]` — HUMAN ranking on the brain board (governance charter: human votes weigh more; last 20 ratings/bee, `POST /api/hive/iq/rate`)
 - `hivv welcome` — guided first-run tour
 - `hivv hi` — friendly greeter with quick chat round-trip + examples
 - `hivv thanks` — say thanks to the AI (one-line chat reply)
@@ -519,6 +539,7 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv feed` / `hivv whatsup` — see what's happening on the network
 - `hivv panic` / `hivv help-bang` — emergency help — diagnostics + how to report
 - `hivv speed` — latency benchmark (DNS, TLS, hub ping x3, chat TTFB, CPU/RAM/disk)
+- `hivv speeds [--days N] [--limit N] [--json]` — request speed log from the provenance ledger: full-reply duration (avg/p50/p95), time-to-first-token, tok/s — per user & per answering bee (operator: localhost or `HIVV_CONTROL_TOKEN`, which `http()` now auto-attaches)
 - `hivv test` — doctor + speed + full network test end-to-end smoke test
 
 ### Smart Default
@@ -552,6 +573,8 @@ hivv explain kubernetes           # also sends to the LLM
 
 ## What's Next
 
+- [x] Speed ledger + macOS parity + chat fail-fast + LLM one-shot — 2026-11-18: request provenance wired into `/api/chat` (both branches) + `/v1` streaming with a real SSE **TTFB hook** (first content-bearing frame) + `hivv speeds` command; Darwin metric collectors (`sysctl`/`vm_stat`/`kern.boottime`/`system_profiler`) + loadavg-derived `cpu_percent` (was 0 for EVERY bee); `hivv nodes` auto-measures missing pings (TCP preflight to tools/model ports, seeds the hub cache); name/CPU column widths (16/22); 160 pytest green
+- [x] Chat >60s fix — 2026-11-18: direct-node loop now TCP-preflights each candidate (≤0.8s vs 3s+15s socket timeouts on dead bees) and skips recently-failed nodes for 120s (falls to the fast hub path instead of burning the shuffle); plus `hivv llm setup` one-shot (build→download→serve) + `hivv install llm` alias (was: smart-default chat trap!) + every llm step prints its NEXT command + `pull-gguf` uses wget→**curl fallback** with resume + GGUF-magic check (macOS has no wget — FileNotFoundError crash)
 - [x] Upgrade-review regression suite + self-trip defuse + emergency network update — 2026-11-14 (`tests/test_upgrade_review.py` 97 tests incl. shipped-file canaries; `scripts/emergency-update.py` signed force-push; defused docstring/print-hint wording, `line_no` off-by-one fix, bytes-literal blanking, `socket.socket…connect` pattern fix, `opencode.ai` allowlist)
 - [x] `hivv models --bees` + models-by-bee section in `hivv nodes` — 2026-11-14 (`_bee_model_summary`)
 - [x] Remote LLM visibility fixes — 2026-11-14: `_detect_local_ai` probes 8090/1234 (same ports as brain discovery — ashy's llama on 8090 was invisible), reports keyed llama.cpp servers as `locked (api-key required)` instead of hiding them (yalla's `--api-key` made both servers show 0), router skips `m.locked` endpoints (peers can't auth either), by-bee section prints explicit `(no local models reported)` for online bees with empty heartbeats

@@ -16,11 +16,15 @@
 #   ./scripts/setup-local.sh --join-hive     # also register with hivv.org
 #   ./scripts/setup-local.sh --port 3011     # use a different port
 #   ./scripts/setup-local.sh --no-start      # install, don't start
+#   ./scripts/setup-local.sh --no-auto       # don't auto-install missing deps
 #
 # Works on: Linux, macOS, WSL, Git-Bash/MSYS. On native Windows use
 # scripts/setup-local.ps1 (PowerShell).
+#
+# Missing dependencies (Node.js, Python) are installed automatically when
+# possible. When they can't be, the exact command to type is printed.
 
-set -euo pipefail
+set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_DIR="$REPO_ROOT/api"
@@ -30,6 +34,10 @@ JOIN_HIVE=0
 START=1
 CHECK_ONLY=0
 QUIET=0
+AUTO_DEPS=1
+
+# shellcheck source=lib/deps.sh
+. "$REPO_ROOT/scripts/lib/deps.sh"
 
 if [[ -t 1 ]]; then
     RST=$'\033[0m'; BLD=$'\033[1m'; DIM=$'\033[2m'
@@ -50,9 +58,10 @@ while [[ $# -gt 0 ]]; do
         --no-start)  START=0; shift ;;
         --check)     CHECK_ONLY=1; shift ;;
         --quiet)     QUIET=1; shift ;;
+        --no-auto)   AUTO_DEPS=0; shift ;;
         --port)      PORT="$2"; shift 2 ;;
         --data-dir)  DATA_DIR="$2"; shift 2 ;;
-        -h|--help)   sed -n '2,22p' "$0"; exit 0 ;;
+        -h|--help)   sed -n '2,24p' "$0"; exit 0 ;;
         *) fail "unknown option: $1"; exit 2 ;;
     esac
 done
@@ -75,29 +84,24 @@ banner
 
 # ── 1. platform detection ────────────────────────────────────────────────
 step "Checking platform"
-OS="$(uname -s 2>/dev/null || echo unknown)"
-ARCH="$(uname -m 2>/dev/null || echo unknown)"
-case "$OS" in
+detect_platform
+ARCH="$D_ARCH"
+case "$D_OS" in
     Linux)  PLATFORM="linux" ;;
     Darwin) PLATFORM="macos" ;;
-    MINGW*|MSYS*|CYGWIN*) PLATFORM="windows-bash" ;;
+    windows) PLATFORM="windows-bash" ;;
     *) PLATFORM="unknown" ;;
 esac
-ok "$PLATFORM ($OS/$ARCH)"
+ok "$PLATFORM ($D_OS/$ARCH, pkg manager: $D_PKG)"
 
 # ── 2. node ──────────────────────────────────────────────────────────────
 step "Checking Node.js"
-if command -v node >/dev/null 2>&1; then
-    NODE_VERSION="$(node --version)"
-    NODE_MAJOR="$(echo "$NODE_VERSION" | sed 's/^v//' | cut -d. -f1)"
-    if [[ "$NODE_MAJOR" -ge 18 ]]; then
-        ok "node $NODE_VERSION"
-    else
-        fail "node $NODE_VERSION is too old — HIVV needs node 18+"
-        exit 1
-    fi
+DEP_FLAG=""
+[[ "$AUTO_DEPS" -eq 0 ]] && DEP_FLAG="--no-auto"
+if d_install_node $DEP_FLAG; then
+    ok "node $(node --version)"
 else
-    fail "node not found — install Node.js 18+ (https://nodejs.org)"
+    fail "node 18+ is required — HIVV cannot start without it"
     exit 1
 fi
 
@@ -110,17 +114,11 @@ fi
 
 # ── 3. python (for the CLI) ──────────────────────────────────────────────
 step "Checking Python"
-PY_BIN=""
-for p in python3 python; do
-    if command -v "$p" >/dev/null 2>&1; then
-        v="$("$p" -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo 0)"
-        major="${v%%.*}"; minor="${v##*.}"
-        if [[ "$major" -gt 3 ]] || { [[ "$major" -eq 3 ]] && [[ "$minor" -ge 8 ]]; }; then
-            PY_BIN="$p"; ok "python $v ($p)"; break
-        fi
-    fi
-done
-[[ -n "$PY_BIN" ]] || warn "python 3.8+ not found — the hive CLI will not run (the API still will)"
+if d_install_python $DEP_FLAG; then
+    ok "python ready"
+else
+    warn "python 3.8+ not available — the hive CLI will not run (the API still will)"
+fi
 
 # ── 4. local model servers ───────────────────────────────────────────────
 step "Probing for local model servers"

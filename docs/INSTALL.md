@@ -6,9 +6,30 @@ There are three ways in, depending on what you want.
 
 | Goal | Command |
 |---|---|
-| **Run your own AI gateway** (offline-capable) | `git clone` → `./scripts/setup-local.sh` |
+| **Run your own AI gateway** (offline-capable) | `git clone` → `./setup.sh` |
 | **Join the hive** (share your compute) | `curl -sSL https://hivv.org/install-hivv.sh \| bash` |
 | **Use the hosted hive** (no install) | `https://hivv.org/v1` |
+
+---
+
+## 0. It installs what it can
+
+Both setup scripts **install missing dependencies for you** instead of
+stopping at an error:
+
+| Missing | What happens |
+|---|---|
+| Node.js 18+ | Installed via your package manager → NodeSource → fnm/nvm → official tarball (no sudo needed) |
+| npm | Ships with Node.js — reinstalled together with it |
+| Python 3.8+ | Installed via your package manager (optional — only the `hivv` CLI needs it) |
+| PostgreSQL | **Optional.** Only needed for hosted mode; local-first needs no database at all |
+
+If something genuinely cannot be installed automatically, the script prints
+the **exact command to type** for your operating system — you are never left
+guessing.
+
+Supported package managers: `apt`, `dnf`, `yum`, `pacman`, `apk`, `zypper`,
+`brew`, `winget`, `scoop`, `choco`.
 
 ---
 
@@ -17,7 +38,7 @@ There are three ways in, depending on what you want.
 ```bash
 git clone https://github.com/htmlfarmer/hivv.git
 cd hivv
-./scripts/setup-local.sh
+./setup.sh
 ```
 
 Windows:
@@ -41,6 +62,17 @@ Local models are auto-detected on ports `8080`, `8081`, `8082`, `8090`,
 
 ### Options
 
+`./setup.sh` flags:
+
+| Flag | What it does |
+|---|---|
+| `--check` | Validate everything, change nothing |
+| `--db` | Hosted mode — adds PostgreSQL + PM2 + an admin user |
+| `--port 3011` | Use a different port |
+| `--no-auto` | Don't auto-install missing dependencies (`setup-local.sh` only) |
+
+`./scripts/setup-local.sh` flags:
+
 | Flag | What it does |
 |---|---|
 | `--check` | Validate everything, change nothing |
@@ -48,8 +80,10 @@ Local models are auto-detected on ports `8080`, `8081`, `8082`, `8090`,
 | `--port 3011` | Use a different port |
 | `--data-dir DIR` | Put state somewhere else |
 | `--no-start` | Install, don't start |
+| `--no-auto` | Don't auto-install missing dependencies |
 
-Windows: `-Check`, `-JoinHive`, `-Port`, `-DataDir`, `-NoStart`.
+Windows (`setup-local.ps1`): `-Check`, `-JoinHive`, `-Port`, `-DataDir`,
+`-NoStart`, `-NoAuto`.
 
 ### After it starts
 
@@ -84,6 +118,16 @@ kill $(cat ~/.local/share/hivv/hivv.pid)
 # or
 hivv local stop
 ```
+
+### Hosted mode (with PostgreSQL)
+
+```bash
+./setup.sh --db
+```
+
+Adds PostgreSQL, runs the migrations, installs PM2, starts the gateway under
+`pm2`, and creates an admin user. In non-interactive runs it generates the
+admin password for you and prints it.
 
 ---
 
@@ -213,8 +257,11 @@ See `CONTRIBUTING.md` and `docs/PARTNER-API.md`.
 
 | Symptom | Fix |
 |---|---|
-| `node not found` | Install Node.js 18+ |
+| `node not found` | The setup script installs it for you. If it couldn't, it prints the exact command for your OS — run it, then re-run setup |
+| `npm not found` | It ships with Node.js — reinstall Node.js |
+| `python not found` | Optional. Only the `hivv` CLI needs it: `sudo apt-get install -y python3` |
 | `no local model server found` | Start llama.cpp / ollama, or add a provider key |
+| `PostgreSQL client is not installed` | Only needed for `./setup.sh --db`. Local-first mode needs no database |
 | gateway won't start | check `$HIVV_DATA_DIR/logs/hivv-local.log` |
 | port already in use | `--port 3020` |
-| want the old behaviour (DB required) | unset `HIVV_DB_REQUIRED=0` |
+| want the old behaviour (DB required) | `./setup.sh --db` |

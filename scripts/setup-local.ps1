@@ -15,6 +15,11 @@
 #   .\scripts\setup-local.ps1 -Check
 #   .\scripts\setup-local.ps1 -JoinHive
 #   .\scripts\setup-local.ps1 -Port 3011 -NoStart
+#   .\scripts\setup-local.ps1 -NoAuto      # don't auto-install missing deps
+#
+# Missing dependencies (Node.js, Python) are installed automatically with
+# winget/scoop/choco when possible. When they can't be, the exact command to
+# type is printed.
 
 [CmdletBinding()]
 param(
@@ -23,7 +28,8 @@ param(
     [switch]$JoinHive,
     [switch]$NoStart,
     [switch]$Check,
-    [switch]$Quiet
+    [switch]$Quiet,
+    [switch]$NoAuto
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +39,95 @@ $ApiDir = Join-Path $RepoRoot 'api'
 function Write-Step($m) { if (-not $Quiet) { Write-Host "==> $m" -ForegroundColor Cyan } }
 function Write-Ok($m)   { if (-not $Quiet) { Write-Host "  [ok] $m" -ForegroundColor Green } }
 function Write-Warn($m) { if (-not $Quiet) { Write-Host "  [!] $m"  -ForegroundColor Yellow } }
-function Write-Fail($m) { Write-Host "  [x] $m" -ForegroundColor Red }
+function Write-Fail($m) { Write-Host "  [x] $m" -ForegroundColor Red } }
+function Write-Cmd($m)  { if (-not $Quiet) { Write-Host "    `$ $m" -ForegroundColor Cyan } }
+
+# ── PATH refresh (winget writes to the registry, not the live session) ──
+function Update-PathFromRegistry {
+    $parts = @()
+    foreach ($scope in @('Machine', 'User')) {
+        try {
+            $p = [Environment]::GetEnvironmentVariable('Path', $scope)
+            if ($p) { $parts += $p }
+        } catch { }
+    }
+    if ($parts.Count -gt 0) {
+        $env:Path = ($parts -join ';') + ';' + $env:Path
+    }
+}
+
+# ── package manager detection ──────────────────────────────────────────
+function Get-PackageManager {
+    foreach ($m in @('winget', 'scoop', 'choco')) {
+        if (Get-Command $m -ErrorAction SilentlyContinue) { return $m }
+    }
+    return $null
+}
+
+# ── Node.js installer ──────────────────────────────────────────────────
+function Install-Node {
+    $pm = Get-PackageManager
+    if (-not $pm) {
+        Write-Host "  [x] no package manager found (winget/scoop/choco)" -ForegroundColor Red
+        Write-Host ''
+        Write-Host '  Install Node.js 18+ with one of these, then re-run:' -ForegroundColor Yellow
+        Write-Cmd 'winget install OpenJS.NodeJS.LTS'
+        Write-Cmd '# or: scoop install nodejs'
+        Write-Cmd '# or: choco install nodejs-lts'
+        Write-Host ''
+        return $false
+    }
+
+    Write-Host "  -> installing Node.js with $pm (this can take a minute)..." -ForegroundColor DarkCyan
+    switch ($pm) {
+        'winget' {
+            & winget install --silent --accept-source-agreements --accept-package-agreements `
+                --id OpenJS.NodeJS.LTS 2>&1 | Out-Null
+        }
+        'scoop' { & scoop install nodejs 2>&1 | Out-Null }
+        'choco'  { & choco install nodejs-lts -y 2>&1 | Out-Null }
+    }
+    Update-PathFromRegistry
+
+    # winget may install to a path the session didn't know about yet
+    $candidates = @(
+        "$env:ProgramFiles\nodejs\node.exe",
+        "${env:ProgramFiles(x86)}\nodejs\node.exe",
+        "$env:LOCALAPPDATA\Programs\nodejs\node.exe",
+        (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\node.exe')
+    )
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path $c)) {
+            $env:Path = (Split-Path $c) + ';' + $env:Path
+            break
+        }
+    }
+    return [bool](Get-Command node -ErrorAction SilentlyContinue)
+}
+
+# ── Python installer ───────────────────────────────────────────────────
+function Install-Python {
+    $pm = Get-PackageManager
+    if (-not $pm) {
+        Write-Warn 'python not found — the hive CLI will not run (the API still will)'
+        Write-Host '  Install Python 3.8+ (optional) with one of these:' -ForegroundColor Yellow
+        Write-Cmd 'winget install Python.Python.3.12'
+        Write-Cmd '# or: scoop install python'
+        Write-Cmd '# or: choco install python'
+        return $false
+    }
+    Write-Host '  -> installing Python...' -ForegroundColor DarkCyan
+    switch ($pm) {
+        'winget' {
+            & winget install --silent --accept-source-agreements --accept-package-agreements `
+                --id Python.Python.3.12 2>&1 | Out-Null
+        }
+        'scoop' { & scoop install python 2>&1 | Out-Null }
+        'choco'  { & choco install python -y 2>&1 | Out-Null }
+    }
+    Update-PathFromRegistry
+    return [bool](Get-Command python -ErrorAction SilentlyContinue)
+}
 
 if (-not $Quiet) {
     Write-Host ''
@@ -48,20 +142,43 @@ Write-Ok "$([System.Environment]::OSVersion.VersionString) / $env:PROCESSOR_ARCH
 # ── 2. node ──────────────────────────────────────────────────────────────
 Write-Step "Checking Node.js"
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if ($nodeCmd) {
+    $nodeVersion = (node --version).TrimStart('v')
+    $nodeMajor = [int]($nodeVersion.Split('.')[0])
+    if ($nodeMajor -lt 18) {
+        Write-Warn "node $nodeVersion is too old — HIVV needs node 18+"
+        $nodeCmd = $null
+    }
+}
 if (-not $nodeCmd) {
-    Write-Fail "node not found — install Node.js 18+ (winget install OpenJS.NodeJS.LTS)"
-    exit 1
+    if ($NoAuto) {
+        Write-Fail 'node not found — install Node.js 18+ then re-run'
+        Write-Host ''
+        Write-Host '  Install Node.js 18+ with one of these, then re-run:' -ForegroundColor Yellow
+        Write-Cmd 'winget install OpenJS.NodeJS.LTS'
+        Write-Cmd '# or: scoop install nodejs'
+        Write-Cmd '# or: choco install nodejs-lts'
+        Write-Host ''
+        exit 1
+    }
+    if (Install-Node) {
+        Write-Ok "node $((node --version).TrimStart('v')) installed"
+    } else {
+        Write-Fail 'could not install Node.js automatically'
+        Write-Host ''
+        Write-Host '  Install Node.js 18+ with one of these, then re-run:' -ForegroundColor Yellow
+        Write-Cmd 'winget install OpenJS.NodeJS.LTS'
+        Write-Cmd '# or: scoop install nodejs'
+        Write-Cmd '# or: choco install nodejs-lts'
+        Write-Host ''
+        exit 1
+    }
+} else {
+    Write-Ok "node $((node --version).TrimStart('v'))"
 }
-$nodeVersion = (node --version).TrimStart('v')
-$nodeMajor = [int]($nodeVersion.Split('.')[0])
-if ($nodeMajor -lt 18) {
-    Write-Fail "node $nodeVersion is too old — HIVV needs node 18+"
-    exit 1
-}
-Write-Ok "node $nodeVersion"
 
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-    Write-Fail "npm not found — it ships with Node.js"
+    Write-Fail 'npm not found — it ships with Node.js'
     exit 1
 }
 Write-Ok "npm $(npm --version)"
@@ -70,8 +187,14 @@ Write-Ok "npm $(npm --version)"
 Write-Step "Checking Python"
 $py = Get-Command python -ErrorAction SilentlyContinue
 if (-not $py) { $py = Get-Command py -ErrorAction SilentlyContinue }
-if ($py) { Write-Ok "python found ($($py.Source))" }
-else { Write-Warn "python not found — the hive CLI will not run (the API still will)" }
+if ($py) {
+    Write-Ok "python found ($($py.Source))"
+} elseif (-not $NoAuto -and (Install-Python)) {
+    Write-Ok 'python installed'
+} else {
+    Write-Warn 'python not found — the hive CLI will not run (the API still will)'
+    Write-Host '  Install Python 3.8+ (optional) with: winget install Python.Python.3.12' -ForegroundColor DarkGray
+}
 
 # ── 4. local model servers ──────────────────────────────────────────────
 Write-Step "Probing for local model servers"
