@@ -49,7 +49,11 @@
    "tests/test_cli_link.py"
   ],
   "public_html/chat/app.js": [
+   "tests/test_personas.py",
    "tests/test_testmap.py"
+  ],
+  "public_html/chat/index.html": [
+   "tests/test_personas.py"
   ],
   "public_html/hivv": [
    "tests/test_cli_install.py"
@@ -76,6 +80,9 @@
   "public_html/hivv-gui-setup.py": [
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py"
+  ],
+  "public_html/panel.html": [
+   "tests/test_panel_update.py"
   ],
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
@@ -188,6 +195,13 @@
   ],
   "tests/test_nodes_table.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_panel_update.py": [
+   "public_html/panel.html"
+  ],
+  "tests/test_personas.py": [
+   "public_html/chat/app.js",
+   "public_html/chat/index.html"
   ],
   "tests/test_rollback.py": [
    "public_html/hivv-cli.py"

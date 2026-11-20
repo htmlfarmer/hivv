@@ -323,6 +323,42 @@ router.get('/versions', (req, res) => {
   });
 });
 
+// ── shared update-envelope hardening ─────────────────────────────────────
+// This tells every bee to download and execute a file, so it must never be
+// able to point them off-hub:
+//  1. only a hub-relative path is accepted (no scheme, no host, no '..');
+//  2. the sha256 is computed from the bytes THIS hub actually serves, never
+//     trusted from the caller (a caller-supplied hash must match, else error).
+// Used by BOTH the per-bee push-update and the fleet-wide update-all.
+function _updateEnvelope(url, sha256) {
+  const rel = String(url || `/${(global.__HIVV_APP__ || 'hivv')}-cli.py`);
+  if (!rel.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(rel) || rel.includes('..')) {
+    return { ok: false, error: 'url must be a hub-relative path — external URLs are refused' };
+  }
+  let served = null;
+  try {
+    const f = require('path').join(__dirname, '..', '..', 'public_html', rel.replace(/^\//, ''));
+    served = require('crypto').createHash('sha256').update(require('fs').readFileSync(f)).digest('hex');
+  } catch (_e) {
+    return { ok: false, error: `push target not found on this hub: ${rel}` };
+  }
+  if (sha256 && String(sha256).toLowerCase() !== served) {
+    return { ok: false, error: `sha256 mismatch — caller said ${sha256}, hub serves ${served}` };
+  }
+  return { ok: true, rel, sha256: served };
+}
+
+// The version string a bee compares against — same recipe as server.js
+// _cliVersion(): 0.2.<sha256-of-served-cli, first 8>.
+function _hubCliVersion() {
+  try {
+    const fs = require('fs');
+    const crypto = require('crypto');
+    const p = require('path').join(__dirname, '..', '..', 'public_html', 'hivv-cli.py');
+    return '0.2.' + crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex').slice(0, 8);
+  } catch (_e) { return 'unknown'; }
+}
+
 // POST /api/control/agents/:nodeId/push-update — enqueue an `update_available`
 // message into the node's inbox. Body: { version, url?, sha256? }
 // The node will receive it on its next long-poll.
@@ -333,33 +369,15 @@ router.post('/agents/:nodeId/push-update', express.json(), (req, res) => {
   const { version, url, sha256 } = req.body || {};
   if (!version) return res.status(400).json({ error: 'version required' });
 
-  // ── hardening ──────────────────────────────────────────────────────────
-  // This endpoint tells every bee to download and execute a file, so it must
-  // never be able to point them off-hub:
-  //  1. only a hub-relative path is accepted (no scheme, no host, no '..');
-  //  2. the sha256 is computed from the bytes THIS hub actually serves, never
-  //     trusted from the caller (a caller-supplied hash must match, else 400).
-  const rel = String(url || `/${(global.__HIVV_APP__ || 'hivv')}-cli.py`);
-  if (!rel.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(rel) || rel.includes('..')) {
-    return res.status(400).json({ error: 'url must be a hub-relative path — external URLs are refused' });
-  }
-  let served = null;
-  try {
-    const f = require('path').join(__dirname, '..', '..', 'public_html', rel.replace(/^\//, ''));
-    served = require('crypto').createHash('sha256').update(require('fs').readFileSync(f)).digest('hex');
-  } catch (_e) {
-    return res.status(400).json({ error: `push target not found on this hub: ${rel}` });
-  }
-  if (sha256 && String(sha256).toLowerCase() !== served) {
-    return res.status(400).json({ error: `sha256 mismatch — caller said ${sha256}, hub serves ${served}` });
-  }
+  const env = _updateEnvelope(url, sha256);
+  if (!env.ok) return res.status(400).json({ error: env.error });
 
   const msg = {
     type: 'update_available',
     payload: {
       version,
-      url: rel,
-      sha256: served,
+      url: env.rel,
+      sha256: env.sha256,
     },
     ts: Date.now(),
   };
@@ -369,6 +387,77 @@ router.post('/agents/:nodeId/push-update', express.json(), (req, res) => {
     return res.json({ ok: true, id, message: msg });
   }
   return res.status(503).json({ error: 'inbox not initialized' });
+});
+
+// ── POST /api/control/update-all — the FLEET update button ───────────────
+// Enqueues the hub's own CLI into every registered bee's inbox — one call
+// instead of N (the mobile panel's "Update all", and any fleet rollout).
+//
+// WHY IT IS SAFE BY CONSTRUCTION:
+//  * same envelope hardening as push-update per bee — hub-relative URL only,
+//    sha256 computed from the bytes THIS hub serves;
+//  * it never executes anything here — each bee runs the update through ITS
+//    OWN review gate (static scan + LLM vote) and refuses a suspicious copy;
+//  * `dry_run: true` plans without enqueueing, so a phone can preview the
+//    blast radius (and the panel always previews before firing).
+//
+// Body: { dry_run?, url?, sha256? } — version defaults to the hub's own.
+router.post('/update-all', express.json(), (req, res) => {
+  const { dry_run, url, sha256 } = req.body || {};
+  const env = _updateEnvelope(url, sha256);
+  if (!env.ok) return res.status(400).json({ error: env.error });
+  const version = _hubCliVersion();
+
+  const pushed = [];
+  const skipped = [];
+  for (const node of orchestrator.nodes.values()) {
+    const id = node.node_id || node.name || '?';
+    // Use the SAME status computation /nodes shows (getNodeStatus derives
+    // from heartbeat age), not the possibly-stale in-memory field — the
+    // first dry_run reported 'pushed' to a bee that had been offline for
+    // a day, because its cached status still said 'online'.
+    let status = node.status;
+    try {
+      if (typeof orchestrator.getNodeStatus === 'function') {
+        status = orchestrator.getNodeStatus(node);
+      }
+    } catch (_e) { /* keep the cached field */ }
+    if (status === 'offline') {
+      // A ghost registration: no heartbeat, no inbox consumer — and it can
+      // never run `hivv update` anyway. Report it, don't pretend.
+      skipped.push({ id, reason: 'offline' });
+      continue;
+    }
+    if (dry_run) {
+      pushed.push(id);
+      continue;
+    }
+    try {
+      const msg = {
+        type: 'update_available',
+        payload: { version, url: env.rel, sha256: env.sha256 },
+        ts: Date.now(),
+      };
+      if (typeof orchestrator.enqueueInbox === 'function') {
+        orchestrator.enqueueInbox(node.node_id, msg);
+        pushed.push(id);
+      } else {
+        skipped.push({ id, reason: 'inbox not initialized' });
+      }
+    } catch (e) {
+      skipped.push({ id, reason: String(e.message || e).slice(0, 80) });
+    }
+  }
+  res.json({
+    ok: true,
+    dry_run: !!dry_run,
+    version,
+    sha256: env.sha256,
+    url: env.rel,
+    total: pushed.length + skipped.length,
+    pushed,
+    skipped,
+  });
 });
 
 // ── POST /api/control/agents/:nodeId/repair ──────────────────────────────
