@@ -21,14 +21,14 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/locked-llm.js` | `api/tests/locked-llm.test.js` |
 | `api/lib/request-provenance.js` | `api/tests/provenance-schema.test.js`, `api/tests/request-provenance.test.js` |
 | `api/migrations/020_feedback_grants.sql` | `tests/test_upgrade_review.py` |
-| `api/tests` | `tests/test_testmap.py` |
+| `api/server.js` | `tests/test_scan_secrets.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
 | `public_html` | `tests/test_cli_install.py`, `tests/test_cli_link.py` |
 | `public_html/chat/app.js` | `tests/test_personas.py`, `tests/test_testmap.py` |
 | `public_html/chat/index.html` | `tests/test_personas.py` |
 | `public_html/hivv` | `tests/test_cli_install.py` |
-| `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_nodes_table.py`, `tests/test_rollback.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_upgrade_review.py`, `tests/test_verify_drift.py` |
+| `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_nodes_table.py`, `tests/test_rollback.py`, `tests/test_speeds_view.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_upgrade_review.py`, `tests/test_verify_drift.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
 | `scripts/emergency-update.py` | `tests/test_upgrade_review.py` |
@@ -71,11 +71,12 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_panel_update.py` | `public_html/panel.html` |
 | `tests/test_personas.py` | `public_html/chat/app.js`, `public_html/chat/index.html` |
 | `tests/test_rollback.py` | `public_html/hivv-cli.py` |
-| `tests/test_scan_secrets.py` | `scripts/scan_secrets.py` |
+| `tests/test_scan_secrets.py` | `api/server.js`, `api/x.js`, `scripts/scan_secrets.py` |
 | `tests/test_setup_prompts.py` | `scripts/lib/deps.sh`, `setup.sh` |
 | `tests/test_setup_scripts.py` | `hivv_init_node.sh`, `scripts/lib/deps.sh`, `scripts/setup-local.ps1`, `scripts/setup-local.sh`, `setup.sh` |
+| `tests/test_speeds_view.py` | `public_html/hivv-cli.py` |
 | `tests/test_sync_review.py` | `public_html/hivv-cli.py` |
-| `tests/test_testmap.py` | `api/tests`, `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
+| `tests/test_testmap.py` | `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
 | `tests/test_upgrade_review.py` | `api/migrations/020_feedback_grants.sql`, `public_html/hivv-cli.py`, `scripts/emergency-update.py` |
 | `tests/test_verify_drift.py` | `public_html/hivv-cli.py` |
 
@@ -154,7 +155,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/tips-routes.js`
 - `api/routes/transcriptions-routes.js`
 - `api/routes/tts-routes.js`
-- `api/server.js`
 - `hivv_node.js`
 - `public_html/app.js`
 - `public_html/js/hivv-dashboard.js`

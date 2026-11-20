@@ -68,20 +68,36 @@ class TestMapIsFresh:
 
 
 class TestMapIntegrity:
-    def test_every_test_file_is_listed(self):
+    def test_every_TEST_FILE_is_listed(self):
+        """Every GIT-TRACKED test file must be in the map.
+
+        Tracked-only, matching the generator: an untracked WIP test on
+        someone's disk is not in the pushed tree, so mapping it would make
+        CI's freshness check fail on a file nobody shipped. Once they
+        commit it, it must appear — that is the nudge to regenerate."""
+        import subprocess
         mapping = json.loads(MAP_JSON.read_text())
-        for tf in sorted((REPO / "tests").glob("test_*.py")):
-            rel = str(tf.relative_to(REPO))
+        r = subprocess.run(["git", "ls-files", "--", "tests", "api/tests"],
+                           cwd=str(REPO), capture_output=True, text=True)
+        # Scope matches the generator: tests/test_*.py (top level only —
+        # tests/local_install/ has its own harness, not pytest) and
+        # api/tests/*.test.js.
+        tracked = []
+        for ln in r.stdout.splitlines():
+            rel = ln.strip()
+            parts = rel.split("/")
+            base = parts[-1]
+            if not base.startswith("test_"):
+                continue
+            if (len(parts) == 2 and parts[0] == "tests" and base.endswith(".py")) or \
+               (parts[:2] == ["api", "tests"] and len(parts) == 3
+                    and base.endswith(".test.js")):
+                tracked.append(rel)
+        assert tracked, "git ls-files returned nothing — is this a checkout?"
+        for rel in tracked:
             assert rel in mapping["tests"], (
-                f"{rel} missing from the map — regenerate"
+                f"tracked {rel} missing from the map — regenerate"
             )
-        api_tests = REPO / "api" / "tests"
-        if api_tests.is_dir():
-            for tf in sorted(api_tests.glob("*.test.js")):
-                rel = str(tf.relative_to(REPO))
-                assert rel in mapping["tests"], (
-                    f"{rel} missing from the map — regenerate"
-                )
 
     def test_every_mapped_source_exists(self):
         """No dead references: a file the map points at must be real."""

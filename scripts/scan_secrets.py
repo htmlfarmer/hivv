@@ -211,6 +211,15 @@ def scan_text(text: str, source: str):
     code_only = _blank_prose(text)
     for kind, rx, sev in PATTERNS:
         for m in re.finditer(rx, code_only):
+            # PLACEHOLDER values are not credentials: `api_key: 'sk-...'`
+            # inside an error-message example is the classic false positive
+            # (the donate endpoint's 400 response ships one; the line moved
+            # whenever server.js was edited and the file:line ignore rotted
+            # behind it — 2026-11-20). An ellipsis or an xxx run is a
+            # SHAPE, not a value; a real secret never contains either.
+            matched = m.group(0)
+            if "..." in matched or re.search(r"xxx+", matched, re.IGNORECASE):
+                continue
             lineno = text.count("\n", 0, m.start()) + 1
             if _ignored(source, lineno):
                 break  # known fixture — skip silently

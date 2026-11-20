@@ -105,6 +105,29 @@ class TestStillCatchesRealSecrets:
         assert sev == "WARN"
 
 
+class TestPlaceholdersAreNotSecrets:
+    """`api_key: 'sk-...'` inside an error-message EXAMPLE is the classic
+    false positive: the donate endpoint's 400 response ships one, the line
+    moved whenever server.js changed, and the file:line ignore rotted
+    behind it — a BLOCK on a placeholder, every time (2026-11-20). An
+    ellipsis or an xxx run is a SHAPE, not a value."""
+
+    def test_ellipsis_value_is_not_flagged(self):
+        line = "example: { provider: 'openai', api_key: 'sk-...', name: 'x' }"
+        assert list(scan.scan_text(line, "api/server.js")) == []
+
+    def test_xxx_run_is_not_flagged(self):
+        line = "token = 'xxxx-secret-value-here'"
+        assert list(scan.scan_text(line, "api/x.js")) == []
+
+    def test_real_secrets_still_are(self):
+        """The exclusion must be value-shaped, never pattern-shaped."""
+        assert scan.scan_text("api_key: 'sk_live_abcdefghijklmnopqrstuv'",
+                              "api/x.js")
+        assert scan.scan_text("password: 'SuperSecret123456'", "api/x.js")
+        assert scan.scan_text("const GH = 'ghp_" + "A" * 36 + "'", "api/x.js")
+
+
 class TestShippedFilesAreClean:
     """The repo's own tree must scan clean — the scanner dogfoods itself."""
 

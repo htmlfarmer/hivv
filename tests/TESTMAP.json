@@ -35,8 +35,8 @@
   "api/migrations/020_feedback_grants.sql": [
    "tests/test_upgrade_review.py"
   ],
-  "api/tests": [
-   "tests/test_testmap.py"
+  "api/server.js": [
+   "tests/test_scan_secrets.py"
   ],
   "docs/INTEGRATION-CONTRACT.md": [
    "tests/test_cross_network.py"
@@ -72,6 +72,7 @@
    "tests/test_gui_setup.py",
    "tests/test_nodes_table.py",
    "tests/test_rollback.py",
+   "tests/test_speeds_view.py",
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
    "tests/test_upgrade_review.py",
@@ -207,6 +208,8 @@
    "public_html/hivv-cli.py"
   ],
   "tests/test_scan_secrets.py": [
+   "api/server.js",
+   "api/x.js",
    "scripts/scan_secrets.py"
   ],
   "tests/test_setup_prompts.py": [
@@ -220,11 +223,13 @@
    "scripts/setup-local.sh",
    "setup.sh"
   ],
+  "tests/test_speeds_view.py": [
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_sync_review.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_testmap.py": [
-   "api/tests",
    "public_html/chat/app.js",
    "public_html/hivv-cli.py",
    "scripts/lib/deps.sh"

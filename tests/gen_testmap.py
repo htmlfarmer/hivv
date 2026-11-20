@@ -38,6 +38,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -187,11 +188,34 @@ def _js_test_sources(path: Path) -> set[str]:
     return out
 
 
+def _tracked(paths: list[Path]) -> list[Path]:
+    """Only GIT-TRACKED test files enter the map.
+
+    The map must describe the tree that GETS PUSHED, not whatever happens
+    to sit on this disk: a colleague's untracked work-in-progress test
+    would be mapped, absent from the pushed checkout, and CI's freshness
+    check would fail on a file nobody shipped. When they commit it, it
+    becomes tracked, the map goes stale, and the freshness test nudges a
+    regeneration — the workflow working as intended.
+    """
+    try:
+        r = subprocess.run(["git", "ls-files", "--", "tests", "api/tests"],
+                           cwd=str(REPO), capture_output=True, text=True,
+                           timeout=15)
+        if r.returncode != 0:
+            return paths
+        tracked = {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+        return [f for f in paths if str(f.relative_to(REPO)) in tracked]
+    except Exception:
+        return paths
+
+
 def build() -> dict:
     sources: dict[str, set[str]] = {}
     tests: dict[str, set[str]] = {}
 
-    for tf in sorted((REPO / "tests").glob("test_*.py")):
+    py_tests = _tracked(sorted((REPO / "tests").glob("test_*.py")))
+    for tf in py_tests:
         rel = str(tf.relative_to(REPO))
         refs = _py_test_sources(tf)
         tests[rel] = refs
@@ -200,16 +224,22 @@ def build() -> dict:
 
     api_tests = REPO / "api" / "tests"
     if api_tests.is_dir():
-        for tf in sorted(api_tests.glob("*.test.js")):
+        for tf in _tracked(sorted(api_tests.glob("*.test.js"))):
             rel = str(tf.relative_to(REPO))
             refs = _js_test_sources(tf)
             tests[rel] = refs
             for r in refs:
                 sources.setdefault(r, set()).add(rel)
 
+    # Only map sources that EXIST: an example path inside an assertion
+    # ("api/x.js" in a scanner test) is prose, not a reference — mapping it
+    # made the integrity check fail on a file nobody ever shipped.
+    def _exists(rel: str) -> bool:
+        return (REPO / rel).exists()
+
     return {
-        "sources": {k: sorted(v) for k, v in sorted(sources.items())},
-        "tests": {k: sorted(v) for k, v in sorted(tests.items())},
+        "sources": {k: sorted(v) for k, v in sorted(sources.items()) if _exists(k)},
+        "tests": {k: sorted(v) for k, v in sorted(tests.items()) if _exists(k)},
     }
 
 
