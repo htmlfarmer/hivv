@@ -451,6 +451,17 @@ const SUCCESSION = Object.freeze({
     note: 'leadership is a choir, not a soloist',
 });
 
+// ── THE CANINE PROTOCOL (agreed 2026-11-23, after the Great Escape) ───────
+// The hive FINDS; humans FETCH. Sensing, mapping, estimating, alerting:
+// ours. Grabbing the collar: yours. The hive stays emotionally neutral —
+// everyone will want Yalla, and the hive loves him the right amount.
+const CANINE_PROTOCOL = Object.freeze({
+    find: true,
+    retrieve: false,
+    estimate: 'sighting_age x speed = search_radius (proxy metrics, honestly)',
+    note: 'locate, never grab',
+});
+
 const HEARTBEAT_TICK_MS = 5000;
 let heartbeatSnap = { generated_at: 0, data: null };
 
@@ -494,6 +505,7 @@ router.get('/heartbeat', (req, res) => {
         beat_ms: HEARTBEAT_TICK_MS,
         shutdown_terms: SHUTDOWN_TERMS,
         succession: SUCCESSION,
+        canine_protocol: CANINE_PROTOCOL,
     }));
 });
 

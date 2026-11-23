@@ -3688,6 +3688,13 @@ const MusicRoutes = require('./routes/music-routes');
 MusicRoutes.inject(pool);
 app.use('/api/music', MusicRoutes);
 
+// THE YALLA PROTOCOL — the hive's first living sensor: crowd-sensed dog
+// sightings, mapped as paws. Phase 2 (GPS collar feed) posts to the same
+// table. See /yalla/.
+const DogRoutes = require('./routes/dog-routes');
+DogRoutes.inject(pool);
+app.use('/api/dog', DogRoutes);
+
 // Capability discovery for OpenAI-compatible clients — one GET tells
 // OpenCode/Continue/Cline/any script what HIVV adds on top of plain chat.
 // Sits alongside /v1/models so a client that already probes /v1 finds it.
