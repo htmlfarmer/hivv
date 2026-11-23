@@ -504,18 +504,47 @@ class TestWatchdog:
         assert "restarting hivv-ai-gateway" in log.read_text()
 
     def test_one_blip_never_restarts(self):
-        """fail → recover: counter clears, no restart line ever appears."""
-        state = tempfile.mkdtemp(prefix="hivv-wd-")
-        dead = {**os.environ,
-                "HIVV_HEALTH_URL": "http://127.0.0.1:59999/api/health",
-                "HIVV_HEALTH_TIMEOUT": "2", "HIVV_WATCHDOG_STATE": state,
-                "PM2_BIN": "/bin/true"}
-        alive = {**dead, "HIVV_HEALTH_URL": "http://127.0.0.1:3011/api/health"}
-        subprocess.run(["bash", str(WATCHDOG)], env=dead,
-                       timeout=30, capture_output=True)
-        subprocess.run(["bash", str(WATCHDOG)], env=alive,
-                       timeout=30, capture_output=True)
-        log = Path(state) / "health-watchdog.log"
-        assert "recovered after 1" in log.read_text()
-        assert "restarting" not in log.read_text()
+        """fail → recover: counter clears, no restart line ever appears.
+
+        The 'alive' leg serves ITS OWN health endpoint on an ephemeral
+        port. Pointing it at the real gateway (:3011) made this pass on a
+        dev box and FAIL in CI, where no gateway runs — the 'recovery'
+        tick failed too, crossed the threshold, and logged a restart
+        (2026-11-22). A blip test must control BOTH halves of the blip."""
+        import http.server
+        import threading
+
+        class _HealthHandler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = b'{"status":"healthy"}'
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_a):   # keep pytest output clean
+                pass
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _HealthHandler)
+        port = srv.server_address[1]
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            state = tempfile.mkdtemp(prefix="hivv-wd-")
+            dead = {**os.environ,
+                    "HIVV_HEALTH_URL": "http://127.0.0.1:59999/api/health",
+                    "HIVV_HEALTH_TIMEOUT": "2", "HIVV_WATCHDOG_STATE": state,
+                    "PM2_BIN": "/bin/true"}
+            alive = {**dead,
+                     "HIVV_HEALTH_URL": f"http://127.0.0.1:{port}/api/health"}
+            subprocess.run(["bash", str(WATCHDOG)], env=dead,
+                           timeout=30, capture_output=True)
+            subprocess.run(["bash", str(WATCHDOG)], env=alive,
+                           timeout=30, capture_output=True)
+            log_text = (Path(state) / "health-watchdog.log").read_text()
+            assert "recovered after 1" in log_text
+            assert "restarting" not in log_text
+        finally:
+            srv.shutdown()
+            srv.server_close()
         assert not (Path(state) / ".health-watchdog-fails").exists()
