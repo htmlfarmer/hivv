@@ -64,9 +64,34 @@ class TestTheDirectPathOffersTools:
             "offered nothing and answers \"I do not have access to real-time "
             "information\" about today's date")
 
-    def test_the_schemas_come_from_the_hubs_catalog(self):
+    def test_the_schemas_are_never_gated_on_the_local_server(self):
+        """THE wahi BUG, pinned.
+
+        The schemas used to be attached only when the local tool server was
+        running:
+
+            _tool_schemas_list = _tool_schemas() if tools_running else None
+
+        So when that server could not start — Permission denied writing
+        /usr/local/lib/hivv/hivv-tools.py on a root-owned install — the model
+        was offered NO tools at all and answered "I do not have access to
+        real-time information" about today's date. The schemas come from the
+        HUB and execution falls back to the hub; the local server is an
+        optimisation, never a prerequisite.
+        """
         src = _src()
-        assert "_tool_schemas_list = _tool_schemas() if tools_running else None" in src
+        assert "_tool_schemas_list = _tool_schemas()" in src, (
+            "the direct path must attach the hub's schemas unconditionally")
+        assert "if tools_running else None" not in src, (
+            "the tool schemas are gated on the local server again — a server "
+            "we cannot start must not cost the model its clock")
+
+    def test_the_hub_path_attaches_tools_too(self):
+        src = _src()
+        assert 'req_body["tools"] = _tool_schemas()' in src, (
+            "the hub chat path must offer tools whether or not the local "
+            "server is running")
+        assert "if tools_running:\n        req_body[\"tools\"]" not in src
 
     def test_the_helpers_exist(self):
         mod = _load_cli()

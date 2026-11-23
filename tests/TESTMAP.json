@@ -93,6 +93,7 @@
    "tests/test_speeds_view.py",
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
+   "tests/test_tools_test_cmd.py",
    "tests/test_upgrade_review.py",
    "tests/test_user_install_cmd.py",
    "tests/test_verify_drift.py"
@@ -294,6 +295,9 @@
   "tests/test_tool_loop.py": [],
   "tests/test_toolkit.py": [
    "api"
+  ],
+  "tests/test_tools_test_cmd.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_upgrade_review.py": [
    "api/migrations/020_feedback_grants.sql",
