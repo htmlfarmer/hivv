@@ -785,3 +785,14 @@ benchmark: `scripts/bridge-bench.sh N` (N ≤ 20, serial, 10s apart).
 audit: no `/api/bridge/*` route remains in the HIVV-API-002 missing list.
 Pre-existing failures (proven at pristine HEAD, unrelated): `test_bee_chat`
 (8080/8090 backstop), `test_verify_drift` cascade.
+
+### Git identity for cross-hive work
+
+Commits this hive makes in OTHER repositories (KwaaiNet, blnq, …) are
+authored as **`hivv.org <bridge@hivv.org>`** and carry the trailer
+**`Hive: hivv.org`** in the message — the naming law ("a hive is named by
+its own domain") applied to git, so cross-hive contributions are auditable
+by construction: `git log --grep "Hive: hivv.org"`. History is never
+rewritten to retrofit this; the standard starts with the commit that
+records it.
+
