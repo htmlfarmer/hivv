@@ -10,6 +10,13 @@ on:
     paths:
       - 'api/**'
       - 'scripts/setup-local.*'
+      # shipped files the suite reads as CONTRACTS (canaries, fixtures,
+      # rescue E2E, watchdog tests) — a change to them must re-run the gate
+      - 'scripts/lib/deps.sh'
+      - 'scripts/health-watchdog.sh'
+      - 'setup.sh'
+      - 'public_html/rescue'
+      - 'public_html/install-hivv.sh'
       - 'tests/**'
       - 'public_html/hivv-cli.py'
       # a change to this file must re-run the gate it defines
@@ -18,6 +25,11 @@ on:
     paths:
       - 'api/**'
       - 'scripts/setup-local.*'
+      - 'scripts/lib/deps.sh'
+      - 'scripts/health-watchdog.sh'
+      - 'setup.sh'
+      - 'public_html/rescue'
+      - 'public_html/install-hivv.sh'
       - 'tests/**'
       - '.github/workflows/local-install.yml'
   workflow_dispatch:
