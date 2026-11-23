@@ -23,6 +23,8 @@ api/.lyrz-api-key
 api/.p2p.json
 api/data/nodes.json
 api/data/inbox.json
+# the chat upload store — documents people uploaded must NEVER be committed
+api/data/uploads/
 public_html/.secrets.key
 
 # ── runtime data ───────────────────────────────────────────────────────────

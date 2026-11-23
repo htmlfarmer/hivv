@@ -28,8 +28,17 @@ HEALTH_URL="${HIVV_HEALTH_URL:-http://127.0.0.1:3011/api/health}"
 TIMEOUT_S="${HIVV_HEALTH_TIMEOUT:-8}"
 FAIL_THRESHOLD="${HIVV_HEALTH_FAILS:-2}"
 COOLDOWN_S=600
-PM2_BIN="${PM2_BIN:-$HOME/.local/bin/pm2}"
-[ -x "$PM2_BIN" ] || PM2_BIN="$(command -v pm2 || true)"
+# An EXPLICITLY-set PM2_BIN is trusted as-is — it is the caller's choice
+# (tests inject /bin/true; an operator may point at a specific pm2). Only
+# the DEFAULT gets validated: resolving the default unconditionally could
+# erase an explicit override, and on the macOS runner that is exactly what
+# happened — the dead-endpoint test set PM2_BIN=/bin/true, the script
+# re-resolved it to empty ("pm2 not found") and logged CRITICAL instead of
+# issuing the restart (CI, 2026-11-23).
+if [ -z "${PM2_BIN:-}" ]; then
+    PM2_BIN="$HOME/.local/bin/pm2"
+    [ -x "$PM2_BIN" ] || PM2_BIN="$(command -v pm2 || true)"
+fi
 STATE_DIR="${HIVV_WATCHDOG_STATE:-/var/www/vhosts/hivv.org/logs}"
 LOG="$STATE_DIR/health-watchdog.log"
 COUNT_FILE="$STATE_DIR/.health-watchdog-fails"

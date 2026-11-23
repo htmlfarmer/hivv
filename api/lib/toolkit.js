@@ -587,6 +587,24 @@ async function _textParser(args) {
         else if (detected === 'xml') parsed = textParse.parseXml(raw);
         else if (detected === 'yaml') parsed = textParse.parseYaml(raw);
         else if (detected === 'csv') parsed = fileExtract.csvToObjects(raw);
+        else if (detected === 'text') {
+            // Unstructured prose is not a failure — there is simply nothing
+            // to structure. Hand it back with the entities a caller usually
+            // wanted (urls, emails, dates) instead of an error: a model that
+            // hands prose to the parser should get the prose back, not a
+            // failure it has to explain to the user.
+            return {
+                ok: true,
+                data: {
+                    operation: 'parse',
+                    detected_format: 'text',
+                    summary: { type: 'string', length: raw.length },
+                    parsed: raw,
+                    note: 'no structured format detected — pass format: json|csv|xml|yaml to force one',
+                    extracted: textParse.extractEntities(raw),
+                },
+            };
+        }
     } catch (e) {
         return { ok: false, error: `could not parse as ${detected}: ${e.message}` };
     }

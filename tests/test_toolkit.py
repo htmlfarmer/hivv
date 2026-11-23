@@ -258,6 +258,36 @@ class TestTextParse(unittest.TestCase):
         )
         self.assertEqual(out, ["json", "csv", "xml", "yaml", "text"])
 
+    def test_the_tool_returns_plain_text_instead_of_failing(self):
+        """Unstructured prose is not a parse failure.
+
+        The tool used to answer \'could not parse the input as text\' — a
+        model that handed prose to the parser got an error it then had to
+        explain to the user, instead of the prose back.
+        """
+        out = _node(
+            "const t=require('./lib/toolkit');"
+            "t.execute('text_parser',{input:'just some words here'},"
+            "{principal:'t',skipGate:true}).then(r=>console.log(JSON.stringify(r)));"
+        )
+        self.assertTrue(out["ok"], out.get("error"))
+        self.assertEqual(out["data"]["detected_format"], "text")
+        self.assertEqual(out["data"]["parsed"], "just some words here")
+        # the entities a caller usually wanted come along too
+        self.assertIn("extracted", out["data"])
+
+    def test_real_csv_parses(self):
+        """A CSV with REAL newlines (not the two characters backslash-n)."""
+        out = _node(
+            "const t=require('./lib/toolkit');"
+            "t.execute('text_parser',{input:'name,age\\nada,36\\ngrace,45'},"
+            "{principal:'t',skipGate:true}).then(r=>console.log(JSON.stringify(r)));"
+        )
+        self.assertTrue(out["ok"], out.get("error"))
+        self.assertEqual(out["data"]["detected_format"], "csv")
+        self.assertEqual(out["data"]["parsed"],
+                         [{"name": "ada", "age": "36"}, {"name": "grace", "age": "45"}])
+
     def test_entity_extraction(self):
         out = _node(
             "const t=require('./lib/textparse');"

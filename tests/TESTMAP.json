@@ -44,9 +44,6 @@
   "api/migrations/021_upgrade_diagnostics.sql": [
    "tests/test_failure_diagnostics.py"
   ],
-  "api/routes/control-routes.js": [
-   "tests/test_llm_build_tools.py"
-  ],
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
   ],
@@ -84,6 +81,7 @@
    "tests/test_cli_parser.py",
    "tests/test_contributors.py",
    "tests/test_direct_messaging.py",
+   "tests/test_direct_tool_loop.py",
    "tests/test_failure_diagnostics.py",
    "tests/test_fast_scan_parity.py",
    "tests/test_gui_e2e.py",
@@ -214,6 +212,9 @@
    "AGENTS.md",
    "public_html/hivv-cli.py"
   ],
+  "tests/test_direct_tool_loop.py": [
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_failure_diagnostics.py": [
    "api/migrations/021_upgrade_diagnostics.sql",
    "api/routes/honey-routes.js",
@@ -232,7 +233,6 @@
    "public_html/hivv-gui-setup.py"
   ],
   "tests/test_llm_build_tools.py": [
-   "api/routes/control-routes.js",
    "public_html/hivv-cli.py",
    "public_html/install-hivv.sh",
    "scripts/lib/deps.sh"

@@ -491,12 +491,21 @@ class TestWatchdog:
 
     def test_dead_endpoint_is_detected_live(self):
         """Functional: two ticks against a closed port must log a restart."""
+        # A pm2 shim WE create — /bin/true on the macOS runner somehow
+        # failed the script's -x re-validation, PM2_BIN re-resolved to
+        # empty, and the run logged "pm2 not found" instead of restarting
+        # (CI, 2026-11-23). A shim in our own tmp dir is executable by
+        # construction on every OS.
+        state = tempfile.mkdtemp(prefix="hivv-wd-")
+        shim = Path(state) / "pm2-shim"
+        shim.write_text("#!/bin/sh\nexit 0\n")
+        shim.chmod(0o755)
         env = {**os.environ,
                "HIVV_HEALTH_URL": "http://127.0.0.1:59999/api/health",
                "HIVV_HEALTH_TIMEOUT": "2",
                "HIVV_HEALTH_FAILS": "2",
-               "HIVV_WATCHDOG_STATE": tempfile.mkdtemp(prefix="hivv-wd-"),
-               "PM2_BIN": "/bin/true"}
+               "HIVV_WATCHDOG_STATE": state,
+               "PM2_BIN": str(shim)}
         for _ in range(2):
             subprocess.run(["bash", str(WATCHDOG)], env=env,
                            timeout=30, capture_output=True)

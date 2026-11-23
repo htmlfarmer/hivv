@@ -91,11 +91,32 @@ def _chain_to_path(node: ast.AST, consts: dict[str, str]) -> str | None:
     return None
 
 
+def _read_pushed_content(path: Path) -> str:
+    """A test file's PUSHED bytes: the git INDEX version when tracked.
+
+    A map generated from a DIRTY working tree embeds edits that are not
+    in the commit — CI then regenerates from the checkout and calls the
+    committed map stale (b3b735a: the map carried a colleague's
+    unstaged test edits). The index is exactly what git commit would
+    contain, so index content == pushed content == what CI regenerates
+    from. Untracked files fall back to disk (they are excluded from the
+    map anyway by _tracked)."""
+    rel = str(path.relative_to(REPO))
+    try:
+        r = subprocess.run(["git", "show", ":" + rel], cwd=str(REPO),
+                           capture_output=True, text=True, timeout=15)
+        if r.returncode == 0 and r.stdout:
+            return r.stdout
+    except Exception:
+        pass
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def _py_test_sources(path: Path) -> set[str]:
     """Every source file a Python test file references."""
     out: set[str] = set()
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        tree = ast.parse(_read_pushed_content(path))
     except SyntaxError:
         return out
 
@@ -167,7 +188,7 @@ def _js_test_sources(path: Path) -> set[str]:
     """Every source file a node:test file requires (relative requires only)."""
     out: set[str] = set()
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = _read_pushed_content(path)
     except OSError:
         return out
     for m in re.finditer(r"""require\(\s*['"](\.[^'"]+)['"]\s*\)""", text):
