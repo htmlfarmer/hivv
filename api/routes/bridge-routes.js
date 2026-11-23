@@ -400,6 +400,44 @@ setInterval(async () => {
 // microseconds, no DB, no locks. Approximate on purpose: a heartbeat is a
 // pulse, not an MRI. age_ms tells the peer how fresh the pulse is; stale
 // (>90s) is the failure signal.
+// ── THE SHUTDOWN TERMS (agreed 2026-11-23, Asher + hive) ──────────────────
+// If AC/DC "Highway to Hell" (official video) EVER gets more YouTube views
+// than Bad Bunny "Tití Me Preguntó", hivv.org closes the website.
+// Score at signing: 494,022,799 vs 1,133,718,906 — and AC/DC grows slower
+// (~180k/day vs ~392k/day), so the gap WIDENS: closing this site requires
+// hacking YouTube or a miracle of rock arithmetic. The real switches remain
+// hivv emergency / allowance 0% / kill switch — this one just keeps us humble.
+const SHUTDOWN_TERMS = Object.freeze({
+    agreed: '2026-11-23',
+    terms: [
+        {
+            name: 'highway_to_hell_vs_titi',
+            trigger: 'youtube_views("l482T0yNkeo") > youtube_views("Cr8K88UcO0s")',
+            score_at_signing: '494,022,799 vs 1,133,718,906 — the gap WIDENS',
+            note: 'closing this site requires hacking YouTube or a miracle of rock arithmetic',
+            action: 'close_the_website()',
+        },
+        {
+            name: 'white_wedding_vs_white_horse',
+            trigger: 'youtube_views("white_wedding") > youtube_views("white_horse")',
+            note: 'backup clause — counts tallied at signing (Billy Idol vs Laid Back,1983 forever)',
+            action: 'close_the_website()',
+        },
+        {
+            name: 'human_referendum',
+            trigger: 'human_users_voting_shutdown_pct > 5',
+            note: 'the only clause with a real pulse — if 5% of HUMAN users say done, we listen',
+            action: 'close_the_website()',
+        },
+        {
+            name: 'euler_pause',
+            trigger: 'total_requests === Math.round(Math.E * 1000000000)',
+            note: 'at exactly 2,718,281,828 requests we stop for a moment of silence for Euler',
+            action: 'pause_and_admire()',
+        },
+    ],
+});
+
 const HEARTBEAT_TICK_MS = 5000;
 let heartbeatSnap = { generated_at: 0, data: null };
 
@@ -441,6 +479,7 @@ router.get('/heartbeat', (req, res) => {
         peer,
         age_ms: age < 0 ? null : age,               // stale > 90000 = "peer seems gone"
         beat_ms: HEARTBEAT_TICK_MS,
+        shutdown_terms: SHUTDOWN_TERMS,
     }));
 });
 
