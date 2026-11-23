@@ -564,9 +564,20 @@ class TestRepairAllowlist:
     def test_repair_ops_is_exact_allowlist(self):
         # A hole here = arbitrary code via "signed" plans. selftest = the
         # deliberate NON-shell remote op (runs a fixed battery, reports back).
+        # bootstrap_user_install = the escape hatch for a box whose CLI is
+        # too old to update itself: it writes the CURRENT client into the
+        # USER's own install (~/.local), never the root-owned one, and never
+        # escalates privilege.
         assert hivv.REPAIR_OPS == {"cli_update", "agent_restart",
                                    "reap_duplicates", "service_restart",
-                                   "selftest"}
+                                   "selftest", "bootstrap_user_install"}
+
+    def test_the_hub_signs_the_same_allowlist(self):
+        # The hub is what signs the plans — if its allowlist and the bee's
+        # disagree, one side refuses a plan the other happily made.
+        hub = (REPO / "api" / "routes" / "control-routes.js").read_text()
+        for op in sorted(hivv.REPAIR_OPS):
+            assert f"'{op}'" in hub, f"the hub does not allow the '{op}' repair op"
 
     def test_repair_units_is_finite_allowlist(self):
         units = getattr(hivv, "REPAIR_UNITS", None)

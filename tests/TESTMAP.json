@@ -1,5 +1,11 @@
 {
  "sources": {
+  "AGENTS.md": [
+   "tests/test_direct_messaging.py"
+  ],
+  "api": [
+   "tests/test_toolkit.py"
+  ],
   "api/lib/brainboard.js": [
    "api/tests/brainboard.test.js"
   ],
@@ -35,7 +41,14 @@
   "api/migrations/020_feedback_grants.sql": [
    "tests/test_upgrade_review.py"
   ],
+  "api/migrations/021_upgrade_diagnostics.sql": [
+   "tests/test_failure_diagnostics.py"
+  ],
+  "api/routes/honey-routes.js": [
+   "tests/test_failure_diagnostics.py"
+  ],
   "api/server.js": [
+   "tests/test_nodes_offline.py",
    "tests/test_scan_secrets.py"
   ],
   "docs/INTEGRATION-CONTRACT.md": [
@@ -67,9 +80,13 @@
    "tests/test_cli_link.py",
    "tests/test_cli_parser.py",
    "tests/test_contributors.py",
+   "tests/test_direct_messaging.py",
+   "tests/test_failure_diagnostics.py",
    "tests/test_fast_scan_parity.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
+   "tests/test_llm_build_tools.py",
+   "tests/test_nodes_offline.py",
    "tests/test_nodes_table.py",
    "tests/test_rollback.py",
    "tests/test_speeds_view.py",
@@ -82,15 +99,22 @@
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py"
   ],
+  "public_html/install-hivv.sh": [
+   "tests/test_llm_build_tools.py"
+  ],
   "public_html/panel.html": [
    "tests/test_panel_update.py"
   ],
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
   ],
+  "scripts/health-watchdog.sh": [
+   "tests/test_nodes_offline.py"
+  ],
   "scripts/lib/deps.sh": [
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
+   "tests/test_llm_build_tools.py",
    "tests/test_setup_prompts.py",
    "tests/test_setup_scripts.py",
    "tests/test_testmap.py"
@@ -122,6 +146,7 @@
   "api/tests/circuit-breaker.test.js": [
    "api/lib/circuit-breaker.js"
   ],
+  "api/tests/context-budget.test.js": [],
   "api/tests/crypto-utils.test.js": [
    "api/lib/crypto-utils.js"
   ],
@@ -182,6 +207,15 @@
   "tests/test_cross_network.py": [
    "docs/INTEGRATION-CONTRACT.md"
   ],
+  "tests/test_direct_messaging.py": [
+   "AGENTS.md",
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_failure_diagnostics.py": [
+   "api/migrations/021_upgrade_diagnostics.sql",
+   "api/routes/honey-routes.js",
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_fast_scan_parity.py": [
    "api/lib/fast-scan.js",
    "public_html/hivv-cli.py"
@@ -193,6 +227,16 @@
   "tests/test_gui_setup.py": [
    "public_html/hivv-cli.py",
    "public_html/hivv-gui-setup.py"
+  ],
+  "tests/test_llm_build_tools.py": [
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "scripts/lib/deps.sh"
+  ],
+  "tests/test_nodes_offline.py": [
+   "api/server.js",
+   "public_html/hivv-cli.py",
+   "scripts/health-watchdog.sh"
   ],
   "tests/test_nodes_table.py": [
    "public_html/hivv-cli.py"
@@ -233,6 +277,9 @@
    "public_html/chat/app.js",
    "public_html/hivv-cli.py",
    "scripts/lib/deps.sh"
+  ],
+  "tests/test_toolkit.py": [
+   "api"
   ],
   "tests/test_upgrade_review.py": [
    "api/migrations/020_feedback_grants.sql",

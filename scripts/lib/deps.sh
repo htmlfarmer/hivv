@@ -674,6 +674,67 @@ d_install_pm2() {
     return 1
 }
 
+# ── build tools (git + cmake) — for building llama.cpp from source ───────
+# THE FAILURE THIS FIXES
+# ----------------------
+# 2026-11-21 (asher@wahi): `hivv install llm` on a box without git died with
+#   FileNotFoundError: [Errno 2] No such file or directory: 'git'
+# — a Python traceback mid-install with no way forward. cmake was equally
+# unchecked: a box with git but no cmake failed one step later with the
+# same traceback.
+#
+# The contract (same as everything else in this file): auto-install when we
+# safely can, otherwise print the EXACT copy-paste command and return 1.
+# NEVER prompt for a password — `sudo -n` only, or CI hangs.
+d_have_build_tools() {
+    command -v git >/dev/null 2>&1 && command -v cmake >/dev/null 2>&1
+}
+
+d_build_tools_hint() {
+    case "$D_PKG" in
+        apt)    dcmd "sudo apt-get update && sudo apt-get install -y git cmake" ;;
+        dnf)    dcmd "sudo dnf install -y git cmake" ;;
+        yum)    dcmd "sudo yum install -y git cmake" ;;
+        pacman) dcmd "sudo pacman -S --noconfirm git cmake" ;;
+        apk)    dcmd "sudo apk add git cmake" ;;
+        zypper) dcmd "sudo zypper --non-interactive install git cmake" ;;
+        brew)   dcmd "brew install git cmake" ;;
+        *)      dcmd "install git and cmake with your package manager" ;;
+    esac
+}
+
+d_install_build_tools() {
+    if d_have_build_tools; then
+        dok "build tools present (git, cmake)"
+        return 0
+    fi
+
+    dwarn "git and/or cmake missing — needed to build llama.cpp from source"
+
+    case "$D_PKG" in
+        apt)
+            d_run_privileged apt-get update >/dev/null 2>&1 || true
+            d_run_privileged apt-get install -y git cmake >/dev/null 2>&1
+            ;;
+        dnf)    d_run_privileged dnf install -y git cmake >/dev/null 2>&1 ;;
+        yum)    d_run_privileged yum install -y git cmake >/dev/null 2>&1 ;;
+        pacman) d_run_privileged pacman -S --noconfirm git cmake >/dev/null 2>&1 ;;
+        apk)    d_run_privileged apk add --no-cache git cmake >/dev/null 2>&1 ;;
+        zypper) d_run_privileged zypper --non-interactive install git cmake >/dev/null 2>&1 ;;
+        brew)   brew install git cmake >/dev/null 2>&1 ;;
+    esac
+
+    if d_have_build_tools; then
+        dok "installed build tools (git, cmake)"
+        return 0
+    fi
+    printf '\n  %s!%s Could not install the build tools automatically.\n' "$D_YLW" "$D_RST"
+    printf '    %sRun this to build the local LLM:%s\n' "$D_DIM" "$D_RST"
+    d_build_tools_hint
+    printf '\n'
+    return 1
+}
+
 # ── convenience: ensure everything the gateway needs ─────────────────────
 # Returns 0 if node is present (the only hard requirement). Everything else
 # is best-effort and never blocks.

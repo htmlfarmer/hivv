@@ -466,7 +466,16 @@ router.post('/update-all', express.json(), (req, res) => {
 // The bee independently re-verifies the HMAC, ttl, nonce and op allowlist —
 // this side only decides what may be requested and signs it with the node's
 // own secret, so a forged plan can't be injected even with control access.
-const REPAIR_OPS = new Set(['cli_update', 'agent_restart', 'reap_duplicates', 'service_restart', 'selftest']);
+// `bootstrap_user_install` — THE ESCAPE HATCH for a box whose CLI is too old
+// to update itself. A system-wide install (/usr/local/lib/hivv, root-owned)
+// with a USER-scoped agent means the user can never write the install dir,
+// and the old CLI dies on the .bak write — so the box can never self-heal
+// (asher@wahi 2026-11-21/22: thirteen identical failed update rows). This
+// op installs the CURRENT CLI into the user's OWN ~/.local install, which
+// the user CAN write. It never escalates privilege and never touches the
+// root-owned copy.
+const REPAIR_OPS = new Set(['cli_update', 'agent_restart', 'reap_duplicates', 'service_restart', 'selftest',
+                            'bootstrap_user_install']);
 const REPAIR_UNITS = new Set(['llama.service', 'llama-server.service', 'ollama.service',
                               'mcp-bridge.service', 'mcp-web-server.service',
                               'kokoro-tts-server.service', 'whisper-stt-server.service']);

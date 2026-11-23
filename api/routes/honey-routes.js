@@ -4,6 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 
 const honey = require('../lib/honey');
 const perf = require('../lib/perf');
@@ -12,6 +13,66 @@ const { buildBrainBoard } = require('../lib/brainboard');
 let orchestrator = null;
 let usageTracker = null;
 router.inject = (orch, ut) => { orchestrator = orch; usageTracker = ut; };
+
+// ── failure forensics (2026-11-22) ──────────────────────────────────────────
+// A failed upgrade now carries a structured `diagnostics` object from the CLI
+// (which step died, errno, file ownership, euid, platform, the fix). It comes
+// from a CLIENT: whitelist the keys and cap every string — never store
+// arbitrary JSON in a table the public database-browser serves.
+const DIAG_KEYS = {
+  step: 40, target: 300, install: 12, dir_mode: 12, dir_owner: 60,
+  file_mode: 12, file_owner: 60, euid: 12, dir_writable: 6,
+  version_to: 40, os: 60, arch: 40, python: 40, free_mb: 14,
+  tip: 400, errno: 10, error_class: 60, signature: 64,
+};
+function sanitizeDiagnostics(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {};
+  for (const [k, max] of Object.entries(DIAG_KEYS)) {
+    if (!(k in raw)) continue;
+    const v = raw[k];
+    if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === 'boolean') out[k] = v;
+    else if (typeof v === 'string' && v) out[k] = v.slice(0, max);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// Old CLIs (pre-forensics) send no `signature` — derive the SAME grouping key
+// server-side so their repeated failures collapse too. wahi's nine identical
+// "Permission denied …/hivv-cli.py.bak" rows across nine hub shas were exactly
+// this gap: sha-dedup can't help when every attempt targets a NEW sha.
+// Mirrors the CLI's `_record_update_diag`: errno pulled out as its own field,
+// then quoted paths / hex / digits normalized away.
+function failureSignature(reason) {
+  try {
+    const r = String(reason || '');
+    const errno = (r.match(/\[Errno (\d+)\]/) || [])[1] || '';
+    const norm = r
+      .replace(/(['"])(?:[A-Za-z]:\\|\/|~)[^'"]*\1/g, "'<path>'")
+      .replace(/0x[0-9a-fA-F]+/g, '#')
+      .replace(/\d+/g, '#');
+    return crypto.createHash('sha256')
+      .update(`unknown|${errno}|${norm}`).digest('hex').slice(0, 16);
+  } catch {
+    return null;
+  }
+}
+
+const rateLimit = require('express-rate-limit');
+// Per-IP budget for report writes. The global /api/ limiter keys on a
+// CLIENT-CONTROLLED x-visitor-id (rotatable → a flooder sails past it), so
+// this route keys on req.ip instead — real client address, thanks to
+// app.set('trust proxy', 1) + Caddy's X-Forwarded-For. 60/min is ~20× the
+// busiest legitimate cadence (one bee per new hub sha).
+const reportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || 'unknown',
+  handler: (req, res) => res.status(429).json({ error: 'too_many_reports', retry_after: 60 }),
+});
 
 function _esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -240,7 +301,7 @@ router.get('/share-card/:node_id.svg', async (req, res) => {
 //   action=blocked → verdict was suspicious:  opens an `upgrade_suspicious` incident
 //   action=failed  → healthcheck/rollback:   opens an `upgrade_failed` incident
 // Incidents are deduped per node+type while active (same rule as /api/control/incidents).
-router.post('/upgrade-reports', express.json(), async (req, res) => {
+router.post('/upgrade-reports', express.json(), reportLimiter, async (req, res) => {
   try {
     const { pool } = require('../server');
     const b = req.body || {};
@@ -257,11 +318,72 @@ router.post('/upgrade-reports', express.json(), async (req, res) => {
     const votes = Array.isArray(b.votes)
       ? JSON.stringify(b.votes.slice(0, 12)) : '[]';
 
+    // Structured failure forensics from the bee (step/errno/ownership/fix).
+    // Sanitised through the whitelist above — client JSON never lands raw.
+    const diag = sanitizeDiagnostics(b.diagnostics);
+    const sigRaw = diag && diag.signature ? String(diag.signature) : '';
+    // A failed report ALWAYS gets a signature: from the bee when it sends one,
+    // derived from the reason otherwise (old CLIs) — so the collapse works for
+    // every client version, not just ones that already updated.
+    const signature = /^[0-9a-f]{8,64}$/.test(sigRaw)
+      ? sigRaw
+      : (action === 'failed' ? failureSignature(reason) : null);
+    const diagJson = diag ? JSON.stringify(diag) : null;
+
     // Known node? Reports from unknown ids still record, just without an incident
     // (a brand-new bee may report before we've seen its first heartbeat).
     const known = orchestrator?.nodes.get(nodeId);
 
-    if (pool) {
+    // Anti-spoof: a WRONG x-node-secret is a forged report — the real bee
+    // always presents the right one (http() attaches it from state). A MISSING
+    // secret is accepted on purpose: `sudo hivv update` (our own permission
+    // fix) may run with a different HOME and no state, and pre-2026-11-17
+    // CLIs send none. Volume is bounded by the limiter + caps below instead.
+    if (known && known.secret_seen && req.headers['x-node-secret']) {
+      const auth = require('../lib/node-auth').verify(known, req.headers['x-node-secret']);
+      if (!auth.ok) return res.status(403).json({ error: 'node secret mismatch' });
+    }
+
+    // Anti-spam: how many NEW rows this node may insert per 24h. Known bees
+    // earn a generous budget (legit worst case ≈ 1 row per hub sha); unknown
+    // ids get a tiny one so a rotating-node_id flooder can't fill the table.
+    const DAILY_CAP = known ? 50 : 10;
+    // SIGNATURE dedup (failed only): the same failure on this node within 24h
+    // bumps `attempts` instead of inserting — wahi's nine identical permission
+    // errors across nine hub shas collapse to ONE row reading attempts=9.
+    let collapsedAttempts = null;
+    if (pool && action === 'failed' && signature) {
+      const dupSig = await pool.query(
+        `SELECT id, attempts FROM hivv_upgrade_reviews
+          WHERE node_id = $1 AND action = 'failed' AND signature = $2
+            AND COALESCE(last_seen, created_at) > NOW() - INTERVAL '24 hours'
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [nodeId, signature]);
+      if (dupSig.rows.length) {
+        const att = (dupSig.rows[0].attempts || 1) + 1;
+        await pool.query(
+          `UPDATE hivv_upgrade_reviews
+              SET attempts = $2, last_seen = NOW(), reason = $3,
+                  to_sha256 = $4, diagnostics = $5
+            WHERE id = $1`,
+          [dupSig.rows[0].id, att, reason, sha || null, diagJson]);
+        collapsedAttempts = att;
+      }
+    }
+
+    if (pool && collapsedAttempts === null) {
+      // Hard per-node daily cap: bounds a runaway auto-loop AND a flooder
+      // inventing fresh shas/signatures. Signature-collapsed rows above never
+      // insert, so they never burn this budget.
+      const cnt = await pool.query(
+        `SELECT COUNT(*)::int AS n FROM hivv_upgrade_reviews
+          WHERE node_id = $1 AND created_at > NOW() - INTERVAL '24 hours'`,
+        [nodeId]);
+      if ((cnt.rows[0]?.n || 0) >= DAILY_CAP) {
+        return res.status(429).json({ error: 'daily report cap reached',
+                                      cap: DAILY_CAP, retry_after: 86400 });
+      }
       // Report-once: skip if the same (node, sha, action) already landed
       // within 24h. Client-side dedup also exists but can race the agent's
       // state.json heartbeat writes — this side has no such race.
@@ -276,11 +398,11 @@ router.post('/upgrade-reports', express.json(), async (req, res) => {
         await pool.query(`
           INSERT INTO hivv_upgrade_reviews
             (node_id, source, action, verdict, version_from, to_sha256, reason,
-             static_findings, votes)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+             static_findings, votes, diagnostics, signature, attempts, last_seen)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1,NOW())`,
           [nodeId, source, action, verdict,
            String(b.version_from || '').slice(0, 64), sha || null, reason,
-           findings, votes]);
+           findings, votes, diagJson, signature]);
       }
     }
 
@@ -295,26 +417,47 @@ router.post('/upgrade-reports', express.json(), async (req, res) => {
         ? `Suspicious CLI upgrade blocked on ${nodeId}`
         : `CLI upgrade failed on ${nodeId}`;
       const dup = await pool.query(
-        "SELECT id FROM hivv_incidents WHERE node_id=$1 AND incident_type=$2 AND state='active' LIMIT 1",
+        "SELECT id, description FROM hivv_incidents WHERE node_id=$1 AND incident_type=$2 AND state='active' LIMIT 1",
         [nodeId, itype]);
       if (dup.rows.length === 0) {
         const vsum = Array.isArray(b.votes) ? b.votes : [];
         const sus = vsum.filter(v => v && v.verdict === 'suspicious').length;
         const okv = vsum.filter(v => v && v.verdict === 'ok').length;
+        // The incident must say HOW TO FIX ITSELF when the bee told us —
+        // a bare "Permission denied" made the operator SSH in and guess.
+        const fix = diag && diag.tip ? ` — fix: ${diag.tip}` : '';
         const r = await pool.query(`
           INSERT INTO hivv_incidents (incident_type, severity, state, node_id, title, description, evidence)
           VALUES ($1, $2, 'active', $3, $4, $5, $6)
           RETURNING id, title, severity, incident_type`,
           [itype, severity, nodeId, title,
-           `${title} (${source} review): ${reason || 'no reason given'}`,
+           `${title} (${source} review): ${reason || 'no reason given'}${fix}`,
            JSON.stringify({ source, verdict, sha, reason, votes: vsum,
                             brains: `${okv} ok / ${sus} suspicious`,
-                            findings: Array.isArray(b.static_findings) ? b.static_findings.slice(0, 20) : [] })]);
+                            findings: Array.isArray(b.static_findings) ? b.static_findings.slice(0, 20) : [],
+                            attempts: collapsedAttempts || 1,
+                            ...(diag ? { diagnostics: diag } : {}) })]);
         incident = r.rows[0];
         console.log(`[UPGRADE-REVIEW] ${itype} on ${nodeId}: ${reason.slice(0, 120)}`);
+      } else if (collapsedAttempts !== null) {
+        // Same failure AGAIN while the incident is open: bump the attempt
+        // counter in place (one incident per node+type — never a new row).
+        const base = String(dup.rows[0].description || '').replace(/ \(attempt \d+\)$/, '');
+        await pool.query(
+          `UPDATE hivv_incidents
+              SET description = $2,
+                  evidence = CASE WHEN jsonb_typeof(evidence) = 'object'
+                                  THEN evidence ELSE '{}'::jsonb END
+                             || jsonb_build_object('attempts', $3::int,
+                                                   'diagnostics', $4::jsonb)
+            WHERE id = $1`,
+          [dup.rows[0].id, `${base} (attempt ${collapsedAttempts})`,
+           collapsedAttempts, diagJson || '{}']);
+        incident = { id: dup.rows[0].id, attempts: collapsedAttempts };
       }
     }
     res.status(201).json({ ok: true, recorded: Boolean(pool),
+                           attempts: collapsedAttempts || undefined,
                            incident: incident ? incident.id : null,
                            node: known ? (known.name || nodeId) : nodeId });
   } catch (e) {
@@ -342,9 +485,10 @@ router.get('/upgrade-reports', async (req, res) => {
     params.push(limit);
     const r = await pool.query(
       `SELECT node_id, source, action, verdict, version_from, to_sha256, reason,
-              static_findings, votes, created_at
+              static_findings, votes, diagnostics, signature, attempts,
+              last_seen, created_at
        FROM hivv_upgrade_reviews ${where}
-       ORDER BY created_at DESC
+       ORDER BY COALESCE(last_seen, created_at) DESC
        LIMIT $${params.length}`, params);
     res.set('Cache-Control', 'public, max-age=15');
     res.json({ total: r.rows.length, reports: r.rows });

@@ -25,6 +25,8 @@
 const express = require('express');
 const router = express.Router();
 
+const toolkit = require('../lib/toolkit');
+
 let pool = null;
 let routerRef = null;
 let capsLib = null;
@@ -158,10 +160,34 @@ router.get('/', async (req, res) => {
             hivv_tools: HIVV_TOOLS,
             hive_shared_tools: sharedTools,
             capabilities,
+            // The toolkit: twelve tools (plus sysinfo) that ANY model on the
+            // network can call. The hub attaches them automatically — a client
+            // does not have to implement a tool loop to use them.
+            toolkit: {
+                count: toolkit.allTools().length,
+                advertised: toolkit.advertisedTools().map((t) => t.name),
+                web_search_enabled: toolkit.isWebSearchEnabled(),
+                auto_attached: true,
+                opt_out: 'send "tools": false, or the header X-Hivv-Tools: off',
+                invoke: 'POST /api/tools/:tool/invoke',
+                catalog: 'GET /api/tools/catalog',
+                tools: toolkit.catalog().map((t) => ({
+                    name: t.name,
+                    aliases: t.aliases,
+                    description: t.description,
+                    capability: t.capability,
+                    tier: t.tier,
+                    default_verdict: t.default_verdict,
+                    advertised: t.advertised,
+                    runs_on: t.runs_on,
+                    parameters: t.parameters,
+                })),
+            },
             mcp: {
                 endpoint: '/mcp',
                 transport: 'streamable-http',
-                tools: ['chat', 'route', 'nodes', 'search', 'news', 'honey'],
+                tools: ['chat', 'route', 'nodes', 'search', 'news', 'honey']
+                    .concat(toolkit.advertisedTools().map((t) => t.name)),
             },
             receipts: {
                 'X-Hivv-Answered-By': 'which node/model answered, and how (direct|relay)',

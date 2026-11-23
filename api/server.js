@@ -31,10 +31,75 @@ const HIVV_IDENTITY_MSG = {
     content: 'IMPORTANT: When referring to the hivv.org distributed AI network, always write "HIVE" (pronounced /haɪv/, like a beehive) — never spell it as "HIV" or "H-I-V". The project name is HIVV and it rhymes with "hive".'
 };
 
-const TOOL_SYSTEM_MSG = {
-    role: 'system',
-    content: 'You have access to tools: news, search, fetch, calculate, get_time, and sysinfo. TOOL PRIORITY: news=1st for current events/news, search=1st for facts/history, fetch=2nd for specific URLs. EXACT RULES: 1) "news" query → use news tool with location. 2) "what\'s happening in [place]" → use news tool. 3) "what is [fact]" or Wikipedia-style → use search tool. 4) city landmarks/history → use search tool. 5) weather → use get_time tool. ALWAYS use the news tool when user mentions "news", "current events", "happening", "latest", or asks "what\'s up in [place]". Do NOT say you cannot access live news - use the news tool. Present results as natural language summaries, not raw data.'
-};
+// The toolkit briefing the model gets when tools are attached. It is built
+// from the LIVE catalog (api/lib/toolkit.js) so it can never name a tool
+// the hive does not have, or miss one it does.
+const TOOL_PRIORITY_RULES = [
+    'TOOL PRIORITY: current_time/calculator/timezone_convert for anything about the date, the time or arithmetic — never do it in your head.',
+    'web_fetch/http_request for a specific URL or an API; web_search for facts, history and current events.',
+    'file_read/file_search for documents the user uploaded; text_parser for JSON/CSV/XML/YAML.',
+    'code_interpreter for real computation, data wrangling and testing code.',
+    'memory to remember something for later; translate for languages.',
+    'EXACT RULES: 1) "news" / "current events" / "what\'s happening in [place]" → use web_search. 2) "what is [fact]" → use web_search. 3) a specific URL → use web_fetch. 4) any arithmetic → use the calculator. 5) "what time is it in [place]" → use current_time or timezone_convert.',
+    'Do NOT say you cannot access live news or the current date — you have the tools. Present results as natural language summaries, not raw data.',
+].join(' ');
+
+function toolSystemMessage() {
+    const tools = toolkitLib.advertisedTools();
+    if (!tools.length) return { role: 'system', content: 'You have no tools available on this request.' };
+    const names = tools.map((t) => t.name).join(', ');
+    return {
+        role: 'system',
+        content: `You have access to the HIVV toolkit: ${names}. ${TOOL_PRIORITY_RULES}`
+    };
+}
+
+/**
+ * A tool result the model can actually read: a bare number for maths, a
+ * readable line for the clock, structured JSON for everything else.
+ */
+function formatToolResultPublic(name, data) {
+    if (!data) return 'ok';
+    try {
+        if (name === 'calculator' && data.result !== undefined) return String(data.result);
+        if (name === 'current_time') {
+            return `${data.human} ${data.timezone} (${data.timezone_name}, UTC${data.utc_offset}) — ${data.day_of_week}`;
+        }
+        if (name === 'timezone_convert') {
+            const base = `${data.local} in ${data.timezone} (${data.timezone_name}, UTC${data.utc_offset})`;
+            return data.from_local ? `${base} — that is ${data.from_local} in ${data.from_timezone} (${data.difference})` : base;
+        }
+        return JSON.stringify(data, null, 2);
+    } catch (_e) {
+        return String(data);
+    }
+}
+
+/**
+ * Decide which tool schemas this request carries.
+ *
+ * The hub offers its toolkit BY DEFAULT — that is the whole point: a model
+ * on a bee, a cloud LLM, an MCP client — none of them should have to
+ * implement a tool loop to use a calculator.
+ *
+ * Opt out three ways:
+ *   "tools": false        in the request body
+ *   "tools": []          (an explicit empty list)
+ *   X-Hivv-Tools: off    (a header)
+ * Narrow it with X-Hivv-Tools: calculator,current_time
+ * A client that passes its OWN tools keeps them — we never clobber them.
+ */
+function resolveToolAttachment(req, tools) {
+    const toolHeader = String((req.headers && req.headers['x-hivv-tools']) || '').trim().toLowerCase();
+    if (toolHeader === 'off' || toolHeader === 'none' || toolHeader === '0' || tools === false) return null;
+    if (Array.isArray(tools) && tools.length === 0) return null;             // asked for none
+    if (Array.isArray(tools) && tools.length) return tools;                  // the client's own
+    if (toolHeader && !['hivv', 'auto', 'on', '1'].includes(toolHeader)) {
+        const only = toolHeader.split(',').map((s) => s.trim()).filter(Boolean);
+        return toolkitLib.openaiSchemas({ only });
+    }
+    return toolkitLib.openaiSchemas();
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -171,7 +236,17 @@ if (dbPassword) {
         user: process.env.DB_USER || 'hivv',
         password: dbPassword,
         max: parseInt(process.env.DB_POOL_MAX) || 20,
-        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT) || 30000
+        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT) || 30000,
+        // 2026-11-22 incident: a wedged pool (0 sockets to Postgres, clients
+        // never released) hung EVERY DB-backed route for 10 hours — including
+        // /api/health — while pm2 saw the process alive and never restarted
+        // it. Without these timeouts pg-pool queues waiters forever. Now a
+        // stuck pool fails in seconds (503) instead of hanging the site, and
+        // the watchdog cron can see it and restart us.
+        connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT) || 10000,
+        // server-side kill for statements stuck mid-flight (pg forwards this
+        // to Postgres on connect) — covers the "query never returns" half.
+        statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT) || 15000
     });
     pool.on('error', (err) => {
         // A dropped Postgres must NOT crash the gateway in local mode.
@@ -450,6 +525,22 @@ function getVisitorId(req, res) {
     }
 
     return visitorId;
+}
+
+// Operator test (loopback) or control-token holder. The only thing this
+// unlocks is the web-search bypass in api/lib/toolkit.js — and only when
+// HIVV_ENABLE_WEB_SEARCH=1. It is never open to the public.
+function isAdminRequest(req) {
+    try {
+        const ip = String((req && (req.ip || (req.connection && req.connection.remoteAddress))) || '');
+        if (ip.includes('127.0.0.1') || ip.includes('::1')) return true;
+        const token = req.headers['x-control-token'];
+        const expected = process.env.HIVV_CONTROL_TOKEN;
+        if (token && expected && String(token).length === String(expected).length) {
+            return require('crypto').timingSafeEqual(Buffer.from(String(token)), Buffer.from(String(expected)));
+        }
+    } catch (_e) { void _e; }
+    return false;
 }
 
 function getOrCreateAnonymousSession(req, res) {
@@ -819,7 +910,19 @@ app.get('/api/health', async (req, res) => {
         return;
     }
     try {
-        await pool.query('SELECT 1');
+        // Health must NOT hang with the pool (2026-11-22: the pool wedged and
+        // /api/health hung with it, so no monitor could even SEE the outage).
+        // Race the probe against a hard 3s deadline → fast 503 a watchdog can
+        // act on. The timer is unref'd so it can't hold the process open.
+        await Promise.race([
+            pool.query('SELECT 1'),
+            new Promise((_, reject) => {
+                const t = setTimeout(
+                    () => reject(new Error('db health probe timed out after 3s')),
+                    3000);
+                if (t.unref) { t.unref(); }
+            })
+        ]);
         res.json({ status: 'healthy', database: 'connected', providers: router.providers.size });
     } catch (err) {
         if (localMode.isLocalOnly() || process.env.HIVV_DB_REQUIRED === '0') {
@@ -2087,6 +2190,12 @@ app.post('/v1/chat/completions', async (req, res) => {
         return res.status(400).json({ error: { message: 'messages array is required', type: 'invalid_request_error' } });
     }
 
+    // Auto-attach the toolkit (same rules as /api/chat). A client that sends
+    // its own tools keeps them.
+    const effectiveTools = resolveToolAttachment(req, tools);
+    const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
+    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages];
+
     const useStream = stream === true || stream === 'true' || (req.headers.accept && req.headers.accept.includes('text/event-stream'));
 
     // First-TOKEN latency for SSE: stamp the first frame that carries REAL
@@ -2108,18 +2217,59 @@ app.post('/v1/chat/completions', async (req, res) => {
     try {
         // Non-streaming requests go through chatCompletion()
         if (!useStream) {
-            const data = await router.chatCompletion([HIVV_IDENTITY_MSG, ...messages], {
-                model, provider, userId, stream: false,
-                apiUrl: targetApiUrl,
-                tools: tools || null,
-                toolChoice: tool_choice ?? null,
-                ...osOpts,
-                timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
-            });
+            // ── the tool loop ────────────────────────────────────────────────
+            // The model asks for a tool → the hub runs it → the model answers.
+            // This is what makes "any AI can use any tool" true for every
+            // OpenAI-compatible client (OpenCode, Cline, Continue, a script).
+            const MAX_TOOL_ROUNDS = 5;
+            const v1MsgList = toolMsgList.slice();
+            let data = null;
+            for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+                data = await router.chatCompletion(v1MsgList, {
+                    model, provider, userId, stream: false,
+                    apiUrl: targetApiUrl,
+                    tools: effectiveTools,
+                    toolChoice: tool_choice ?? null,
+                    ...osOpts,
+                    timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
+                });
+                if (!data.ok) break;
+                const assistantMsg = data.data?.choices?.[0]?.message;
+                const toolCalls = assistantMsg?.tool_calls;
+                if (!toolCalls || !toolCalls.length) break;
+                v1MsgList.push(assistantMsg);
+                for (const tc of toolCalls) {
+                    const fn = tc.function || tc.function_ || {};
+                    let targs = {};
+                    try { targs = JSON.parse(fn.arguments || '{}'); } catch (_e) { /* bad args */ }
+                    const tres = await toolkitLib.execute(fn.name, targs || {}, {
+                        principal: osOpts.principal,
+                        transport: 'hub',
+                        ip,
+                        isAdmin: isAdminRequest(req),
+                        reason: 'v1 tool exec during chat',
+                        node: _nodeIdOf(req),
+                        via: 'hub',
+                    });
+                    v1MsgList.push({
+                        role: 'tool',
+                        tool_call_id: tc.id,
+                        content: tres.ok
+                            ? formatToolResultPublic(tres.tool, tres.data)
+                            : String(tres.error || 'the tool failed'),
+                    });
+                }
+            }
             if (!data.ok) {
                 if (data.denied) return res.status(403).json({ error: { message: data.error, type: 'policy_denied', policy: data.policy } });
                 if (data.asked) return res.status(202).json({ verdict: 'MAYBE', policy: data.policy, grant_id: data.policy?.grant_id, message: `human approval required — hivv approve ${data.policy?.grant_id}` });
                 if (data.privacyBlocked || data.costBlocked) return res.status(403).json({ error: { message: data.error, type: data.privacyBlocked ? 'privacy_blocked' : 'cost_blocked' } });
+                // The PROMPT was too big for the model's context window.
+                // That is the caller's problem to fix, not a server
+                // outage — say so with 413 instead of "server_error".
+                if (data.contextOverflow) {
+                    return res.status(413).json({ error: { message: data.error, type: 'exceed_context_size_error', detail: data.detail } });
+                }
                 return res.status(503).json({ error: { message: data.error, type: 'server_error' } });
             }
             const tokenEstimate = usageTracker.estimateFromCompletion(data.data, messages);
@@ -2189,19 +2339,72 @@ app.post('/v1/chat/completions', async (req, res) => {
             return res.json(data.data);
         }
 
-        const result = await router.routeWithFailover(messages, {
-            provider,
-            model,
-            userId,
-            apiUrl: targetApiUrl,
-            stream: useStream,
-            tools: tools || null,
-            toolChoice: tool_choice ?? null,
-            plainStream: req.headers['x-hivv-plain'] === '1',
-            ...osOpts,
-            response: res,
-            timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
-        });
+        // ── streaming with a real tool loop ─────────────────────────────────
+        // The interceptor holds back the tool-call frames and forwards the
+        // content frames live, so the client sees one clean answer and never
+        // has to implement a tool loop of its own.
+        const V1_MAX_ROUNDS = 5;
+        const v1StreamMsgs = toolMsgList.slice();
+        let result = null;
+        for (let round = 0; round < V1_MAX_ROUNDS; round++) {
+            const interceptor = new toolStreamLib.ToolStreamInterceptor(res, { maxRounds: V1_MAX_ROUNDS });
+            result = await router.routeWithFailover(v1StreamMsgs, {
+                provider,
+                model,
+                userId,
+                apiUrl: targetApiUrl,
+                stream: useStream,
+                tools: effectiveTools,
+                toolChoice: tool_choice ?? null,
+                plainStream: req.headers['x-hivv-plain'] === '1',
+                ...osOpts,
+                response: interceptor,
+                timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
+            });
+            if (!result.ok) {
+                if (!res.headersSent) {
+                    if (result.denied) return res.status(403).json({ error: { message: result.error, type: 'policy_denied', policy: result.policy } });
+                    if (result.asked) return res.status(202).json({ verdict: 'MAYBE', policy: result.policy, grant_id: result.policy?.grant_id, message: `human approval required — hivv approve ${result.policy?.grant_id}` });
+                    if (result.privacyBlocked || result.costBlocked) return res.status(403).json({ error: { message: result.error, type: result.privacyBlocked ? 'privacy_blocked' : 'cost_blocked' } });
+                    if (result.contextOverflow) return res.status(413).json({ error: { message: result.error, type: 'exceed_context_size_error', detail: result.detail } });
+                    return res.status(503).json({ error: { message: result.error, type: 'server_error' } });
+                }
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
+            if (!interceptor.hadToolCalls()) {
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
+            const calls = interceptor.toolCalls();
+            v1StreamMsgs.push(interceptor.assistantMessage());
+            for (const call of calls) {
+                let targs = {};
+                try { targs = JSON.parse(call.function.arguments || '{}'); } catch (_e) { /* bad args */ }
+                const tres = await toolkitLib.execute(call.function.name, targs || {}, {
+                    principal: osOpts.principal,
+                    transport: 'hub',
+                    ip,
+                    isAdmin: isAdminRequest(req),
+                    reason: 'v1 tool exec during chat',
+                    node: _nodeIdOf(req),
+                    via: 'hub',
+                });
+                v1StreamMsgs.push({
+                    role: 'tool',
+                    tool_call_id: call.id || `call_${round}`,
+                    content: tres.ok
+                        ? formatToolResultPublic(tres.tool, tres.data)
+                        : String(tres.error || 'the tool failed'),
+                });
+            }
+            if (round === V1_MAX_ROUNDS - 1) {
+                interceptor.release();
+                interceptor.finish();
+            }
+        }
 
         // Add provider info to response headers (visible to CLI and non-streaming clients)
         if (result.ok && result.provider && !res.headersSent) {
@@ -2212,6 +2415,11 @@ app.post('/v1/chat/completions', async (req, res) => {
             if (result.denied) return res.status(403).json({ error: { message: result.error, type: 'policy_denied', policy: result.policy } });
             if (result.asked) return res.status(202).json({ verdict: 'MAYBE', policy: result.policy, grant_id: result.policy?.grant_id, message: `human approval required — hivv approve ${result.policy?.grant_id}` });
             if (result.privacyBlocked || result.costBlocked) return res.status(403).json({ error: { message: result.error, type: result.privacyBlocked ? 'privacy_blocked' : 'cost_blocked' } });
+            // The prompt was too big for the model's context window — the
+            // caller's problem, so 413 and not a server outage.
+            if (result.contextOverflow) {
+                return res.status(413).json({ error: { message: result.error, type: 'exceed_context_size_error', detail: result.detail } });
+            }
             return res.status(503).json({ error: { message: result.error, type: 'server_error' } });
         }
 
@@ -2331,144 +2539,49 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         return res.status(400).json({ error: { message: 'message or messages array required' } });
     }
 
+    // ── AUTO-ATTACH THE TOOLKIT ────────────────────────────────────────────
+    //
+    // Before this, the tool loop only ran when the CLIENT passed `tools` in
+    // the request body — and nobody does, so no model on the network ever
+    // used a tool. Now the hub offers its toolkit by default and the model
+    // drives it. Any AI — a cloud LLM, a local gemma on a bee, an MCP client
+    // — can use every tool without implementing a tool loop of its own.
+    const effectiveTools = resolveToolAttachment(req, tools);
+    const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
+
         // ── Tool executor: runs a tool call and returns the result ──────────────
+        //
+        // This used to be 150 lines of inline tool code — a SECOND copy of the
+        // logic that also lives in public_html/hivv-tools.py, and the two had
+        // already drifted (the hub's calculator stripped "sqrt(2)" down to
+        // "(2)"). Now it is a thin adapter over api/lib/toolkit.js, which is
+        // the one implementation of every tool the hive has.
         async function execToolCall(toolCall) {
             const fn = toolCall.function || toolCall.function_;
             const name = fn.name;
             let args = {};
             try { args = JSON.parse(fn.arguments || '{}'); } catch(_){}
-            // hivv OS §3: hub-side tool execution goes through the gate too.
-            // side-effect+ tiers are audited; 'ask' mints a grant the human can approve.
-            try {
-                const capName = capsLib.toolToCap(name);
-                const capDef = capsLib.get(capName);
-                if (capDef && ['side-effect', 'data', 'money', 'physical'].includes(capDef.tier)) {
-                    const g = await policyLib.gate({
-                        capability: capName,
-                        principal: getVisitorId(req, res),
-                        transport: 'hub',
-                        args_summary: { query: String(args.query || args.url || args.location || '').slice(0, 120) },
-                        reason: 'hub tool exec during chat',
-                        node: _nodeIdOf(req),
-                    });
-                    if (g.verdict === 'deny') return { role: 'tool', tool_call_id: toolCall.id, content: `policy refused ${capName} (${g.rule})` };
-                    if (g.verdict === 'ask') return { role: 'tool', tool_call_id: toolCall.id, content: `MAYBE — human approval required. Tell the operator to run: hivv approve ${g.grant_id}  — then ask me again.` };
-                }
-            } catch (_pe) { /* gate offline → fail-open, chat continues */ }
-            try {
-                if (name === 'search') {
-                    // Try Wikipedia API first for factual queries
-                    const query = encodeURIComponent(args.query || '');
-                    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${query}&srlimit=5&format=json&origin=*`);
-                    const data = await r.json();
-                    let summary = `Search results for "${args.query}":\n\n`;
-                    const results = data.query?.search || [];
-                    if (results.length > 0) {
-                        for (let i = 0; i < results.length; i++) {
-                            const r2 = results[i];
-                            // Strip HTML from snippet
-                            const snippet = (r2.snippet || '').replace(/<[^>]+>/g, '');
-                            summary += `${i + 1}. ${r2.title}\n   ${snippet}\n   https://en.wikipedia.org/wiki/${encodeURIComponent(r2.title.replace(/ /g, '_'))}\n\n`;
-                        }
-                    } else {
-                        summary += 'No results found.\n';
-                    }
-                    return { role: 'tool', tool_call_id: toolCall.id, content: summary.slice(0, 1500) };
-                }
-                if (name === 'news') {
-                    // Use Google News RSS for current news
-                    const query = encodeURIComponent(args.query || args.location || 'news');
-                    const r = await fetch(`https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`, { timeout: 8000 });
-                    const body = await r.text();
-                    // Parse RSS items
-                    const itemRegex = /<item[^>]*>[\s\S]*?<\/item>/gi;
-                    const items = body.match(itemRegex) || [];
-                    let summary = `Latest news for "${args.query || args.location}":\n\n`;
-                    for (let i = 0; i < Math.min(items.length, 8); i++) {
-                        const titleMatch = items[i].match(/<title>(.*?)<\/title>/i);
-                        const linkMatch = items[i].match(/<link>(.*?)<\/link>/i);
-                        const pubDateMatch = items[i].match(/<pubDate>(.*?)<\/pubDate>/i);
-                        const descMatch = items[i].match(/<description>(.*?)<\/description>/i);
-                        const title = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[|\]\]>/gi, '').trim() : 'No title';
-                        const link = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[|\]\]>/gi, '').trim() : '';
-                        const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
-                        let desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim() : '';
-                        if (desc.length > 200) desc = desc.slice(0, 200) + '...';
-                        if (title && title !== 'Google News') {
-                            summary += `• ${title}\n`;
-                            if (pubDate) summary += `  ${pubDate}\n`;
-                            if (desc) summary += `  ${desc}\n`;
-                            if (link) summary += `  ${link}\n`;
-                            summary += '\n';
-                        }
-                    }
-                    if (summary.trim() === `Latest news for "${args.query || args.location}":`) {
-                        summary += 'No news articles found.\n';
-                    }
-                    return { role: 'tool', tool_call_id: toolCall.id, content: summary.slice(0, 2000) };
-                }
-                if (name === 'fetch') {
-                    // Refuse internal targets — otherwise this tool is a
-                    // server-side request forgery primitive into every
-                    // service that is only reachable from this box.
-                    const guard = await ssrfLib.checkUrl(args.url);
-                    if (!guard.ok) {
-                        return { role: 'tool', tool_call_id: toolCall.id, content: `Refused to fetch that URL: ${guard.reason}. Only public web addresses can be retrieved.` };
-                    }
-                    const ro = await fetch(args.url, { headers: {'User-Agent': 'Mozilla/5.0 (compatible; hivv-tools/1.0)'} });
-                    const body = await ro.text();
-                    // Strip HTML tags to get readable text
-                    const text = body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-                    const contentType = ro.headers.get('content-type') || '';
-                    return { role: 'tool', tool_call_id: toolCall.id, content: `[${ro.status}] ${contentType}\n${text.slice(0, 1500)}` };
+            if (!args || typeof args !== 'object') args = {};
+            // The gate lives inside toolkit.execute() — deny refuses, ask
+            // mints a grant a human approves. The result carries the verdict.
+            const result = await toolkitLib.execute(name, args, {
+                principal: getVisitorId(req, res),
+                transport: 'hub',
+                ip: req.ip,
+                isAdmin: isAdminRequest(req),
+                reason: 'hub tool exec during chat',
+                node: _nodeIdOf(req),
+                via: 'hub',
+            });
+            if (!result.ok) {
+                return { role: 'tool', tool_call_id: toolCall.id, content: String(result.error || 'the tool failed') };
             }
-            if (name === 'calculate') {
-                const cleaned = String(args.expression || '').replace(/[^0-9+\-*/.()% ]/g, '');
-                // safe eval via Function
-                const result = new Function(`"use strict"; return (${cleaned})`)();
-                return { role: 'tool', tool_call_id: toolCall.id, content: String(result) };
-            }
-            if (name === 'get_time' || name === 'time') {
-                const isValidTz = (tz) => {
-                    try {
-                        Intl.DateTimeFormat(undefined, { timeZone: tz });
-                        return true;
-                    } catch(_) { return false; }
-                };
-                const userTz = (args.timezone && isValidTz(args.timezone)) ? args.timezone : 'America/Los_Angeles';
-                const fmtDate = (tz) => {
-                    return new Promise((resolve) => {
-                        exec(`TZ=${tz} date '+%a, %b %d, %Y, %I:%M:%S %p'`, (e, stdout) => {
-                            resolve(e ? null : stdout.trim());
-                        });
-                    });
-                };
-                const localStr = await fmtDate(userTz);
-                let out = localStr || new Date().toLocaleString('en-US', {
-                    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-                }) + ' (UTC)';
-                if (args.timezone && args.timezone !== 'America/Los_Angeles') {
-                    if (!isValidTz(args.timezone)) {
-                        out += `\n(invalid timezone: ${args.timezone})`;
-                    } else {
-                        const tzStr = await fmtDate(args.timezone);
-                        if (tzStr) out += `\n${args.timezone}: ${tzStr}`;
-                    }
-                }
-                return { role: 'tool', tool_call_id: toolCall.id, content: out };
-            }
-            if (name === 'sysinfo') {
-                const mem = os.freemem(), total = os.totalmem();
-                const load = os.loadavg();
-                return { role: 'tool', tool_call_id: toolCall.id,
-                    content: JSON.stringify({ memory_free_gb: Math.round(mem/1e9*10)/10, memory_total_gb: Math.round(total/1e9*10)/10, loadavg: load, cpus: os.cpus().length, uptime_days: Math.round(os.uptime()/86400*10)/10 }) };
-            }
-            return { role: 'tool', tool_call_id: toolCall.id, content: `error: unknown tool "${name}"` };
-        } catch(e) {
-            return { role: 'tool', tool_call_id: toolCall.id, content: `error: ${e.message}` };
+            return { role: 'tool', tool_call_id: toolCall.id, content: formatToolResult(result.tool, result.data) };
         }
-    }
+
+        // A tool result the model can actually read: a bare number for maths,
+        // a readable line for the clock, structured JSON for everything else.
+        const formatToolResult = formatToolResultPublic;
 
     const targetApiUrl = api_url || apiUrl || (req.query?.api_url ? String(req.query.api_url) : null);
     const session = await getSession(req);
@@ -2586,11 +2699,11 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             const localTools = req.body.local_tools === true;
             // ── Non-streaming: support tool_call loop ───────────────────────────
             const MAX_TOOL_ROUNDS = 5;
-            let msgList = [HIVV_IDENTITY_MSG, TOOL_SYSTEM_MSG, ...messages.slice()];
+            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages.slice()];
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
-                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools, ...osOpts
+                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools: effectiveTools, ...osOpts
                 });
                 if (!data.ok) {
                     if (data.denied) return res.status(403).json({ verdict: 'NO', policy: data.policy, error: data.error });
@@ -2646,22 +2759,68 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             return res.json(lastData);
         }
 
-        // Streaming path — pass tools through; tool_call handling requires SSE interception
-        const result = await router.routeWithFailover([HIVV_IDENTITY_MSG, ...messages], {
-            provider,
-            model,
-            userId,
-            apiUrl: targetApiUrl,
-            stream: true,
-            tools,
-            ...osOpts,
-            response: res
-        });
-        if (!result.ok && !res.headersSent) {
-            if (result.denied) return res.status(403).json({ verdict: 'NO', policy: result.policy, error: result.error });
-            if (result.asked) return res.status(202).json({ verdict: 'MAYBE', policy: result.policy, grant_id: result.policy?.grant_id, message: `human approval required — hivv approve ${result.policy?.grant_id}` });
-            if (result.privacyBlocked || result.costBlocked) return res.status(403).json({ error: { message: result.error, type: result.privacyBlocked ? 'privacy_blocked' : 'cost_blocked' } });
-            return res.status(503).json({ error: { message: result.error } });
+        // ── Streaming path — with a REAL tool loop ─────────────────────────
+        //
+        // The router writes provider frames straight to the response socket,
+        // so a tool_call used to reach the client before we could run it — and
+        // a client that receives an unexpected tool_call executes it itself.
+        // ToolStreamInterceptor sits in between: it holds the tool-call frames
+        // back, forwards content frames live, and lets the hub run the tool
+        // and ask the model again. The client sees one clean answer.
+        const MAX_TOOL_ROUNDS = 5;
+        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages];
+        let result = null;
+        for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+            const interceptor = new toolStreamLib.ToolStreamInterceptor(res, { maxRounds: MAX_TOOL_ROUNDS });
+            result = await router.routeWithFailover(streamMsgList, {
+                provider,
+                model,
+                userId,
+                apiUrl: targetApiUrl,
+                stream: true,
+                tools: effectiveTools,
+                ...osOpts,
+                response: interceptor
+            });
+            if (!result.ok) {
+                // The model was not reachable. If nothing has been sent yet we
+                // can still answer with a proper JSON error; if the stream has
+                // already started we close it cleanly instead.
+                if (!res.headersSent) {
+                    if (result.denied) return res.status(403).json({ verdict: 'NO', policy: result.policy, error: result.error });
+                    if (result.asked) return res.status(202).json({ verdict: 'MAYBE', policy: result.policy, grant_id: result.policy?.grant_id, message: `human approval required — hivv approve ${result.policy?.grant_id}` });
+                    if (result.privacyBlocked || result.costBlocked) return res.status(403).json({ error: { message: result.error, type: result.privacyBlocked ? 'privacy_blocked' : 'cost_blocked' } });
+                    return res.status(503).json({ error: { message: result.error } });
+                }
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
+            // No tool call → this round IS the answer. Release the held
+            // frames (its [DONE]) and close the stream.
+            if (!interceptor.hadToolCalls()) {
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
+            // The model asked for tools. They never reached the client; the
+            // hub runs them and the model continues.
+            const calls = interceptor.toolCalls();
+            const assistantMsg = interceptor.assistantMessage();
+            streamMsgList.push(assistantMsg);
+            for (const call of calls) {
+                streamMsgList.push(await execToolCall({
+                    id: call.id || `call_${round}`,
+                    type: 'function',
+                    function: { name: call.function.name, arguments: call.function.arguments || '{}' },
+                }));
+            }
+            if (round === MAX_TOOL_ROUNDS - 1) {
+                // Out of rounds: release what we have so the client is not
+                // left hanging on an unterminated stream.
+                interceptor.release();
+                interceptor.finish();
+            }
         }
         if (result.ok) {
             // measured output tokens (counted SSE chunks) beat the chars-heuristic
@@ -2705,7 +2864,7 @@ app.post('/api/chat/continue', async (req, res) => {
     }
 
     // Build full message list: system + user msg + assistant tool_call msg + tool result
-    const msgList = [HIVV_IDENTITY_MSG, TOOL_SYSTEM_MSG, ...messages];
+    const msgList = [HIVV_IDENTITY_MSG, toolSystemMessage(), ...messages];
     if (assistant_message) {
         msgList.push(assistant_message);  // assistant's original tool_call message
     }
@@ -3353,19 +3512,30 @@ const capsLib = require('./lib/capabilities');
 const policyLib = require('./lib/policy');
 const sandboxLib = require('./lib/sandbox');
 const ssrfLib = require('./lib/ssrf');
+const toolkitLib = require('./lib/toolkit');
+const toolStreamLib = require('./lib/tool-stream');
+const memoryLib = require('./lib/memory');
 const CapabilityRoutes = require('./routes/capability-routes');
 const PolicyRoutes = require('./routes/policy-routes');
 const DatabaseRoutes = require('./routes/database-routes');
+const ToolRoutes = require('./routes/tool-routes');
 capsLib.init(pool);
 policyLib.init(pool);
+memoryLib.init(pool);
+toolkitLib.inject(router);
 router.setCapabilities(capsLib);
 router.setPolicy(policyLib);
 CapabilityRoutes.inject(orch, router);
 PolicyRoutes.inject(orch);
 DatabaseRoutes.inject(pool);
+ToolRoutes.inject(orch, router);
 app.use('/api/capabilities', CapabilityRoutes);
 app.use('/api/policy', PolicyRoutes);
 app.use('/api/database', DatabaseRoutes);
+// The tool surface: the catalog + invocation. The old inline handlers in
+// this file were removed — api/routes/tool-routes.js owns them now, and it
+// runs the ONE implementation in api/lib/toolkit.js.
+app.use('/api/tools', ToolRoutes);
 
 // Operator-facing request provenance ledger (who asked, which node answered,
 // when, how long, what it cost). Views are gated by control-token/admin.
@@ -3712,28 +3882,6 @@ app.get('/api/collaboration/feed', (req, res) => {
   res.json({ total: feed.length, items: feed });
 });
 
-// GET /api/tools — list all nodes that have tools available
-app.get('/api/tools', (req, res) => {
-  const tool = req.query.tool;
-  const all = Array.from(orch.nodes.values()).filter(n => n.status !== 'offline');
-  const withTools = all
-    .filter(n => n.tools && n.tools.length > 0)
-    .map(n => ({
-      node_id: n.node_id,
-      name: n.name,
-      tools: n.tools,
-      tools_port: n.tools_port,
-      location: n.location || {},
-      lan_ip: n.lan_ip,
-      uptime_seconds: n.uptime_seconds
-    }));
-  if (tool) {
-    const filtered = withTools.filter(n => n.tools.includes(tool));
-    return res.json({ tool, available: filtered.length, nodes: filtered });
-  }
-  res.json({ total: withTools.length, nodes: withTools });
-});
-
 // POST /api/nodes/:id/tools — announce/update tool availability
 app.post('/api/nodes/:id/tools', (req, res) => {
   const node = orch.nodes.get(req.params.id);
@@ -3745,75 +3893,11 @@ app.post('/api/nodes/:id/tools', (req, res) => {
   res.json({ ok: true, tools, port });
 });
 
-// GET /api/tools/:tool/invoke — route a tool call to an available node
-app.get('/api/tools/:tool/invoke', async (req, res) => {
-  const { tool } = req.params;
-  const { url, expr, tz, q, timeout = 8000 } = req.query;
-  // ── hivv OS §3: every hive-side tool invocation passes the gate ──
-  // local.computation → YES (audited by tier risk); web.fetch → MAYBE (first use);
-  // financial.transaction → NO. Approved grants lift the MAYBE.
-  let gateReceipt = null;
-  try {
-    const capName = capsLib.toolToCap(tool);
-    const g = await policyLib.gate({
-      capability: capName,
-      principal: getVisitorId(req, res),
-      transport: 'hive-tool',
-      args_summary: { tool, url, expr, q },
-      reason: `hivv call ${tool}`,
-      via: null,
-      node: _nodeIdOf(req),
-    });
-    gateReceipt = g;
-    if (g.verdict === 'deny') {
-      return res.status(403).json({ verdict: 'NO', capability: g.key, rule: g.rule, error: `policy refused '${g.key}' — ${g.rule}` });
-    }
-    if (g.verdict === 'ask') {
-      return res.status(202).json({
-        verdict: 'MAYBE', capability: g.key, grant_id: g.grant_id, rule: g.rule,
-        message: `human approval required — approve with: hivv approve ${g.grant_id}`,
-      });
-    }
-  } catch (e) { console.warn('[POLICY] tool gate error:', e.message); }
-  // Find a node with this tool
-  const all = Array.from(orch.nodes.values()).filter(n => n.status !== 'offline' && n.tools?.includes(tool) && n.tools_port > 0);
-  if (all.length === 0) {
-    return res.status(404).json({ error: `No node has tool '${tool}' available` });
-  }
-  // Pick least-loaded node
-  const node = all.sort((a, b) => (a.total_cpu_percent || 0) - (b.total_cpu_percent || 0))[0];
-  const qs = new URLSearchParams();
-  if (url) qs.set('url', url);
-  if (expr) qs.set('expr', expr);
-  if (tz) qs.set('tz', tz);
-  if (q) qs.set('q', q);
-  const query = qs.toString();
-
-  // A node's tools usually run on loopback (the local tools server binds to
-  // 127.0.0.1), so try the addresses in order and use the first that answers.
-  const hosts = [];
-  if (node.lan_ip) hosts.push(node.lan_ip);
-  if (node.ip && node.ip !== node.lan_ip) hosts.push(node.ip);
-  hosts.push('127.0.0.1', 'localhost');
-
-  let lastError = null;
-  for (const host of hosts) {
-    const fullUrl = `http://${host}:${node.tools_port}/${tool}?${query}`;
-    try {
-      const controller = new AbortController();
-      const to = setTimeout(() => controller.abort(), parseInt(timeout));
-      const r = await fetch(fullUrl, { signal: controller.signal });
-      clearTimeout(to);
-      const data = await r.json();
-      if (gateReceipt) res.setHeader('X-Hivv-Policy', `ALLOW ${gateReceipt.rule}`);
-      return res.json({ tool, node: node.name, provider: node.node_id, data });
-    } catch (e) {
-      clearTimeout(to);
-      lastError = e;
-    }
-  }
-  res.status(502).json({ error: `Tool call failed: ${lastError ? lastError.message : 'no route to node'}`, node: node.name });
-});
+// NOTE: GET /api/tools, GET /api/tools/catalog and GET|POST
+// /api/tools/:tool/invoke used to live here. They moved to
+// api/routes/tool-routes.js, which runs the ONE implementation in
+// api/lib/toolkit.js — the old inline copies could drift from the bee-side
+// implementation and from each other, and they did.
 
 // POST /api/sandbox/exec — isolated code execution (capability: coding.execute).
 // hivv OS §1: autonomous code NEVER runs on the host. It passes the policy gate

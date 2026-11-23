@@ -9,6 +9,10 @@ let registryAt = 0;
 const REGISTRY_TTL_MS = 60000;
 
 // tool name → capability (shared hivv-tools)
+// The toolkit (api/lib/toolkit.js) owns the canonical tool list; this table is
+// the hub-side mirror so a tool called by ANY name — canonical, alias, or a
+// name a bee invented — lands on the right capability. Unknown tools still
+// fall through to `tool.<name>` → MAYBE (see toolToCap below).
 const TOOL_CAPS = {
   time: 'local.computation',
   calculate: 'local.computation',
@@ -21,6 +25,45 @@ const TOOL_CAPS = {
   shell: 'coding.execute',
   run: 'coding.execute',
   opencode: 'coding', // coder bee: node runs OpenCode headless (HIVV_OPENCODE_PLAN §4)
+  // ── the toolkit's twelve (canonical names) ──
+  web_search: 'web.search',
+  current_time: 'local.computation',
+  calculator: 'local.computation',
+  web_fetch: 'web.fetch',
+  http_request: 'web.fetch',
+  code_interpreter: 'coding.execute',
+  file_read: 'data.file.read',
+  file_search: 'data.file.read',
+  memory: 'data.memory',
+  text_parser: 'local.computation',
+  timezone_convert: 'local.computation',
+  translate: 'translation',
+  // ── common aliases the models actually emit ──
+  get_time: 'local.computation',
+  now: 'local.computation',
+  calc: 'local.computation',
+  math: 'local.computation',
+  reader: 'web.fetch',
+  web_reader: 'web.fetch',
+  read_url: 'web.fetch',
+  request: 'web.fetch',
+  curl: 'web.fetch',
+  run_code: 'coding.execute',
+  python: 'coding.execute',
+  sandbox: 'coding.execute',
+  read_file: 'data.file.read',
+  read_document: 'data.file.read',
+  open_file: 'data.file.read',
+  search_files: 'data.file.read',
+  grep: 'data.file.read',
+  remember: 'data.memory',
+  recall: 'data.memory',
+  parse: 'local.computation',
+  json_parse: 'local.computation',
+  structure: 'local.computation',
+  tz: 'local.computation',
+  convert_time: 'local.computation',
+  translation: 'translation',
 };
 
 // hub-local services that exist as pm2 apps today
@@ -32,18 +75,27 @@ const HUB_SERVICES = [
 const VISION_RE = /(vision|-vl|vl-|llava|moondream|minicpm-v|qwen.*vl|pixtral|gemini)/i;
 
 // Built-in capability list — used when there is no database (local/offline
-// install). It mirrors the shipped registry so the partner manifest is
-// meaningful on a fresh clone.
+// install). It MIRRORS the shipped registry exactly. It used to drift from
+// the seeded table (different tiers, six missing keys), which meant an
+// offline install published a different capability surface than a live one.
 const BUILTIN_CAPABILITIES = [
   { key: 'reasoning', label: 'Reasoning', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'General language reasoning and chat' },
-  { key: 'local.computation', label: 'Local computation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Local CPU/math/time work' },
-  { key: 'coding', label: 'Coding', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Code generation and editing' },
-  { key: 'coding.execute', label: 'Execute code', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Run code in a sandbox' },
-  { key: 'web.search', label: 'Web search', tier: 'data', default_verdict: 'ask', requires_consent: true, description: 'Search the web' },
-  { key: 'web.fetch', label: 'Fetch URL', tier: 'data', default_verdict: 'ask', requires_consent: true, description: 'Fetch a URL' },
+  { key: 'vision', label: 'Vision', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Analyze images' },
   { key: 'speech.text-to-voice', label: 'Text to speech', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Synthesize speech' },
   { key: 'speech.voice-to-text', label: 'Speech to text', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Transcribe audio' },
-  { key: 'vision', label: 'Vision', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Analyze images' },
+  { key: 'translation', label: 'Translation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Translate between languages' },
+  { key: 'coding', label: 'Coding', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Generate and edit code' },
+  { key: 'coding.execute', label: 'Execute code', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Run code in an ephemeral docker/bwrap sandbox — no network, capped resources, read-only' },
+  { key: 'local.computation', label: 'Local computation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Local CPU/math/time work' },
+  { key: 'image.generate', label: 'Image generation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Generate images' },
+  { key: 'web.search', label: 'Web search', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Query the open internet — human-approved per grant' },
+  { key: 'web.fetch', label: 'Fetch URL', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Fetch a URL — arbitrary egress, human-approved per grant' },
+  { key: 'data.file.read', label: 'Read & search files', tier: 'data', default_verdict: 'ask', requires_consent: true, description: 'Read and search documents — human-approved per grant' },
+  { key: 'data.memory', label: 'Remember between chats', tier: 'data', default_verdict: 'allow', requires_consent: false, description: 'Store and recall notes scoped to the requester' },
+  { key: 'database.query', label: 'Database query', tier: 'data', default_verdict: 'ask', requires_consent: true, description: 'Read-only queries against stored state' },
+  { key: 'human.approval', label: 'Ask a human', tier: 'control', default_verdict: 'allow', requires_consent: false, description: 'The MAYBE path itself' },
+  { key: 'financial.transaction', label: 'Spend money', tier: 'money', default_verdict: 'deny', requires_consent: true, description: 'Reserved — no backend yet' },
+  { key: 'physical.world', label: 'Act on the physical world', tier: 'physical', default_verdict: 'deny', requires_consent: true, description: 'Reserved — printers / IoT / robots' },
 ];
 
 async function loadRegistry(force = false) {

@@ -125,6 +125,77 @@ The agent (`hivv-cli.py`) handles this automatically. Node names come from `sock
 Endpoint order is biased by measured speed (`perf.js` EWMA, epsilon-greedy).
 Responses carry `X-Hivv-Answered-By: node/model (direct|relay)` receipts.
 
+### The Toolkit — twelve tools for every bee, every AI
+
+Shipped 2026-11-22 — plan: [`HIVV_TOOLKIT_PLAN.md`](HIVV_TOOLKIT_PLAN.md).
+
+**One catalog, one implementation, many surfaces.** `api/lib/toolkit.js` is the
+source of truth: every tool declares its canonical name, aliases, the capability
+key the policy gate evaluates, a JSON schema, where it can run, and its handler.
+MCP, the chat tool loop, `POST /api/tools/:tool/invoke`, the CLI and the bee-side
+server all read from it — they cannot drift apart.
+
+| # | tool | capability | verdict | runs on |
+|---|---|---|---|---|
+| 1 | `web_search` | `web.search` | **ask** | hub + bee |
+| 2 | `current_time` | `local.computation` | allow | hub + bee |
+| 3 | `calculator` | `local.computation` | allow | hub + bee |
+| 4 | `web_fetch` | `web.fetch` | ask | hub + bee |
+| 5 | `http_request` | `web.fetch` | ask | hub + bee |
+| 6 | `code_interpreter` | `coding.execute` | ask | hub only |
+| 7 | `file_read` | `data.file.read` | ask | hub + bee |
+| 8 | `file_search` | `data.file.read` | ask | hub + bee |
+| 9 | `memory` | `data.memory` | allow | hub only |
+| 10 | `text_parser` | `local.computation` | allow | hub + bee |
+| 11 | `timezone_convert` | `local.computation` | allow | hub + bee |
+| 12 | `translate` | `translation` | allow | hub only |
+
+(plus `sysinfo`, kept alive for the bees that already advertised it.)
+
+- **AUTO-ATTACHED.** The hub attaches the toolkit schemas to every chat request
+  when the client sends none — the tool loop only ever ran when a client passed
+  `tools` in the body, and nobody does, so no model on the network ever used a
+  tool. Opt out with `"tools": false`, `"tools": []`, or `X-Hivv-Tools: off`;
+  narrow it with `X-Hivv-Tools: calculator,current_time`. Cost ≈1850 prompt
+  tokens per request.
+- **The streaming path has a REAL tool loop** (`lib/tool-stream.js`): the router
+  writes provider frames straight to the socket, so a tool_call used to reach the
+  client before the hub could run it — and a client that receives an unexpected
+  tool_call executes it itself. `ToolStreamInterceptor` holds the tool frames
+  back, forwards content frames live, and lets the hub run the tool and ask the
+  model again. The client sees ONE clean answer.
+- **The hub is authoritative.** Every bee reaches the hub, so every bee gets
+  every tool with nothing to install. `public_html/hivv-tools.py` serves the
+  deterministic half locally (clock, calculator, timezones, parser, sysinfo) and
+  PROXIES the rest to the hub; `POST /tool/<name>` calls any tool in the catalog.
+- **Web search is BUILT and TESTED but NOT granted** (`HIVV_ENABLE_WEB_SEARCH=0`,
+  the default): `web.search` is `ask`, so the first call mints a pending grant a
+  human approves, and the schema is not advertised to models. Set the flag to 1
+  to advertise it and let an operator on loopback run it un-gated.
+- **New capabilities** (migration 022): `data.file.read` (ask), `data.memory`
+  (allow), plus the `hivv_memory` table. Migration 022 also fixes two bugs:
+  `web.search` allow→ask, and `coding.execute` tier `compute`→`side-effect`
+  (the verdict had moved to ask in 011 but the TIER had not, so the risk score
+  for running code was 1 — the same as plain chat — and the chat tool loop
+  skipped the gate for `exec`/`shell`/`run` entirely).
+- **No `eval` anywhere.** `api/lib/math.js` and the bee's calculator are
+  hand-written recursive-descent parsers. The old hub calculator stripped
+  `sqrt(2)` to `(2)`; the old bee calculator used `eval()` on a regex-cleaned
+  string — a code-execution primitive wearing a calculator's clothes.
+- **Identity, not source IP.** The tool route identifies the caller by the
+  signed `hivv_visitor` cookie (or `x-visitor-id`), the same identity the chat
+  path uses. It used to fall back to `ip:<req.ip>` — behind a CDN that is the
+  edge node's address and it changes between requests, so a standing grant was
+  never reusable and every call asked a human again.
+- **Surfaces**: `GET /api/tools/catalog` (schema + capability + your verdict) ·
+  `GET|POST /api/tools/:tool/invoke` (hub; `{"via":"node"}` proxies to a bee) ·
+  `/mcp` (18 tools) · `GET /v1/capabilities` (publishes the catalog) ·
+  CLI `hivv tools list` / `hivv call <tool> --json '{...}'` · `hivv exec`.
+- Tests: `tests/test_toolkit.py` (57) — catalog integrity, the math evaluator
+  against hostile input, the parsers, the timezone converter (offsets, DST,
+  differences), the SSRF guard, the memory store, the SSE interceptor, and a
+  live round trip that proves an approved grant is reusable.
+
 ### hivv OS (capabilities · route modes · policy gate)
 
 Shipped 2026-09-27 — plan: [`HIVV_CAPABILITY_POLICY_PLAN.md`](HIVV_CAPABILITY_POLICY_PLAN.md).
@@ -571,6 +642,8 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv approve [--list|--all|G_xxx]` / `hivv deny G_xxx` — answer a MAYBE (standing grants by default)
 - `hivv route [q] --mode=X [--json]` — dry-run routing planner (who answers & why, never executes)
 - `hivv exec '<code>' [--lang python|bash|node] [--file F] [--timeout ms]` — run code in the isolated hub sandbox (MAYBE→admin-approve→docker/bwrap jail: no net, quotas, ephemeral)
+- `hivv tools [list|status|on|off|share]` — the whole toolkit catalog (what the hive can do, what it costs, who shares what) + the local tool server
+- `hivv call <tool> [--json '{...}'] [--local|--via=node]` — invoke ANY tool in the catalog (web_search, current_time, calculator, web_fetch, http_request, code_interpreter, file_read, file_search, memory, text_parser, timezone_convert, translate). Old names still work
 - `hivv ask <name> "msg"` — chat with ONE bee (pins it; direct → hub relay). Aliases: `talk`, `node-chat`
 - `hivv completions "msg"` — OpenAI-compatible completions endpoint
 - `hivv add <provider> <key>` — add any AI to the network
@@ -639,6 +712,10 @@ hivv explain kubernetes           # also sends to the LLM
 5. ~~**Caddy streaming** — compression middleware may interfere with SSE through Caddy~~ ✅ Verified 2026-09-25: 54 SSE frames live; `flush_interval -1` on all proxy routes; compression skips SSE
 
 ## What's Next
+
+- [x] Upgrade failure forensics + signature dedup (anti-spam) — 2026-11-22: wahi's nine identical "Permission denied …/hivv-cli.py.bak" rows proved the report was too thin and too spammy. **CLI** now records structured diagnostics on every failed apply — `step` (sha256/backup/write/healthcheck/swap/guard, tracked through `_apply_update` via `_UPDATE_STEP`), `errno` + `error_class`, `target` + `install` (system/user/git/frozen), dir/file `owner:mode`, `euid`, `dir_writable`, `version_to`, OS/arch/Python, free disk, and the **fix tip** from `_HIVV_TIPS` (the incident now says how to fix itself) — plus a 16-hex `signature` that normalizes away paths/digits so the same wall hashes the same everywhere. Attached to `failed` reports only, via `_fail_update` (NOT `_fail` — the file already has three `_fail` pretty-printers, and the module-level `def _fail(s)` at ~11542 wins at call time; the test suite caught that `TypeError`). Auto/inbox failure reports now carry the review's votes/findings too (they were hardcoded `[]`, making every incident read as an unreviewed push). **Hub** (`honey-routes` + migration 021): `diagnostics` JSONB is whitelisted key-by-key (`DIAG_KEYS`, client JSON never lands raw), and `failed` reports collapse on `(node_id, signature)` within 24h — `attempts++` on ONE row, never a new one, with `last_seen` so the row floats to the top of `hivv upgrades`; the active incident gets its description bumped `(attempt N)` instead of stacking. Old CLIs that send no signature get one derived server-side (`failureSignature(reason)`) — verified live: wahi's 5-min auto-retry loop now collapses in production. Anti-spam bounds: per-IP `reportLimiter` (60/min, keyed on `req.ip` — the global limiter keys on a client-rotatable `x-visitor-id`), plus a daily insert cap (50 known / 10 unknown node-ids → 429), plus node-secret: WRONG `x-node-secret` → 403, MISSING → accepted on purpose (`sudo hivv update` runs with a different HOME and no state; rejecting absence would lose exactly the reports we want). `hivv upgrades` renders `×N` attempt badges + a failure-details block (step/errno/owner/writability/fix). New `tests/test_failure_diagnostics.py` (31, incl. a live gateway round-trip that collapses+cleans up); TESTMAP regenerated. 834 pytest + 131 node --test green
+
+- [x] Never-again outage: fail-fast DB pool + health watchdog + offline `hivv nodes` — 2026-11-22: the hub's pg pool wedged at 00:00:38 (0 sockets to Postgres, waiters queued forever — no `connectionTimeoutMillis`, so EVERY DB-backed route hung *including `/api/health` itself*) and the site stayed down 10h because pm2 saw the process alive and nothing could tell "running" from "answering". Three layers now: **(1) gateway fail-fast** — pool gets `connectionTimeoutMillis` 10s + server-side `statement_timeout` 15s (env `DB_CONNECT_TIMEOUT`/`DB_STATEMENT_TIMEOUT`), and `/api/health` races its `SELECT 1` against a hard 3s deadline (unref'd timer) → a wedged pool is a fast 503, not an invisible hang; **(2) `scripts/health-watchdog.sh`** (cron `* * * * *`, state in `logs/`) probes health every minute, restarts `hivv-ai-gateway` via pm2 after 2 consecutive HTTP-000s, 10-min cooldown so a dead *Postgres* doesn't cause restart-thrash, one blip never restarts — careful: curl prints `000` from `-w` even on failure, so the fallback must be `|| code=000` (an `|| echo 000` makes `code="000\n000"` and a DEAD gateway reads as healthy — pinned by test); **(3) offline `hivv nodes`** — roster ladder hub → local gateway `127.0.0.1:3011` → on-disk snapshot (`$STATE_DIR/nodes-cache.json`, written on every successful fetch), snapshot statuses re-derived by a LIVE LAN probe via shared `_probe_targets()` (a cached "online" from yesterday is a lie; only UNPROBEABLE bees keep their cached status so firewalled/different-LAN peers don't all flip red), yellow banner says which columns are live vs snapshot, `--json` carries `_fallback`, no-snapshot failure tells you how to seed. Skips the local leg when `HIVV_HUB` is already localhost. New `tests/test_nodes_offline.py` (42); TESTMAP regenerated. 791 pytest green
 
 - [x] Pocket panel + fleet update + private personas — 2026-11-19: **mobile**: new `POST /api/control/update-all` (shared `_updateEnvelope` hardening with push-update — hub-relative URL only, sha256 from the bytes THIS hub serves; `dry_run` plans without pushing; skips bees `getNodeStatus` calls offline — the first draft trusted the cached `node.status` and claimed to push to a bee that had been dead for a day) + `public_html/panel.html`, a mobile-first page (viewport, touch targets, safe-area insets) with: admin SESSION login (`requireControlAuth` already accepts an admin/owner cookie — a phone just logs in), hive pill, bee cards with update/restart/selftest (existing signed repair ops), pending policy approvals allow/deny, and **Update all** that requires a TAP-TO-CONFIRM preview which self-disarms after 8s (a stale confirm button in a pocket is a hazard). **personas**: named personalities in the chat settings — stored in `localStorage` ONLY (list never in any request body; only the ACTIVE prompt travels as the system message), because the hub stores no raw prompts at all (provenance = SHA-256 digests, usage_logs has no prompt column) — private from the admin and everyone else BY CONSTRUCTION. Seeded built-in `Noor (God-conscious)` persona (reverence for God/Allah, Islam's taqwa + Hinduism's dharma/bhakti, without rivalry) starts INACTIVE — public visitors keep the neutral default until they choose; one tap activates it per-browser. Active persona wins over the System Prompt box (one source of truth); editing the box while a persona is active edits that persona. New `tests/test_personas.py` (12) + `tests/test_panel_update.py` (10, live-gateway with skip-if-down) + `tests/test_ask_flags.py` (15); TESTMAP regenerated. 691 pytest green
 

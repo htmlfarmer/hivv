@@ -427,6 +427,65 @@ async function _toolHoney(args) {
 
 // ── registration (one McpServer per request — the SDK stateless pattern) ────
 
+// ── the toolkit's twelve, exposed over MCP ─────────────────────────────────
+//
+// The MCP server used to offer six tools: chat, route, nodes, search, news
+// and honey. The toolkit (api/lib/toolkit.js) is the canonical catalog for
+// everything an AI can DO, so the MCP surface now carries all of it — an
+// MCP client gets the same tools as a model talking to /api/chat, from the
+// same implementation, with the same policy gate in front of them.
+//
+// The tool parameters are declared once, as JSON Schema, in the toolkit.
+// MCP wants zod, so the shape is derived from that one declaration — there
+// is no second copy to drift.
+
+const toolkit = require('../lib/toolkit');
+
+/** JSON Schema (the toolkit's shape) → a zod shape (what MCP wants). */
+function _zodField(def, required) {
+    let field;
+    const type = def.type || 'string';
+    if (Array.isArray(def.enum) && def.enum.length) {
+        field = z.enum(def.enum);
+    } else if (type === 'integer') {
+        field = z.number().int();
+    } else if (type === 'number') {
+        field = z.number();
+    } else if (type === 'boolean') {
+        field = z.boolean();
+    } else if (type === 'array') {
+        field = z.array(def.items && def.items.type === 'string' ? z.string() : z.any());
+    } else if (type === 'object') {
+        field = z.record(z.string(), z.any());
+    } else {
+        field = z.string();
+    }
+    if (def.description) field = field.describe(def.description);
+    return required ? field : field.optional();
+}
+
+function _zodShape(params) {
+    const shape = {};
+    const required = new Set((params && params.required) || []);
+    for (const [key, def] of Object.entries((params && params.properties) || {})) {
+        shape[key] = _zodField(def, required.has(key));
+    }
+    return shape;
+}
+
+// name → {title, description, shape, schema}
+const TOOLKIT_DEFS = new Map();
+for (const t of toolkit.advertisedTools()) {
+    const shape = _zodShape(t.parameters);
+    TOOLKIT_DEFS.set(t.name, {
+        title: t.name.replace(/_/g, ' '),
+        description: t.description,
+        shape,
+        schema: z.object(shape),
+        tool: t,
+    });
+}
+
 function _dispatch(name, args, ctx) {
   switch (name) {
   case 'chat':  return _toolChat(args, ctx);
@@ -449,6 +508,38 @@ function _registerTools(server, ctx) {
       console.log(`[MCP] tools/call ${name} ← ${ctx.principal}`);
       try {
         return await _dispatch(name, args || {}, ctx);
+      } catch (e) {
+        console.warn(`[MCP] tools/call ${name} failed:`, e.message);
+        return _err(`${name} failed: ${e.message || 'unexpected error'}`);
+      }
+    });
+  }
+  // The toolkit's tools — the same implementation the chat path uses.
+  for (const [name, def] of TOOLKIT_DEFS) {
+    server.registerTool(name, {
+      title: def.title,
+      description: def.description,
+      inputSchema: def.shape
+    }, async (args) => {
+      console.log(`[MCP] tools/call ${name} ← ${ctx.principal}`);
+      try {
+        const result = await toolkit.execute(name, args || {}, {
+          principal: ctx.principal,
+          transport: 'mcp',
+          ip: ctx.ip || null,
+          isAdmin: ctx.isAdmin === true,
+          reason: `mcp ${name}`,
+          node: ctx.nodeId || null,
+          via: 'mcp',
+        });
+        if (result.policy && result.policy.verdict === 'deny') {
+          return _err(`policy refused '${result.policy.capability}' — ${result.policy.rule}`);
+        }
+        if (result.policy && result.policy.verdict === 'ask') {
+          return _err(`MAYBE — human approval required. Ask the operator to run: hivv approve ${result.policy.grant_id} — then ask again.`);
+        }
+        if (!result.ok) return _err(String(result.error || 'the tool failed'));
+        return _json({ tool: result.tool, via: result.via, data: result.data, policy: result.policy || null });
       } catch (e) {
         console.warn(`[MCP] tools/call ${name} failed:`, e.message);
         return _err(`${name} failed: ${e.message || 'unexpected error'}`);
@@ -480,7 +571,7 @@ function _prevalidate(body) {
     const params = m.params || {};
     const name = params.name;
     if (typeof name !== 'string' || !name) return fail('Invalid params: tools/call requires a string tool `name`');
-    const def = TOOL_DEFS[name];
+    const def = TOOL_DEFS[name] || TOOLKIT_DEFS.get(name);
     if (!def) return fail(`Invalid params: Tool ${name} not found`);
     const args = params.arguments;
     if (args !== undefined && !_isPlainObject(args)) return fail(`Invalid params for tool ${name}: arguments must be an object`);
@@ -531,6 +622,14 @@ function _nodeIdOf(req) {
   return /^[A-Za-z0-9._-]+$/.test(s) ? s : null;
 }
 
+// Loopback only — the MCP surface has no admin token path, and it does not
+// need one. The only thing "admin" unlocks is the web-search bypass, and
+// that is already gated behind HIVV_ENABLE_WEB_SEARCH.
+function _isLocal(req) {
+  const ip = String(req.ip || '');
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
 // ── HTTP surface ────────────────────────────────────────────────────────────
 
 async function _handlePost(req, res) {
@@ -553,7 +652,13 @@ async function _handlePost(req, res) {
   const bad = _prevalidate(req.body);
   if (bad) return res.status(200).json(bad);
 
-  const ctx = { principal: auth.principal, userId: auth.userId, nodeId: _nodeIdOf(req) };
+  const ctx = {
+    principal: auth.principal,
+    userId: auth.userId,
+    nodeId: _nodeIdOf(req),
+    ip: req.ip || null,
+    isAdmin: _isLocal(req),
+  };
 
   // Stateless: fresh server + transport per POST (SDK simpleStatelessStreamableHttp pattern)
   const server = new McpServer({ name: 'hivv', version: pkg.version || '1.0.0' });

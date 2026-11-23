@@ -28,7 +28,14 @@ module.exports = {
       })(),
       LYRZ_SETTLE_INTERVAL_MS: '300000',
       // How much LYRz one honey point is worth.
-      HIVV_LYRZ_PER_HONEY: '0.1'
+      HIVV_LYRZ_PER_HONEY: '0.1',
+      // ── the toolkit (HIVV_TOOLKIT_PLAN.md §6) ─────────────────────────────
+      // Web search is BUILT and TESTED but NOT granted to anybody by
+      // default: its capability is `ask`, so the first call mints a pending
+      // grant a human approves, and its schema is not advertised to models.
+      // Set this to 1 to turn the advertisement on (and to let an operator
+      // on loopback run it un-gated). 0 = the shipped default.
+      HIVV_ENABLE_WEB_SEARCH: process.env.HIVV_ENABLE_WEB_SEARCH || '0'
     },
     env_production: {
       DB_HOST: 'localhost',

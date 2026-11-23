@@ -76,6 +76,31 @@ function estimateTokens(messages) {
     return Math.ceil(chars / 4);
 }
 
+// ── CONTEXT OVERFLOW IS NOT A PROVIDER FAILURE ────────────────────────
+// llama.cpp answers a prompt that is too big with a 400 and a body of
+//     {"error":{"code":400,"type":"exceed_context_size_error",
+//               "message":"request (18766 tokens) exceeds the
+//                          available context size (16384 tokens)"}}
+//
+// The old code read `if (!response.ok) { … continue; }` and threw the
+// body away, so EVERY provider was tried, every one failed the same
+// way, and the client got "All providers unavailable" (503). That says
+// "the hive is down" when the truth is "your prompt was too big" — and
+// it is the single most misleading failure this router can produce,
+// because the hive is perfectly healthy.
+//
+// Detect it so the caller can be told the truth (and so the budget
+// trimmer can be trusted to have done its job).
+function isContextOverflow(status, bodyText) {
+    if (!bodyText) return false;
+    if (!/exceed_context_size|context size|n_ctx|too many tokens|maximum context/i.test(bodyText)) {
+        return false;
+    }
+    // A 400/413 with that text is the overflow. llama.cpp uses 400; a
+    // gateway in front of it may use 413.
+    return status === 400 || status === 413 || status === 422;
+}
+
 /**
  * Decide how many output tokens to allow, and whether the conversation must
  * be trimmed to fit.
@@ -115,6 +140,102 @@ function _budgetTokens(messages, { modelName, requestedMax, contextWindow } = {}
         if (conversation.length > KEEP) {
             dropped = conversation.length - KEEP;
             out = [...system, ...conversation.slice(-KEEP)];
+            trimmed = true;
+        }
+    }
+
+    // ── A SINGLE OVERSIZED MESSAGE ──────────────────────────────────────
+    // The trim above only fires when there are MORE THAN EIGHT non-system
+    // messages. An agent client (OpenCode, Claude Code, …) sends ONE
+    // message carrying the whole system prompt + tool definitions +
+    // conversation, so `conversation.length === 1` and NOTHING was
+    // trimmed — the oversized message went to the bee whole.
+    //
+    // The bee then answered with llama.cpp's own 400:
+    //   "request (18766 tokens) exceeds the available context size
+    //    (16384 tokens)"
+    // and the router treated it as a generic provider failure, so every
+    // provider was tried, every one failed the same way, and the client
+    // got "All providers unavailable" (503) — which reads like the hive
+    // being down, not like a prompt that was too big.
+    //
+    // So when the estimate is still over budget, TRUNCATE THE LONGEST
+    // MESSAGE by characters (chars/4 tokens, so the char budget is
+    // derived from the token budget). The message is kept — a truncated
+    // prompt still answers; a dropped one answers nothing.
+    const afterTurnTrim = estimateTokens(out);
+    if (afterTurnTrim + MIN_OUTPUT > usable) {
+        // Characters we may keep in the whole conversation.
+        const charBudget = Math.max(2000, (usable - MIN_OUTPUT) * 4);
+        let chars = 0;
+        const kept = [];
+
+        // THE SYSTEM PROMPT IS RESERVED FIRST.
+        //
+        // It carries the identity and the tool definitions, and the tool
+        // definitions are what make a tool call possible at all — a
+        // conversation without them cannot use tools, and a system
+        // message trimmed away entirely breaks every tool call. So its
+        // share of the budget is taken OFF THE TOP, before any
+        // conversation message competes for the rest.
+        //
+        // The order matters: the previous version walked newest-first and
+        // let a large newest message eat the whole budget, which left
+        // NO room for the system prompt and silently dropped it.
+        const systemMsgs = out.filter((m) => m?.role === 'system');
+        const convMsgs = out.filter((m) => m?.role !== 'system');
+        const sysChars = systemMsgs.reduce((sum, m) => sum + (typeof m?.content === 'string' ? m.content.length
+            : JSON.stringify(m?.content ?? '').length), 0);
+        // The system prompt gets at most half the budget, and at least
+        // enough to carry an identity and a tool list.
+        const sysBudget = Math.min(sysChars, Math.max(4000, Math.floor(charBudget / 2)));
+        const convBudget = Math.max(0, charBudget - sysBudget);
+
+        // The system messages, truncated to their reserved share.
+        const keptSystem = [];
+        let sysUsed = 0;
+        for (const m of systemMsgs) {
+            const len = (typeof m?.content === 'string') ? m.content.length
+                : JSON.stringify(m?.content ?? '').length;
+            const room = Math.max(0, sysBudget - sysUsed);
+            if (room <= 0) { dropped += 1; continue; }
+            if (len <= room) {
+                keptSystem.push(m);
+                sysUsed += len;
+            } else {
+                const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
+                keptSystem.push({ ...m, content: c.slice(0, room) });
+                sysUsed += room;
+                dropped += 1;
+            }
+        }
+
+        // The conversation, newest first, each one TRUNCATED rather than
+        // dropped when it does not fit whole — a truncated prompt still
+        // answers, a dropped one answers nothing.
+        const keptConv = [];
+        let convUsed = 0;
+        for (let i = convMsgs.length - 1; i >= 0; i--) {
+            const m = convMsgs[i];
+            const len = (typeof m?.content === 'string') ? m.content.length
+                : JSON.stringify(m?.content ?? '').length;
+            if (convUsed + len <= convBudget) {
+                keptConv.unshift(m);
+                convUsed += len;
+                continue;
+            }
+            const room = Math.max(0, convBudget - convUsed);
+            if (room > 0) {
+                const c = typeof m?.content === 'string' ? m.content : JSON.stringify(m?.content ?? '');
+                keptConv.unshift({ ...m, content: c.slice(0, room) });
+                convUsed += room;
+            }
+            dropped += 1;
+        }
+
+        const rebuilt = [...keptSystem, ...keptConv];
+        if (rebuilt.length) {
+            out = rebuilt;
             trimmed = true;
         }
     }
@@ -1013,6 +1134,30 @@ class AIRouter {
 
                 if (!response.ok) {
                     this.perf?.record({ node: this._routeLabel(local), model: AIRouter._prettyModel(local.model), ok: false });
+                    // READ THE BODY BEFORE MOVING ON. A context overflow is
+                    // the client's prompt being too big, not the bee being
+                    // broken — and it is a DIFFERENT answer than "this
+                    // provider is unavailable". Swallowing it (as the old
+                    // `continue` did) made every bee fail identically and
+                    // produced the misleading "All providers unavailable".
+                    let errBody = '';
+                    try { errBody = await response.text(); } catch (_e) { /* body already consumed */ }
+                    if (isContextOverflow(response.status, errBody)) {
+                        console.warn(`[ROUTER] context overflow at ${this._routeLabel(local)}: ${errBody.slice(0, 300)}`);
+                        // Tell the truth to the client instead of trying
+                        // every other bee — they all have the same limit.
+                        streamToRes.statusCode = 413;
+                        streamToRes.setHeader('Content-Type', 'application/json');
+                        streamToRes.end(JSON.stringify({
+                            error: {
+                                message: 'Prompt exceeds the model context window',
+                                type: 'exceed_context_size_error',
+                                detail: errBody.slice(0, 500),
+                                hint: 'Shorten the conversation, or raise the model\'s context window.',
+                            }
+                        }));
+                        return { ok: false, error: 'Prompt exceeds the model context window', contextOverflow: true, status: 413 };
+                    }
                     continue;
                 }
 
@@ -1277,6 +1422,14 @@ class AIRouter {
             clearTimeout(timer);
 
             if (!response.ok) {
+                let errBody = '';
+                try { errBody = await response.text(); } catch (_e) { /* body already consumed */ }
+                if (isContextOverflow(response.status, errBody)) {
+                    // Same rule as the local-bee path: a too-big prompt is
+                    // the caller's problem to fix, and saying so beats a
+                    // generic HTTP error.
+                    return { ok: false, error: 'Prompt exceeds the model context window', contextOverflow: true, status: 413, detail: errBody.slice(0, 500) };
+                }
                 return { ok: false, error: `Custom endpoint returned HTTP ${response.status}` };
             }
 
@@ -1523,6 +1676,10 @@ class AIRouter {
                 if (res.ok) {return res;}
 
                 console.log(`Attempt ${attempt + 1} failed for ${preferredProvider}: ${res.error}`);
+                // A too-big prompt will be too big for every retry too.
+                if (res.contextOverflow) {
+                    return { ok: false, error: res.error || 'Prompt exceeds the model context window', contextOverflow: true, status: 413, detail: res.detail };
+                }
             }
             return { ok: false, error: `All retries exhausted for ${preferredProvider}` };
         }
@@ -1550,6 +1707,14 @@ class AIRouter {
                 if (res.ok) {return { ...res, provider: provider.name };}
 
                 console.log(`Provider ${provider.name} attempt ${attempt + 1} failed: ${res.error}`);
+                // A context overflow is the CLIENT's prompt being too big.
+                // Every other provider has the same or a smaller limit, so
+                // trying them all is pointless — and the honest answer is
+                // NOT "All providers unavailable" (which says the hive is
+                // down). Stop and report the truth.
+                if (res.contextOverflow) {
+                    return { ok: false, error: res.error || 'Prompt exceeds the model context window', contextOverflow: true, status: 413, detail: res.detail };
+                }
             }
         }
 
