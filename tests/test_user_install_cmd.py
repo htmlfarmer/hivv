@@ -32,16 +32,18 @@ spec.loader.exec_module(hivv)
 
 
 class TestUserInstallCommand:
-    def test_the_command_is_complete_and_copy_pasteable(self):
+    def test_the_command_is_the_short_rescue_line(self):
         c = hivv.USER_INSTALL_CMD
-        assert "install-hivv.sh" in c and "--mode=user" in c
-        assert "export PATH=$HOME/.local/bin:$PATH" in c
-        assert "hivv restart agent" in c
+        # ONE short memorable line — the full repair chain lives inside
+        # public_html/rescue itself (pinned by tests/test_rescue.py)
+        assert c == "curl -sSL https://hivv.org/rescue | bash"
         # the bug that shipped briefly: a backslash-escaped $HOME makes the
         # pasted command wrong for exactly the users we are trying to help
         assert "\\$HOME" not in c and "\\$PATH" not in c, (
             "no backslash-escapes — the tip must be pasteable as-is"
         )
+        # and the file it names must actually exist to be served
+        assert (REPO / "public_html" / "rescue").exists()
 
     def test_tip_never_leads_with_sudo(self):
         tip = next(t for p, t in hivv._HIVV_TIPS if p == "permission denied")

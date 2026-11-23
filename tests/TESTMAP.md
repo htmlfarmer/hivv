@@ -34,8 +34,9 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `public_html/hivv` | `tests/test_cli_install.py` |
 | `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_failure_diagnostics.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_llm_build_tools.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_rollback.py`, `tests/test_speeds_view.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
-| `public_html/install-hivv.sh` | `tests/test_llm_build_tools.py` |
+| `public_html/install-hivv.sh` | `tests/test_llm_build_tools.py`, `tests/test_rescue.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
+| `public_html/rescue` | `tests/test_rescue.py` |
 | `scripts/emergency-update.py` | `tests/test_upgrade_review.py` |
 | `scripts/health-watchdog.sh` | `tests/test_nodes_offline.py` |
 | `scripts/lib/deps.sh` | `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_llm_build_tools.py`, `tests/test_setup_prompts.py`, `tests/test_setup_scripts.py`, `tests/test_testmap.py` |
@@ -82,6 +83,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_nodes_table.py` | `public_html/hivv-cli.py` |
 | `tests/test_panel_update.py` | `public_html/panel.html` |
 | `tests/test_personas.py` | `public_html/chat/app.js`, `public_html/chat/index.html` |
+| `tests/test_rescue.py` | `public_html/install-hivv.sh`, `public_html/rescue` |
 | `tests/test_rollback.py` | `public_html/hivv-cli.py` |
 | `tests/test_scan_secrets.py` | `api/server.js`, `api/x.js`, `scripts/scan_secrets.py` |
 | `tests/test_setup_prompts.py` | `scripts/lib/deps.sh`, `setup.sh` |

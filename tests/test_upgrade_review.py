@@ -152,7 +152,11 @@ class TestShippedFileCanaries:
         assert hits, "expected some install-hint prints in the CLI"
         for lineno, line in hits:
             allowed = ("install.sh" in line or "install-hivv.sh" in line
-                       or '"sh", "-c"' in line)
+                       or '"sh", "-c"' in line
+                       # the ONE emergency line — a curated install-hint
+                       # shape, like the install.sh forms above: the tip,
+                       # doctor and rescue docs all quote it verbatim
+                       or "/rescue" in line)
             assert allowed, (
                 f"line {lineno} contains the download-pipe-shell pattern but is "
                 f"not an install hint or the known argv exec:\n  {line}")
@@ -2254,7 +2258,13 @@ class TestInstallModeArchitecture:
         src = self._inst()
         assert "systemd/user/${APP}-agent.service" in src
         assert "WantedBy=default.target" in src
-        assert "systemctl --user enable --now" in src
+        # enable --now NEVER restarts a RUNNING service — the old agent kept
+        # executing the old copy for 23h after a successful install (wahi).
+        # The contract is now: enable, then START-or-RESTART depending on
+        # whether an agent was already live.
+        assert "was_active=1" in src
+        assert "systemctl --user restart ${APP}-agent.service" in src
+        assert "systemctl --user start ${APP}-agent.service" in src
         assert "enable-linger" in src
 
     def test_darwin_root_targets_the_real_user(self):

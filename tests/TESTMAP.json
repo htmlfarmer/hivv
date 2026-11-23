@@ -102,10 +102,14 @@
    "tests/test_gui_setup.py"
   ],
   "public_html/install-hivv.sh": [
-   "tests/test_llm_build_tools.py"
+   "tests/test_llm_build_tools.py",
+   "tests/test_rescue.py"
   ],
   "public_html/panel.html": [
    "tests/test_panel_update.py"
+  ],
+  "public_html/rescue": [
+   "tests/test_rescue.py"
   ],
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
@@ -252,6 +256,10 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_rescue.py": [
+   "public_html/install-hivv.sh",
+   "public_html/rescue"
   ],
   "tests/test_rollback.py": [
    "public_html/hivv-cli.py"
