@@ -3695,6 +3695,12 @@ const DogRoutes = require('./routes/dog-routes');
 DogRoutes.inject(pool);
 app.use('/api/dog', DogRoutes);
 
+// THE EARTH SENSOR — first organs: temperature, pressure, wind, humidity
+// (cheap pulse; xyzo.org holds the deep atlas). Double-duty: search planning
+// AND understanding Yalla (dogs feel barometric pressure).
+const EarthRoutes = require('./routes/earth-routes');
+app.use('/api/earth', EarthRoutes);
+
 // Capability discovery for OpenAI-compatible clients — one GET tells
 // OpenCode/Continue/Cline/any script what HIVV adds on top of plain chat.
 // Sits alongside /v1/models so a client that already probes /v1 finds it.
