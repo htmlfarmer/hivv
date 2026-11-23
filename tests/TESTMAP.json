@@ -94,6 +94,7 @@
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
    "tests/test_upgrade_review.py",
+   "tests/test_user_install_cmd.py",
    "tests/test_verify_drift.py"
   ],
   "public_html/hivv-gui-setup.py": [
@@ -290,6 +291,9 @@
    "api/migrations/020_feedback_grants.sql",
    "public_html/hivv-cli.py",
    "scripts/emergency-update.py"
+  ],
+  "tests/test_user_install_cmd.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_verify_drift.py": [
    "public_html/hivv-cli.py"
