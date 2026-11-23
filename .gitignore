@@ -80,3 +80,4 @@ htmlcov/
 
 # ── local scratch ──────────────────────────────────────────────────────────
 *.local
+public_html/bridge-status.json

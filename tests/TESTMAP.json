@@ -58,6 +58,7 @@
    "tests/test_setup_scripts.py"
   ],
   "public_html": [
+   "tests/test_bridge.py",
    "tests/test_cli_install.py",
    "tests/test_cli_link.py"
   ],
@@ -186,6 +187,9 @@
   ],
   "tests/test_boot_command.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_bridge.py": [
+   "public_html"
   ],
   "tests/test_cli_chat_diagnostics.py": [
    "public_html/hivv-cli.py"

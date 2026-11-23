@@ -3615,6 +3615,13 @@ const PartnerRoutes = require('./routes/partner-routes');
 PartnerRoutes.inject(pool, router, orch, capsLib);
 app.use('/api/partner', PartnerRoutes);
 
+// HIVE-TO-HIVE BRIDGE (open-hives/0.1) — how busy is this hive, and how much
+// of our traffic may a peer hive use right now. Two public GETs, memory-only,
+// so another hive's 60s poll costs us nothing measurable.
+const BridgeRoutes = require('./routes/bridge-routes');
+BridgeRoutes.inject(pool, router, orch);
+app.use('/api/bridge', BridgeRoutes);
+
 // Capability discovery for OpenAI-compatible clients — one GET tells
 // OpenCode/Continue/Cline/any script what HIVV adds on top of plain chat.
 // Sits alongside /v1/models so a client that already probes /v1 finds it.

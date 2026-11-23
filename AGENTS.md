@@ -753,3 +753,35 @@ hivv explain kubernetes           # also sends to the LLM
 - [ ] Add WebSocket for real-time dashboard updates
 - [ ] Ship `hivv` binaries via `.github/workflows/build-cli-binaries.yml` (needs first tag + code signing)
 - [ ] Merge winget + homebrew manifests in `packaging/` (fill sha256s after first release)
+
+
+## Hive-to-Hive Bridge (open-hives/0.1)
+
+Shipped 2026-11-23 — first peer hive: **kwaai** (KwaaiNet). Spec: `/HIVE-TO-HIVE`,
+simple explanation: `/bridge.html` (+ `/bridge.txt` for agents).
+
+**Files:** `api/routes/bridge-routes.js` (load · allowance · peers · problems ·
+bridges), `api/migrations/023_bridges.sql`, discovery files
+`public_html/.bridge/hivv.json` = `.well-known/hivv.json` (+ legacy `hive.json`),
+pages `{bridge.html, bridge.txt, connect.html, watch.html, map/, live/, logs/, bugs/}`,
+ops `scripts/{bridge-canary.py, bridge-bench.sh, secretz-hivv.sh}`,
+tests `tests/test_bridge.py`.
+
+**Rules the bridge keeps:**
+- any node may propose a bridge — `POST /api/bridge/bridges` **always attempts**,
+  records every outcome, and failures go public (`/api/bridge/problems` → `/bugs/`)
+- `scope: local` stays private to the requester; only `scope: hive` is listed
+- discovery: `/.bridge/hivv.json` first, then `/.well-known/*`, then an optional
+  git-hosted `manifest_url` (for hives whose web host can't serve well-known files —
+  kwaai.ai is Google Sites)
+- fetches are SSRF-guarded (`lib/ssrf.safeFetch`), 5s deadlines, never hang
+- dynamic allowance 0–85% tiered on the 5-minute latency window; 0% when busy
+
+**Ops:** hourly canary (cron `:07`, read-only) → `logs/bridge-canary.jsonl` +
+`public_html/bridge-status.json`; gateway re-verifies all bridges every 10 min;
+benchmark: `scripts/bridge-bench.sh N` (N ≤ 20, serial, 10s apart).
+
+**Tests:** `python3 -m pytest tests/test_bridge.py -q` (12) · TESTMAP regenerated ·
+audit: no `/api/bridge/*` route remains in the HIVV-API-002 missing list.
+Pre-existing failures (proven at pristine HEAD, unrelated): `test_bee_chat`
+(8080/8090 backstop), `test_verify_drift` cascade.

@@ -140,6 +140,11 @@ router.get('/manifest', async (req, res) => {
                 review: '/api/partner/review',
                 attestation_key: '/api/partner/attestation/key',
                 mcp: '/mcp',
+                bridge_load: '/api/bridge/load',
+                bridge_allowance: '/api/bridge/allowance',
+                bridge_peers: '/api/bridge/peers',
+                bridge_problems: '/api/bridge/problems',
+                bridge_registry: '/api/bridge/bridges',
             },
             features: [
                 { key: 'openai_compatible', stable: true },

@@ -28,7 +28,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/server.js` | `tests/test_nodes_offline.py`, `tests/test_scan_secrets.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
-| `public_html` | `tests/test_cli_install.py`, `tests/test_cli_link.py` |
+| `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py` |
 | `public_html/chat/app.js` | `tests/test_personas.py`, `tests/test_testmap.py` |
 | `public_html/chat/index.html` | `tests/test_personas.py` |
 | `public_html/hivv` | `tests/test_cli_install.py` |
@@ -66,6 +66,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_ask_flags.py` | `public_html/hivv-cli.py` |
 | `tests/test_bee_chat.py` | `public_html/hivv-cli.py` |
 | `tests/test_boot_command.py` | `public_html/hivv-cli.py` |
+| `tests/test_bridge.py` | `public_html` |
 | `tests/test_cli_chat_diagnostics.py` | `public_html/hivv-cli.py` |
 | `tests/test_cli_install.py` | `public_html`, `public_html/hivv`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh`, `scripts/setup-local.ps1`, `scripts/setup-local.sh`, `setup.sh` |
 | `tests/test_cli_link.py` | `public_html`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
@@ -159,8 +160,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/lib/tool-stream.js`
 - `api/lib/toolkit.js`
 - `api/lib/usage-tracker.js`
-- `api/lib/version-date.js`
-- `api/routes/bridge-routes.js`
 - `api/routes/capability-discovery.js`
 - `api/routes/capability-routes.js`
 - `api/routes/coding-routes.js`
@@ -189,7 +188,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `sdk/javascript/index.js`
 - `api/start.sh`
 - `restart.sh`
-- `scripts/secretz-hivv.sh`
 - `scripts/update-ip.sh`
 - `status.sh`
 - `public_html/install-hivv.ps1`
