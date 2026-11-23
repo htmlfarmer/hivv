@@ -28,6 +28,18 @@ router.get('/sightings', async (req, res) => {
 
 router.post('/sightings', async (req, res) => {
     if (!pool) return res.status(503).json({ error: { message: 'no database (local install)' } });
+    // HONEYPOT — the hidden security feature. Humans never see a field called
+    // "website" on a lost-dog report; bots fill it because they fill everything.
+    // The trap is SILENT to the bot (response identical to success, so it stays
+    // undiscovered) and LOUD to us (console.warn — the exceptional path screams,
+    // per house law). Nothing is stored. The form that doesn't exist yet already
+    // has its trap set.
+    if (req.body && req.body.website) {
+        console.warn('[honeypot] bot hit POST /sightings from ' + req.ip +
+            ' — dog=' + String(req.body.dog || '').slice(0, 32) +
+            ' website=' + String(req.body.website).slice(0, 60));
+        return res.json({ ok: true });
+    }
     const dog = String((req.body && req.body.dog) || 'yalla').trim().slice(0, 32);
     const where = String((req.body && req.body.where) || '').trim().slice(0, 200);
     const note = req.body && req.body.note ? String(req.body.note).slice(0, 500) : null;

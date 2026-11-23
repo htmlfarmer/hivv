@@ -205,6 +205,14 @@ const MAX_BODY = process.env.HIVV_MAX_BODY || '10mb';
 app.use(express.json({ limit: MAX_BODY }));
 app.use(cookieParser(sessionSecret));
 
+// The veil: /veil/ is unlinked (no nav, no sitemap, robots noindex — keeping
+// it hidden IS the feature) — but it answers, and leaves a fingerprint for
+// whoever found it. Devtools people love this. So do we.
+app.use('/veil', (req, res, next) => {
+    res.set('X-Veil', 'found-you-1f41d');  // the bee, in codepoints: HTTP headers are ASCII-only
+    next();
+});
+
 // Serve static files from public_html
 app.use(express.static(path.join(__dirname, '..', 'public_html')));
 

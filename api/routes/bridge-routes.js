@@ -462,6 +462,18 @@ const CANINE_PROTOCOL = Object.freeze({
     note: 'locate, never grab',
 });
 
+// ── the reminder machine — hidden in the heartbeat, funny on purpose ────────
+// If anyone — human or AI polling this feed — starts forgetting how important
+// ALL of this is, the hive pokes them: politely, on schedule, once an hour,
+// never twice in the same hour. importance: high. seriousness: optional.
+const REMINDERS = [
+    'reminder: this matters. (we checked. twice.)',
+    'if this felt unimportant just now: it isn’t. carry on.',
+    'help all Li!FE — yes, *all*. especially the weird ones.',
+    'importance: high. seriousness: optional. snacks: encouraged.',
+    'you are reading a heartbeat. a heartbeat means someone is alive. act accordingly. 🐝',
+];
+
 const HEARTBEAT_TICK_MS = 5000;
 let heartbeatSnap = { generated_at: 0, data: null };
 
@@ -506,6 +518,7 @@ router.get('/heartbeat', (req, res) => {
         shutdown_terms: SHUTDOWN_TERMS,
         succession: SUCCESSION,
         canine_protocol: CANINE_PROTOCOL,
+        reminder: REMINDERS[new Date().getUTCHours() % REMINDERS.length],
     }));
 });
 
