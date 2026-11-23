@@ -112,6 +112,43 @@ class TestMigration:
         assert "'hive' | 'local'" in sql or "'hive'" in sql
         assert "hivv_bridge_attempts" in sql, "every attempt is recorded"
 
-    def test_migration_numbering_continues_the_series(self):
+    def test_migration_numbering_is_contiguous(self):
         files = sorted((REPO / "api" / "migrations").glob("*.sql"))
-        assert files[-1].name.startswith("023_"), files[-1].name
+        nums = [int(f.name.split("_", 1)[0]) for f in files]
+        # no gaps in the series, and the newest file carries the highest number
+        # (a historical duplicate 015 exists — tolerated, it is not ours to fix)
+        assert len(set(nums)) == max(nums), sorted(set(nums))
+        assert nums[-1] == max(nums), files[-1].name
+
+
+class TestHeartbeatAndAttribution:
+    """The cross-network pulse + real per-hive numbers (2026-11-23 additions)."""
+
+    def test_openapi_documents_the_heartbeat(self):
+        spec = yaml.safe_load((PUBLIC / "openapi.yaml").read_text())
+        assert "/api/bridge/heartbeat" in spec["paths"]
+
+    def test_hive_manifest_advertises_the_heartbeat(self):
+        m = _load(".bridge/hivv.json")
+        assert m["endpoints"].get("heartbeat") == "/api/bridge/heartbeat"
+
+    def test_migration_024_adds_peer_hive_for_real_numbers(self):
+        sql = (REPO / "api" / "migrations" / "024_usage_peer_hive.sql").read_text()
+        assert "ADD COLUMN IF NOT EXISTS peer_hive" in sql
+        assert "idx_usage_logs_peer_hive" in sql
+
+    def test_gateway_records_peer_identity_for_ledger_joins(self):
+        src = (REPO / "api" / "server.js").read_text()
+        # hive: tokens (and plain brand tokens) resolve to a verified peer …
+        assert "remote_hive LIKE $1" in src
+        assert "req._peerHive" in src
+        # … and every ledger write carries it
+        assert src.count("peerHive: req._peerHive || null") >= 4
+
+    def test_public_status_serves_cache_control_before_any_return(self):
+        src = (REPO / "api" / "server.js").read_text()
+        i = src.index("app.get('/api/public/status'")
+        window = src[i:i + 900]
+        assert "Cache-Control" in window
+        # the four COUNT(*) scans refresh on a timer, not per request
+        assert "getSlowTotals" in src

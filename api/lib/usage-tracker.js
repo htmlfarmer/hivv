@@ -85,13 +85,14 @@ class UsageTracker {
         endpoint,
         anonymousVisitorId,
         tokensPerSec,
-        feature
+        feature,
+        peerHive
     }) {
         try {
             await this.pool.query(
                 `INSERT INTO usage_logs
-                 (user_id, key_id, provider_id, model, input_tokens, output_tokens, cost, latency_ms, status, error_message, ip_address, user_agent, endpoint, anonymous_visitor_id, tokens_per_sec, feature)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+                 (user_id, key_id, provider_id, model, input_tokens, output_tokens, cost, latency_ms, status, error_message, ip_address, user_agent, endpoint, anonymous_visitor_id, tokens_per_sec, feature, peer_hive)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
                 [
                     userId,
                     keyId,
@@ -108,7 +109,8 @@ class UsageTracker {
                     endpoint || 'chat/completions',
                     anonymousVisitorId || null,
                     tokensPerSec || null,
-                    feature || null
+                    feature || null,
+                    peerHive || null
                 ]
             );
             return true;

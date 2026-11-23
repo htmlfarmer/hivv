@@ -957,11 +957,50 @@ app.get('/api/health/redis', async (req, res) => {
 // page. Anonymized activity only; never expose prompts, IPs, or session tokens.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── slow totals: the four COUNT(*) full-scans, refreshed every 5 minutes ────
+// usage_logs/users/ai_keys/anonymous_sessions are big enough that a COUNT(*)
+// per cache miss was the most expensive part of /api/public/status. Totals
+// change slowly; requests do not. First call pays once, every later call is
+// memory, and a stale-but-present answer beats a slow exact one ("faster is
+// wiser" — approximate is fine for a public pulse).
+let _slowTotals = {
+    at: 0,
+    value: { users: '0', keys: '0', open_problems: '0', visitors: '0' },
+    inflight: false,
+};
+async function getSlowTotals() {
+    if (Date.now() - _slowTotals.at < 300000) return _slowTotals.value;   // 5 min fresh
+    if (!_slowTotals.inflight) {
+        _slowTotals.inflight = true;
+        const firstEver = _slowTotals.at === 0;
+        const run = pool
+            .query(`
+                SELECT
+                    (SELECT COUNT(*) FROM users WHERE is_active = TRUE) AS users,
+                    (SELECT COUNT(*) FROM ai_keys WHERE is_active = TRUE) AS keys,
+                    (SELECT COUNT(*) FROM problems WHERE status != 'closed') AS open_problems,
+                    (SELECT COUNT(*) FROM anonymous_sessions) AS visitors
+            `)
+            .then(({ rows }) => {
+                _slowTotals = { at: Date.now(), value: rows[0], inflight: false };
+            })
+            .catch(() => { _slowTotals.inflight = false; });
+        if (firstEver) await run;          // only the very first request waits
+    }
+    return _slowTotals.value;
+}
+
 app.get('/api/public/status', async (req, res) => {
     // 15s cached overview: gateway health, request counts, model availability,
     // and a small recent-activity slice for the landing page.
+    res.set('Cache-Control', 'public, max-age=10');   // before EVERY return path
     const cached = await cache.get('public:status');
     if (cached) {return res.json(cached);}
+    // Caches for every CDN/proxy/hive-poller in front of us — and inside the
+    // handler, the four COUNT(*) full-scans below now refresh at most every
+    // 5 minutes (background) instead of on every cache miss: totals change
+    // slowly, requests do not. "Faster is wiser."
+    res.set('Cache-Control', 'public, max-age=10');
     // LOCAL MODE: no database — report what we CAN honestly report.
     if (!pool) {
         let localModels = [];
@@ -990,14 +1029,8 @@ app.get('/api/public/status', async (req, res) => {
         });
     }
     try {
-        const [counts, providers, recent, todayActivity, lastHour, latency5m] = await Promise.all([
-            pool.query(`
-                SELECT
-                    (SELECT COUNT(*) FROM users WHERE is_active = TRUE) AS users,
-                    (SELECT COUNT(*) FROM ai_keys WHERE is_active = TRUE) AS keys,
-                    (SELECT COUNT(*) FROM problems WHERE status != 'closed') AS open_problems,
-                    (SELECT COUNT(*) FROM anonymous_sessions) AS visitors
-            `),
+        const totals = await getSlowTotals();
+        const [providers, recent, todayActivity, lastHour, latency5m] = await Promise.all([
             pool.query('SELECT name, display_name, is_cloud, supported_models FROM ai_providers WHERE is_active = TRUE ORDER BY name'),
             pool.query(`
                 SELECT model, provider_id, total_tokens, latency_ms, status, created_at
@@ -1039,7 +1072,7 @@ app.get('/api/public/status', async (req, res) => {
                 local_backends: localEndpoints,
                 ts: Date.now()
             },
-            totals: counts.rows[0],
+            totals,
             today: {
                 requests: parseInt(todayActivity.rows[0].requests),
                 tokens: parseInt(todayActivity.rows[0].tokens)
@@ -2141,15 +2174,37 @@ app.post('/v1/chat/completions', async (req, res) => {
     // to a principal for quota/usage. Absent or empty header = anonymous tier
     // (back-compat: existing clients never sent one).
     let bearerUserId = null;
+    let peerHive = null;   // bridge peer identity: Authorization: Bearer hive:<name>
     const authHeader = req.headers.authorization || '';
     if (authHeader.toLowerCase().startsWith('bearer ')) {
         const token = authHeader.slice(7).trim();
         if (token) {
+            // A registered bridge hive may identify itself as "hive:<name>"
+            // OR plainly as its brand ("kwaai") — KwaaiNet's inference_api_key
+            // sends whatever we told it to. Match exact or domain-prefix against
+            // verified peers; anything else falls through to the user-key path.
+            const name = (token.startsWith('hive:') ? token.slice(5) : token).toLowerCase();
+            let matchedPeer = false;
             try {
-                const kr = await pool.query('SELECT id FROM users WHERE api_key = $1 LIMIT 1', [token]);
-                if (kr.rows.length) { bearerUserId = kr.rows[0].id; }
-                else { return res.status(401).json({ error: { message: 'Invalid API key', type: 'invalid_request_error', code: 'invalid_api_key' } }); }
-            } catch (e) { console.warn(`[AUTH] bearer lookup failed: ${e.message}`); }
+                const br = await pool.query(
+                    "SELECT remote_hive FROM hivv_bridges WHERE (remote_hive = $1 OR remote_hive LIKE $1 || '.%') AND status = 'verified' LIMIT 1",
+                    [name]);
+                if (br.rows.length) {
+                    matchedPeer = true;
+                    peerHive = name;
+                    req._peerHive = name;   // ledger writes read it from req
+                }
+            } catch (e) { console.warn(`[AUTH] bridge peer lookup failed: ${e.message}`); }
+            if (!matchedPeer && token.startsWith('hive:')) {
+                return res.status(401).json({ error: { message: 'Unknown bridge peer', type: 'invalid_request_error', code: 'invalid_api_key' } });
+            }
+            if (!matchedPeer) {
+                try {
+                    const kr = await pool.query('SELECT id FROM users WHERE api_key = $1 LIMIT 1', [token]);
+                    if (kr.rows.length) { bearerUserId = kr.rows[0].id; }
+                    else { return res.status(401).json({ error: { message: 'Invalid API key', type: 'invalid_request_error', code: 'invalid_api_key' } }); }
+                } catch (e) { console.warn(`[AUTH] bearer lookup failed: ${e.message}`); }
+            }
         }
     }
     // Generation params forwarded to the router / providers as `gen`
@@ -2168,7 +2223,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     const ip = req.ip || req.connection.remoteAddress;
     // hivv OS envelope: WHO is asking + HOW they want it routed
     const osOpts = {
-        principal: userId ? `user:${userId}` : visitorId,
+        principal: peerHive ? `hive:${peerHive}` : (userId ? `user:${userId}` : visitorId),
         capability: capability || 'reasoning',
         route: route || {},
         node: _nodeIdOf(req),
@@ -2331,6 +2386,7 @@ app.post('/v1/chat/completions', async (req, res) => {
                 privacy: { privacy_class: 'private' },
             });
             await usageTracker.logRequest({
+                peerHive: req._peerHive || null,
                 userId: userId || null,
                 keyId: data.keyId || null,
                 providerId: data.providerId || null,
@@ -2460,6 +2516,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 
         if (userId && result.keyId) {
             await usageTracker.logRequest({
+                peerHive: req._peerHive || null,
                 userId,
                 keyId: result.keyId,
                 providerId: result.providerId,
@@ -2476,6 +2533,7 @@ app.post('/v1/chat/completions', async (req, res) => {
             });
         } else {
             await usageTracker.logRequest({
+                peerHive: req._peerHive || null,
                 userId: null,
                 keyId: result.keyId || null,
                 providerId: result.providerId || null,
@@ -2640,6 +2698,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
     // fire-and-forget usage log — never delays the reply (D1: honest token counts)
     const _logChatUsage = (data) => {
         usageTracker.logRequest({
+                peerHive: req._peerHive || null,
             userId: userId || null,
             keyId: data.keyId || null,
             providerId: data.providerId || null,

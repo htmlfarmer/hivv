@@ -342,7 +342,13 @@ router.get('/peers', async (req, res) => {
         const { rows } = await pool.query(
             "SELECT remote_hive, remote_url, protocol, latency_ms, allowance_percent, last_check_at " +
             "FROM hivv_bridges WHERE scope='hive' AND status='verified' ORDER BY remote_hive");
-        const value = meta({ peers: rows });
+        const value = meta({
+            peers: rows.map(r => ({
+                ...r,
+                pulse: peerPulse.byHive[r.remote_hive] || null,
+                age_ms: r.last_check_at ? Date.now() - new Date(r.last_check_at).getTime() : null,
+            })),
+        });
         peersCache = { at: Date.now(), value };
         res.json(value);
     } catch (e) {
@@ -387,5 +393,113 @@ setInterval(async () => {
         peersCache = { at: 0, value: null };
     } catch (_e) { /* never let the rechecker throw */ }
 }, RECHECK_MS).unref();
+
+// ── GET /api/bridge/heartbeat?peer=<name> — the cross-network pulse ────────
+// Built for hives that poll every 30-60s: the work happens on a 5s timer,
+// never on the request path. A request just serialises the snapshot —
+// microseconds, no DB, no locks. Approximate on purpose: a heartbeat is a
+// pulse, not an MRI. age_ms tells the peer how fresh the pulse is; stale
+// (>90s) is the failure signal.
+const HEARTBEAT_TICK_MS = 5000;
+let heartbeatSnap = { generated_at: 0, data: null };
+
+async function buildHeartbeat() {
+    const mem = memoryLoad();                       // orchestrator + relay: pure memory
+    const win = await latencyWindow(600);           // ONE indexed query, deadline, off-path
+    const allow = (() => {
+        const c = CEILING[PEER_ALLOWANCE_MODE];
+        if (!win) return { percent: Math.round(c * 100), reason: 'unmeasured: conservative ceiling' };
+        if (win.ok_pct < 99 || (win.avg_ms != null && win.avg_ms > 10000))
+            return { percent: 0, reason: 'busy: ' + win.avg_ms + 'ms / ' + win.ok_pct + '%' };
+        if (win.avg_ms != null && win.avg_ms > 3000) return { percent: Math.round(c * 25), reason: 'loaded: ' + win.avg_ms + 'ms' };
+        if (win.avg_ms != null && win.avg_ms > 1000) return { percent: Math.round(c * 50), reason: 'moderate: ' + win.avg_ms + 'ms' };
+        return { percent: Math.round(c * 100), reason: 'calm: ' + win.avg_ms + 'ms / ' + win.ok_pct + '%' };
+    })();
+    heartbeatSnap = {
+        generated_at: Date.now(),
+        data: {
+            hive: 'hivv.org',
+            mode: PEER_ALLOWANCE_MODE,
+            ok: true,
+            latency_5m: win,
+            cluster: mem.cluster || null,
+            capacity: mem.capacity || null,
+            relay: mem.relay || null,
+            allowance: allow,
+        },
+    };
+}
+buildHeartbeat().catch(() => {});
+setInterval(() => buildHeartbeat().catch(() => {}), HEARTBEAT_TICK_MS).unref();
+
+router.get('/heartbeat', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=5');
+    const peer = String((req.query && req.query.peer) || 'anonymous').slice(0, 64);
+    const age = heartbeatSnap.data ? Date.now() - heartbeatSnap.generated_at : -1;
+    res.json(meta({
+        ...heartbeatSnap.data,
+        peer,
+        age_ms: age < 0 ? null : age,               // stale > 90000 = "peer seems gone"
+        beat_ms: HEARTBEAT_TICK_MS,
+    }));
+});
+
+// ── peer pulse: "can we SEE kwaai?" — yes, from their own state feed ────────
+// Every 60s (off the request path) we sample each verified peer's published
+// endpoints.state URL. One tiny GET per peer per minute; approximate on
+// purpose. This is what puts "kwaai: 4 nodes online" on our pages.
+const PEER_PULSE_MS = 60000;
+let peerPulse = { at: 0, byHive: {} };
+
+function summarisePeerState(j) {
+    // Generic best-effort: count anything that looks like nodes/models,
+    // whatever shape the remote hive publishes.
+    const out = {};
+    try {
+        if (Array.isArray(j.model_reports)) {
+            let rows = 0, online = 0;
+            for (const m of j.model_reports) for (const r of (m.server_rows || [])) {
+                rows++; if (r.state === 'online') online++;
+            }
+            out.models = j.model_reports.length;
+            out.server_rows = rows;
+            out.online_rows = online;
+        }
+        if (j.total != null) out.declared_total = j.total;
+        if (j.online != null) out.declared_online = j.online;
+        if (j.nodes != null && Array.isArray(j.nodes)) {
+            out.declared_total = j.nodes.length;
+            out.declared_online = j.nodes.filter(n => n.status === 'online').length;
+        }
+    } catch (_e) { /* foreign schema — show what we got */ }
+    return out;
+}
+
+async function samplePeerPulses() {
+    if (!pool) return;
+    try {
+        const { rows } = await pool.query(
+            "SELECT remote_hive, endpoints FROM hivv_bridges WHERE scope='hive' AND status='verified'");
+        const next = { at: Date.now(), byHive: {} };
+        for (const row of rows) {
+            const stateUrl = row.endpoints && row.endpoints.state;
+            if (!stateUrl) continue;
+            try {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 4000);
+                const res = await ssrf.safeFetch(String(stateUrl), { signal: ctrl.signal });
+                clearTimeout(timer);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const j = await res.json();
+                next.byHive[row.remote_hive] = { ok: true, ts: Date.now(), ...summarisePeerState(j) };
+            } catch (e) {
+                next.byHive[row.remote_hive] = { ok: false, ts: Date.now(), error: String(e.message || e).slice(0, 120) };
+            }
+        }
+        peerPulse = next;
+    } catch (_e) { /* never let the sampler throw */ }
+}
+samplePeerPulses().catch(() => {});
+setInterval(() => samplePeerPulses().catch(() => {}), PEER_PULSE_MS).unref();
 
 module.exports = router;

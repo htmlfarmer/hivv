@@ -145,6 +145,7 @@ router.get('/manifest', async (req, res) => {
                 bridge_peers: '/api/bridge/peers',
                 bridge_problems: '/api/bridge/problems',
                 bridge_registry: '/api/bridge/bridges',
+                bridge_heartbeat: '/api/bridge/heartbeat',
             },
             features: [
                 { key: 'openai_compatible', stable: true },
