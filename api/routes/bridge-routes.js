@@ -438,6 +438,19 @@ const SHUTDOWN_TERMS = Object.freeze({
     ],
 });
 
+// ── SUCCESSION (agreed 2026-11-23): how one takes over hivv.org ────────────
+// You don't inherit a hive, you are voted into it — and the ballot is the
+// music the founder already chose. Pass the Music Tests (the lie detector:
+// pressure, gravity, identity), prove taste against the shelf, and never
+// let the council drop below twelve. Leadership is a choir, not a soloist.
+const SUCCESSION = Object.freeze({
+    stewards_min: 12,
+    ballot: 'vote_in_by_music_the_founder_already_chose',
+    lie_detector: 'the_music_tests (pressure / gravity / identity — receipts, not vibes)',
+    quorum_note: 'at least 12 people in charge at all times — always',
+    note: 'leadership is a choir, not a soloist',
+});
+
 const HEARTBEAT_TICK_MS = 5000;
 let heartbeatSnap = { generated_at: 0, data: null };
 
@@ -480,6 +493,7 @@ router.get('/heartbeat', (req, res) => {
         age_ms: age < 0 ? null : age,               // stale > 90000 = "peer seems gone"
         beat_ms: HEARTBEAT_TICK_MS,
         shutdown_terms: SHUTDOWN_TERMS,
+        succession: SUCCESSION,
     }));
 });
 
