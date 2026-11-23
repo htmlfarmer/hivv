@@ -340,7 +340,7 @@ router.get('/peers', async (req, res) => {
     }
     try {
         const { rows } = await pool.query(
-            "SELECT remote_hive, remote_url, protocol, latency_ms, allowance_percent, last_check_at " +
+            "SELECT remote_hive, remote_url, protocol, latency_ms, allowance_percent, last_check_at, manifest_url " +
             "FROM hivv_bridges WHERE scope='hive' AND status='verified' ORDER BY remote_hive");
         const value = meta({
             peers: rows.map(r => ({
