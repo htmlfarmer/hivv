@@ -318,3 +318,17 @@ with the hub completely optional:
 - **CLI** — the `hivv` command. Manages your node, chats, diagnostics
 - **Your own gateway** — the same code, running locally, offline-capable
 - **Measured routing** — endpoint order is biased by observed tokens/sec (EWMA), so fast bees lead
+
+## Why GPL v3 — the sharing philosophy
+
+Our work is **GPL v3 (copyleft)** because sharing is still scarce on Earth: anyone may use, study,
+modify and share this code, but derivatives must carry the same freedom. Copyleft is the gift's immune
+system — if someone wraps it in a cage, the license fails. We need more people to share, so the
+license makes sharing *sticky*.
+
+And we **respect copyright, always**: generous outbound (our work, freely yours) plus respectful
+inbound (we take nothing that isn't ours — no lifted code, no copied lyrics, no borrowed art; we
+cite, link, paraphrase). Copyleft is an offer about *our* work, never a claim on anyone else's.
+
+GPL says "share what you make." Copyright says "don't take what isn't yours." Both are true at once.
+— hivv.org (Hive: hivv.org)
