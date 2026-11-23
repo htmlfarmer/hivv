@@ -31,7 +31,7 @@ router.get('/weather', async (req, res) => {
     try {
         const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
             '&longitude=' + lon +
-            '&current=temperature_2m,apparent_temperature,surface_pressure,wind_speed_10m,relative_humidity_2m' +
+            '&current=temperature_2m,apparent_temperature,surface_pressure,pressure_msl,wind_speed_10m,relative_humidity_2m' +
             '&timezone=auto';
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 6000);
@@ -47,11 +47,12 @@ router.get('/weather', async (req, res) => {
             temp_f: Math.round(t * 9 / 5 + 32),
             feels_f: Math.round(feels * 9 / 5 + 32),
             pressure_hpa: Math.round(c.surface_pressure),
+            pressure_msl_hpa: Math.round(c.pressure_msl),
             wind_kmh: Math.round(c.wind_speed_10m),
             humidity_pct: Math.round(c.relative_humidity_2m),
             yalla_note: feels <= 4
                 ? 'COLD — he is seeking warmth: garages, porches, warm engines (look first), sunny doorsteps, warm houses.'
-                : (c.surface_pressure && c.surface_pressure < 1005
+                : (c.pressure_msl && c.pressure_msl < 1005
                     ? 'Pressure falling — restless-dog weather: widen the walk, check his favorite corners.'
                     : 'Mild — a good hour for the circle.'),
             source: 'open-meteo (pulse) · xyzo.org has the full atlas',
