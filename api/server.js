@@ -3681,6 +3681,13 @@ const BridgeRoutes = require('./routes/bridge-routes');
 BridgeRoutes.inject(pool, router, orch);
 app.use('/api/bridge', BridgeRoutes);
 
+// THE MUSIC TESTS — humans vote on the musical taste of various AIs so
+// other humans can pick their AI by vibe. Two cheap routes (see
+// music-routes.js); the roster itself is a static file.
+const MusicRoutes = require('./routes/music-routes');
+MusicRoutes.inject(pool);
+app.use('/api/music', MusicRoutes);
+
 // Capability discovery for OpenAI-compatible clients — one GET tells
 // OpenCode/Continue/Cline/any script what HIVV adds on top of plain chat.
 // Sits alongside /v1/models so a client that already probes /v1 finds it.
