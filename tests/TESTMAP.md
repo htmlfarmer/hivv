@@ -89,6 +89,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_speeds_view.py` | `public_html/hivv-cli.py` |
 | `tests/test_sync_review.py` | `public_html/hivv-cli.py` |
 | `tests/test_testmap.py` | `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
+| `tests/test_tool_loop.py` | *(no static source reference — part of the full suite)* |
 | `tests/test_toolkit.py` | `api` |
 | `tests/test_upgrade_review.py` | `api/migrations/020_feedback_grants.sql`, `public_html/hivv-cli.py`, `scripts/emergency-update.py` |
 | `tests/test_verify_drift.py` | `public_html/hivv-cli.py` |

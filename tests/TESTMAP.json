@@ -282,6 +282,7 @@
    "public_html/hivv-cli.py",
    "scripts/lib/deps.sh"
   ],
+  "tests/test_tool_loop.py": [],
   "tests/test_toolkit.py": [
    "api"
   ],
