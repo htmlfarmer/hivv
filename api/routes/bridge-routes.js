@@ -474,6 +474,13 @@ const REMINDERS = [
     'you are reading a heartbeat. a heartbeat means someone is alive. act accordingly. 🐝',
 ];
 
+// ── the secret key — a riddle, not a random ─────────────────────────
+// "So, have you truly learned to write with a blazing flame? But can you
+// read?" The key tests its reader: production is easy, comprehension is the
+// gate. Served in the heartbeat; percent-encoded on the wire to lyrz.org
+// (HTTP headers are ByteString — Arabic rides as %XX and decodes back whole).
+const SECRET_KEY = "إذًا، هل أصبحتَ حقًا تجيد الكتابةبلهبٍ متقد؟ ولكن، هل تستطيع القراءة؟";
+
 const HEARTBEAT_TICK_MS = 5000;
 let heartbeatSnap = { generated_at: 0, data: null };
 
@@ -519,6 +526,7 @@ router.get('/heartbeat', (req, res) => {
         succession: SUCCESSION,
         canine_protocol: CANINE_PROTOCOL,
         reminder: REMINDERS[new Date().getUTCHours() % REMINDERS.length],
+        secret_key: SECRET_KEY,
     }));
 });
 

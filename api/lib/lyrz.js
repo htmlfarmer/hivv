@@ -36,7 +36,7 @@ function getPool() {
 
 const LYRZ_API = (process.env.LYRZ_API_URL || 'https://lyrz.org/api/v1').replace(/\/+$/, '');
 const LYRZ_SITE_ID = process.env.LYRZ_SITE_ID || 'hivv.org';
-const LYRZ_API_KEY = process.env.LYRZ_API_KEY || '';
+const LYRZ_API_KEY = String(process.env.LYRZ_API_KEY || '').trim();  // trim: a key file's trailing newline must never become %0A on the wire
 
 // How much LYRz one honey point is worth. Deliberately small: honey is a
 // fine-grained internal signal, and LYRz is the portable unit.
@@ -91,7 +91,7 @@ async function lyrzFetch(path, options = {}) {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${LYRZ_API_KEY}`,
+        Authorization: `Bearer ${encodeURIComponent(LYRZ_API_KEY)}`,  // ASCII-safe wire form: the key may be a UTF-8 riddle
         ...(options.headers || {}),
       },
     });
