@@ -44,6 +44,9 @@
   "api/migrations/021_upgrade_diagnostics.sql": [
    "tests/test_failure_diagnostics.py"
   ],
+  "api/routes/control-routes.js": [
+   "tests/test_llm_build_tools.py"
+  ],
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
   ],
@@ -229,6 +232,7 @@
    "public_html/hivv-gui-setup.py"
   ],
   "tests/test_llm_build_tools.py": [
+   "api/routes/control-routes.js",
    "public_html/hivv-cli.py",
    "public_html/install-hivv.sh",
    "scripts/lib/deps.sh"

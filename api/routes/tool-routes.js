@@ -62,14 +62,18 @@ function getVisitorId(req, res) {
         visitorId = `v_${crypto.randomBytes(16).toString('hex')}`;
     }
     if (!req.signedCookies?.hivv_visitor) {
-        try {
-            res.cookie('hivv_visitor', visitorId, {
-                signed: true,
-                httpOnly: true,
-                maxAge: ANONYMOUS_TTL,
-                sameSite: 'lax'
-            });
-        } catch (_e) { /* cookies disabled — the id still identifies this call */ }
+        // Writing the cookie writes a header — which throws once the response
+        // has started. Never let that break the call.
+        if (!res.headersSent) {
+            try {
+                res.cookie('hivv_visitor', visitorId, {
+                    signed: true,
+                    httpOnly: true,
+                    maxAge: ANONYMOUS_TTL,
+                    sameSite: 'lax'
+                });
+            } catch (_e) { /* cookies disabled — the id still identifies this call */ }
+        }
     }
     return String(visitorId).slice(0, 128);
 }

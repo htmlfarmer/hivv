@@ -606,6 +606,28 @@ class TestBeeToolServer(unittest.TestCase):
         self.assertEqual(out["local"], "2026-01-15 17:00:00")
         self.assertEqual(out["from_local"], "2026-01-15 13:00:00")
 
+    def test_the_bee_server_is_threaded(self):
+        """A plain HTTPServer serves ONE request at a time.
+
+        That is not a detail: a proxied call can take 30 seconds (a code run
+        in the hub's sandbox), and a bare TCP probe from the CLI holds the
+        server hostage while the CLI waits on its own HTTP request — the
+        single-threaded server cannot answer the second connection until the
+        first one closes. The whole local-tool path timed out because of it.
+        """
+        src = self.script.read_text(encoding="utf-8")
+        self.assertIn("ThreadingHTTPServer", src)
+        self.assertNotIn("server = HTTPServer(", src)
+
+    def test_the_cli_uses_the_ipv4_loopback_for_the_tool_server(self):
+        """`localhost` resolves to ::1 FIRST on this box, and the tool server
+        binds IPv4 only — so every local tool call tried IPv6 first and
+        timed out."""
+        cli = (REPO / "public_html" / "hivv-cli.py").read_text(encoding="utf-8")
+        self.assertNotIn('localhost", TOOLS_PORT', cli)
+        self.assertNotIn('http://localhost:{TOOLS_PORT}', cli)
+        self.assertIn('http://127.0.0.1:{TOOLS_PORT}', cli)
+
 
 # ── the live gateway (skipped when it is down) ──────────────────────────────
 class TestLiveGateway(unittest.TestCase):

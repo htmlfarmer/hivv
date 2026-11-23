@@ -24,6 +24,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/request-provenance.js` | `api/tests/provenance-schema.test.js`, `api/tests/request-provenance.test.js` |
 | `api/migrations/020_feedback_grants.sql` | `tests/test_upgrade_review.py` |
 | `api/migrations/021_upgrade_diagnostics.sql` | `tests/test_failure_diagnostics.py` |
+| `api/routes/control-routes.js` | `tests/test_llm_build_tools.py` |
 | `api/routes/honey-routes.js` | `tests/test_failure_diagnostics.py` |
 | `api/server.js` | `tests/test_nodes_offline.py`, `tests/test_scan_secrets.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
@@ -76,7 +77,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_fast_scan_parity.py` | `api/lib/fast-scan.js`, `public_html/hivv-cli.py` |
 | `tests/test_gui_e2e.py` | `public_html/hivv-cli.py`, `public_html/hivv-gui-setup.py` |
 | `tests/test_gui_setup.py` | `public_html/hivv-cli.py`, `public_html/hivv-gui-setup.py` |
-| `tests/test_llm_build_tools.py` | `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `scripts/lib/deps.sh` |
+| `tests/test_llm_build_tools.py` | `api/routes/control-routes.js`, `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `scripts/lib/deps.sh` |
 | `tests/test_nodes_offline.py` | `api/server.js`, `public_html/hivv-cli.py`, `scripts/health-watchdog.sh` |
 | `tests/test_nodes_table.py` | `public_html/hivv-cli.py` |
 | `tests/test_panel_update.py` | `public_html/panel.html` |
@@ -156,7 +157,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/capability-discovery.js`
 - `api/routes/capability-routes.js`
 - `api/routes/coding-routes.js`
-- `api/routes/control-routes.js`
 - `api/routes/database-routes.js`
 - `api/routes/dial-routes.js`
 - `api/routes/files-routes.js`

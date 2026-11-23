@@ -516,12 +516,17 @@ function getVisitorId(req, res) {
     }
 
     if (!req.signedCookies?.hivv_visitor) {
-        res.cookie('hivv_visitor', visitorId, {
-            signed: true,
-            httpOnly: true,
-            maxAge: ANONYMOUS_TTL,
-            sameSite: 'lax'
-        });
+        // Setting the cookie writes a header — which throws once the response
+        // has started. In the STREAMING tool loop the tool runs after the
+        // first frame is already out, so this must be a no-op then.
+        if (!res.headersSent) {
+            res.cookie('hivv_visitor', visitorId, {
+                signed: true,
+                httpOnly: true,
+                maxAge: ANONYMOUS_TTL,
+                sameSite: 'lax'
+            });
+        }
     }
 
     return visitorId;
@@ -2238,6 +2243,17 @@ app.post('/v1/chat/completions', async (req, res) => {
                 const toolCalls = assistantMsg?.tool_calls;
                 if (!toolCalls || !toolCalls.length) break;
                 v1MsgList.push(assistantMsg);
+                if (!toolsAttached) {
+                    // The client opted OUT of tools — never run one.
+                    for (const tc of toolCalls) {
+                        v1MsgList.push({
+                            role: 'tool',
+                            tool_call_id: tc.id,
+                            content: 'tools are not available on this request — answer without them',
+                        });
+                    }
+                    break;
+                }
                 for (const tc of toolCalls) {
                     const fn = tc.function || tc.function_ || {};
                     let targs = {};
@@ -2380,6 +2396,18 @@ app.post('/v1/chat/completions', async (req, res) => {
             }
             const calls = interceptor.toolCalls();
             v1StreamMsgs.push(interceptor.assistantMessage());
+            if (!toolsAttached) {
+                for (const call of calls) {
+                    v1StreamMsgs.push({
+                        role: 'tool',
+                        tool_call_id: call.id || `call_${round}`,
+                        content: 'tools are not available on this request — answer without them',
+                    });
+                }
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
             for (const call of calls) {
                 let targs = {};
                 try { targs = JSON.parse(call.function.arguments || '{}'); } catch (_e) { /* bad args */ }
@@ -2745,6 +2773,22 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                         assistant_message: assistantMsg
                     });
                 }
+                if (!toolsAttached) {
+                    // The client opted OUT of tools ("tools": false, or
+                    // X-Hivv-Tools: off). A model can still emit a tool call —
+                    // hallucinated, or left over from a template — and the
+                    // hub must NOT run it. Say so instead of acting.
+                    msgList.push(assistantMsg);
+                    for (const tc of toolCalls) {
+                        msgList.push({
+                            role: 'tool',
+                            tool_call_id: tc.id || `call_${round}`,
+                            content: 'tools are not available on this request — answer without them',
+                        });
+                    }
+                    lastData = data.data;
+                    continue;
+                }
                 // Execute each tool call on hub and append results to messages
                 for (const tc of toolCalls) {
                     const result = await execToolCall(tc);
@@ -2808,6 +2852,21 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             const calls = interceptor.toolCalls();
             const assistantMsg = interceptor.assistantMessage();
             streamMsgList.push(assistantMsg);
+            if (!toolsAttached) {
+                // The client opted OUT of tools. A model can still emit a tool
+                // call — hallucinated, or left over from a template — and the
+                // hub must NOT run it.
+                for (const call of calls) {
+                    streamMsgList.push({
+                        role: 'tool',
+                        tool_call_id: call.id || `call_${round}`,
+                        content: 'tools are not available on this request — answer without them',
+                    });
+                }
+                interceptor.release();
+                interceptor.finish();
+                break;
+            }
             for (const call of calls) {
                 streamMsgList.push(await execToolCall({
                     id: call.id || `call_${round}`,

@@ -1,4 +1,5 @@
 const https = require('https');
+const { mergeToolCalls } = require('./tool-stream');
 const http = require('http');
 const crypto = require('crypto');
 
@@ -223,6 +224,13 @@ class StreamCapture {
         let model = null;
         let usage = null;
         let toolCalls = null;
+        // Streamed tool calls arrive as DELTAS (choices[0].delta.tool_calls),
+        // one fragment per index — the shape every real provider sends. The
+        // non-streaming shape (choices[0].message.tool_calls) is the rare
+        // one. Looking only at `message` meant the hub's non-streaming tool
+        // loop never saw a tool call from a provider that streams them, so
+        // the model asked for a tool and the hub shrugged.
+        const toolDeltas = [];
 
         for (const line of lines) {
             if (!line.trim()) continue;
@@ -236,6 +244,9 @@ class StreamCapture {
                     content += deltaContent || msgContent || '';
                     if (parsed.model) {model = parsed.model;}
                     if (parsed.usage) {usage = parsed.usage;}
+                    if (parsed.choices?.[0]?.delta?.tool_calls) {
+                        toolDeltas.push(...parsed.choices[0].delta.tool_calls);
+                    }
                     if (parsed.choices?.[0]?.message?.tool_calls) {
                         toolCalls = parsed.choices[0].message.tool_calls;
                     }
@@ -247,11 +258,19 @@ class StreamCapture {
                     content += msgContent;
                     if (parsed.model) {model = parsed.model;}
                     if (parsed.usage) {usage = parsed.usage;}
+                    if (parsed.choices?.[0]?.delta?.tool_calls) {
+                        toolDeltas.push(...parsed.choices[0].delta.tool_calls);
+                    }
                     if (parsed.choices?.[0]?.message?.tool_calls) {
                         toolCalls = parsed.choices[0].message.tool_calls;
                     }
                 } catch (e) {}
             }
+        }
+
+        if (toolDeltas.length) {
+            const merged = mergeToolCalls(toolDeltas);
+            if (merged.length) toolCalls = merged;
         }
 
         return { content, model, usage, toolCalls };
