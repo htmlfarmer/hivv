@@ -4087,10 +4087,10 @@ app.post('/api/nodes/register', async (req, res) => {
           const revProblem = idv.problems.find((p) => p.startsWith('revoked:'));
           pool.query(`
             INSERT INTO hivv_incidents (incident_type, severity, state, node_id, title, description)
-            SELECT 'identity_revoked', 'high', 'active', $1, $2, $3
+            SELECT 'identity_revoked', 'high', 'active', $1::varchar, $2::text, $3::text
             WHERE NOT EXISTS (
               SELECT 1 FROM hivv_incidents
-              WHERE node_id = $1 AND incident_type = 'identity_revoked' AND state = 'active')`,
+              WHERE node_id = $1::varchar AND incident_type = 'identity_revoked' AND state = 'active')`,
             [beeId, 'identity revoked: ' + beeId, revProblem])
             .catch((err) => console.error('[IDENTITY] incident error: ' + err.message));
         }
@@ -4289,10 +4289,10 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
         const revProblem = hbIdv.problems.find((p) => p.startsWith('revoked:'));
         pool.query(`
           INSERT INTO hivv_incidents (incident_type, severity, state, node_id, title, description)
-          SELECT 'identity_revoked', 'high', 'active', $1, $2, $3
+          SELECT 'identity_revoked', 'high', 'active', $1::varchar, $2::text, $3::text
           WHERE NOT EXISTS (
             SELECT 1 FROM hivv_incidents
-            WHERE node_id = $1 AND incident_type = 'identity_revoked' AND state = 'active')`,
+            WHERE node_id = $1::varchar AND incident_type = 'identity_revoked' AND state = 'active')`,
           [beeId, 'identity revoked: ' + beeId, revProblem])
           .catch((err) => console.error('[IDENTITY] incident error: ' + err.message));
       }
