@@ -2208,8 +2208,18 @@ app.post('/v1/chat/completions', async (req, res) => {
     let bearerUserId = null;
     let peerHive = null;   // bridge peer identity: Authorization: Bearer hive:<name>
     const authHeader = req.headers.authorization || '';
-    if (authHeader.toLowerCase().startsWith('bearer ')) {
-        const token = authHeader.slice(7).trim();
+    // Accept a bare `hive:<name>` as well as `Bearer hive:<name>`. The
+    // open-hives client sends the bare form (no scheme — it identifies itself
+    // rather than authenticates), and requiring the prefix meant every peer
+    // request fell through to the anonymous tier: the ledger recorded it as
+    // peer_hive = NULL, so per-hive accounting looked complete and was wrong.
+    // Only the hive: form is accepted bare; every other token still needs the
+    // scheme, so a stray `Basic <...>` header cannot be mistaken for a key.
+    const authToken = authHeader.toLowerCase().startsWith('bearer ')
+        ? authHeader.slice(7).trim()
+        : (authHeader.toLowerCase().startsWith('hive:') ? authHeader.trim() : '');
+    if (authToken) {
+        const token = authToken;
         if (token) {
             // A registered bridge hive may identify itself as "hive:<name>"
             // OR plainly as its brand ("kwaai") — KwaaiNet's inference_api_key
@@ -2264,16 +2274,27 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     const ipCheck = ipLimiter.check(ip);
     if (!ipCheck.allowed) {
+        // Retry-After is a HEADER (RFC 7231), and the open-hives client reads
+        // exactly that — it reports "Retry-After: not specified" when only the
+        // JSON body carries the number. The body keeps retry_after for OpenAI-
+        // shaped clients; the header is for protocol-shaped ones.
+        const retryAfter = Math.max(1, Math.ceil((ipCheck.resetAt - Date.now()) / 1000));
+        res.set('Retry-After', String(retryAfter));
         return res.status(429).json({
-            error: { message: 'Rate limit exceeded', type: 'rate_limit_error', retry_after: Math.ceil((ipCheck.resetAt - Date.now()) / 1000) }
+            error: { message: 'Rate limit exceeded', type: 'rate_limit_error', retry_after: retryAfter }
         });
     }
 
     if (userId) {
         const quotaCheck = await rateLimiter.checkLimit(userId);
         if (!quotaCheck.allowed) {
+            // Quota windows are hourly/daily and checkLimit does not report a
+            // reset instant, so this is a floor rather than a measurement:
+            // "not before a minute" is true and is all a peer hive needs to
+            // back off correctly.
+            res.set('Retry-After', '60');
             return res.status(429).json({
-                error: { message: 'Quota exceeded', type: 'quota_exceeded', details: quotaCheck.remaining }
+                error: { message: 'Quota exceeded', type: 'quota_exceeded', details: quotaCheck.remaining, retry_after: 60 }
             });
         }
     }
