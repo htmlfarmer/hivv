@@ -127,13 +127,31 @@ def test_relay_endpoints_include_detected_port_first(cli):
     assert all(e.startswith("http://") and e.endswith("/v1/chat/completions") for e in eps)
 
 
-def test_relay_endpoints_keep_legacy_backstop(cli):
-    """Detected ports are probed, but the legacy list stays as a fallback for
-    a box where detection fails. Checked by PORT (not exact URL) because an
-    alive :8080 is added as 127.0.0.1 and shadows the legacy localhost form."""
+def test_relay_endpoints_keep_legacy_backstop(cli, monkeypatch):
+    """The legacy list is a fallback for a box where detection FAILS —
+    "alive or eps": when nothing answers, all five legacy ports are the
+    candidates (checked by PORT, not exact URL, because an alive :8080 is
+    added as 127.0.0.1 and shadows the legacy localhost form).
+
+    When detection DOES work, dead ports must NOT be retried: each dead
+    candidate burns a 40s timeout against the relay's 90s TTL — the fix
+    for "relay to yalla succeeded ~50% of the time" (see _relay_endpoints).
+    The old assertion demanded all five ports on a LIVE box, which the
+    alive-filter (intentional, committed) can never satisfy — pinned here
+    on purpose with the probes stubbed so both branches are deterministic.
+    """
+    # nothing answers → the backstop IS the list
+    monkeypatch.setattr(cli, "_local_llm_ports", lambda: [])
+    monkeypatch.setattr(cli, "_llm_alive_port", lambda p: False)
     ports = {urllib.parse.urlsplit(e).port for e in cli._relay_endpoints()}
     for p in (8080, 11434, 1234, 8081, 8090):
         assert p in ports, f"legacy port {p} missing from relay backstop"
+
+    # something answers → only what ANSWERS survives; dead legacy is dropped
+    monkeypatch.setattr(cli, "_llm_alive_port", lambda p: p == 8090)
+    ports = {urllib.parse.urlsplit(e).port for e in cli._relay_endpoints()}
+    assert 8090 in ports, "the alive endpoint must be kept"
+    assert 8080 not in ports, "a dead legacy port must not burn the relay TTL"
 
 
 def test_relay_endpoints_dedup(cli):

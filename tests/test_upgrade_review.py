@@ -38,8 +38,23 @@ SCRIPT_PATH = REPO / "scripts" / "emergency-update.py"
 # Isolate ALL state before importing the CLI: the module resolves STATE_DIR at
 # import time, so these must be set first. HUB points at a dead port so any
 # accidental request fails fast instead of touching production.
+_PRE_ENV = {k: os.environ.get(k) for k in ("HIVV_STATE_DIR", "HIVV_HUB")}
 os.environ["HIVV_STATE_DIR"] = tempfile.mkdtemp(prefix="hivv-test-state-")
 os.environ["HIVV_HUB"] = "http://127.0.0.1:1"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_env_after_this_module():
+    """Module-level os.environ writes leak into every test that runs later —
+    test_tools_test_cmd's subprocess inherited HIVV_HUB=http://127.0.0.1:1
+    and died with "Connection refused" (full suite red, 2026-11-24). Restore
+    the moment this module's tests are done; during them nothing changes."""
+    yield
+    for _k, _v in _PRE_ENV.items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
 
 _spec = importlib.util.spec_from_file_location("hivv_cli", str(CLI_PATH))
 hivv = importlib.util.module_from_spec(_spec)

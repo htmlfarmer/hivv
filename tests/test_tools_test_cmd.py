@@ -161,7 +161,14 @@ class TestItActuallyRuns(unittest.TestCase):
         cls.out = ""
         cls.code = 1
         for _attempt in range(2):
+            # Never inherit the import-time fixtures other files leave in
+            # os.environ: an empty temp HIVV_STATE_DIR forces a re-download
+            # of hivv-tools.py, and HIVV_HUB=http://127.0.0.1:1 (dead-port
+            # fast-fail) makes that download die with "Connection refused"
+            # (the full-suite red of 2026-11-24). Real state, real hub.
             env = dict(os.environ, HUB=GATEWAY)
+            env.pop("HIVV_STATE_DIR", None)
+            env.pop("HIVV_HUB", None)
             r = subprocess.run(
                 [sys.executable, str(CLI), "tools", "test"],
                 capture_output=True, text=True, timeout=600, env=env, cwd=str(REPO))

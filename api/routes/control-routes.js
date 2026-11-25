@@ -152,6 +152,12 @@ router.get('/nodes', async (req, res) => {
     nodes: all.map(n => ({
       id: n.node_id, name: n.name, ip: n.ip, lan_ip: n.lan_ip,
       public_ip: n.public_ip || null, version: n.version,
+      // WHEN this version was built — a content hash is equality, not a
+      // date (hivv nodes VERSION column request, 2026-11-23). null → '—'
+      version_date: (() => {
+        try { return require('../lib/version-date').forVersion(n.version); }
+        catch (_e) { return null; }
+      })(),
       status: n.status, registered_at: n.registered_at, last_heartbeat: n.last_heartbeat,
       heartbeat_age_s: n.last_heartbeat ? Math.round((now - n.last_heartbeat) / 1000) : null,
       capabilities: n.capabilities.slice(0, 8), local_models: n.local_models,
