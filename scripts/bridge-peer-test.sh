@@ -22,7 +22,20 @@
 set -uo pipefail
 
 HUB="https://hivv.org"
-if [[ "${1:-}" == "--local" ]]; then HUB="http://localhost:3011"; fi
+# The manifest doors are STATIC FILES served by the web server from
+# public_html/, not by the API gateway. So --local (which points at the
+# gateway on :3011) cannot reach them; it needs the web server's own port.
+WEB="https://hivv.org"
+WEB_RESOLVE=()
+if [[ "${1:-}" == "--local" ]]; then
+  HUB="http://localhost:3011"
+  # The manifest doors are static files served by Caddy (file_server over
+  # public_html/); /api/* is proxied to the gateway on :3011. So --local
+  # talks to the gateway directly and to Caddy on :443 with the Host pinned
+  # to hivv.org — still entirely on this box, no traffic off-host.
+  WEB="https://hivv.org"
+  WEB_RESOLVE=(--resolve "hivv.org:443:127.0.0.1")
+fi
 
 # Our own KwaaiNet node's door, on loopback.
 NODE_MODELS="${KWAAINET_MODELS_URL:-http://localhost:18090/v1/models}"
@@ -52,6 +65,7 @@ probe() {
 
 echo "══ HIVV <-> KwaaiNet bridge smoke test ══"
 echo "   hub: $HUB"
+echo "   web: $WEB   (static manifest doors, served by Caddy)"
 echo "   node: $NODE_CHAT"
 echo ""
 
@@ -88,10 +102,10 @@ for route in load allowance peers problems heartbeat; do
   if [[ "$code" =~ ^[23] ]]; then ok "GET /api/bridge/$route (HTTP $code)"; else bad "GET /api/bridge/$route (HTTP ${code:-none})"; fi
 done
 
-code=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$HUB/.bridge/hivv.json")
+code=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$WEB/.bridge/hivv.json" "${WEB_RESOLVE[@]}")
 if [[ "$code" == "200" ]]; then ok "GET /.bridge/hivv.json (their manifest)"; else bad "GET /.bridge/hivv.json (HTTP ${code:-none})"; fi
 
-code=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$HUB/.well-known/hivv.json")
+code=$(curl -s -m 20 -o /dev/null -w '%{http_code}' "$WEB/.well-known/hivv.json" "${WEB_RESOLVE[@]}")
 if [[ "$code" == "200" ]]; then ok "GET /.well-known/hivv.json (standard door)"; else bad "GET /.well-known/hivv.json (HTTP ${code:-none})"; fi
 echo ""
 
@@ -125,7 +139,7 @@ echo ""
 # ── 4. THEIR MANIFEST: what do they say their chat door is? ─────────────
 echo "[4] What their manifest claims"
 
-manifest=$(curl -s -m 20 "$HUB/.bridge/hivv.json" 2>/dev/null)
+manifest=$(curl -s -m 20 "$WEB/.bridge/hivv.json" "${WEB_RESOLVE[@]}" 2>/dev/null)
 if [[ -n "$manifest" ]]; then
   printf '%s' "$manifest" | python3 -c '
 import json,sys
