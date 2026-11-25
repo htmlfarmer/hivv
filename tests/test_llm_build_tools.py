@@ -1225,6 +1225,96 @@ class TestSudoEscalationLadder:
             assert guard in gate, f"d_can_prompt_sudo is missing the {guard} guard"
 
 
+class TestFullToolchainGate:
+    """git+cmake passing the gate is not enough — configure needs a C++ compiler.
+
+    THE FAILURE THIS GUARDS AGAINST (wahi 2026-11-25)
+    ─────────────────────────────────────────────────
+        [2/3] configuring…
+        CMake Error at CMakeLists.txt:2 (project):
+          No CMAKE_CXX_COMPILER could be found.
+
+    The gate checked git and cmake only, so a box with neither a compiler
+    nor make sailed into "[2/3]" and died mid-configure — one wall further
+    than the last fix, same class of bug: the preflight must cover the
+    WHOLE toolchain the build actually invokes (cmake --build needs make
+    immediately after configure).
+    """
+
+    def test_tables_cover_the_whole_toolchain(self):
+        mod = _load_cli()
+        for pm in ("apt", "dnf", "yum", "pacman", "apk", "zypper", "brew"):
+            pkgs = mod._BUILD_TOOL_PKGS[pm]
+            for tool in ("git", "cmake", "cxx", "make"):
+                assert tool in pkgs, f"{pm}: {tool} missing from _BUILD_TOOL_PKGS"
+                assert pkgs[tool], f"{pm}: {tool} maps to an empty package"
+            assert pkgs["make"] == "make", "make is spelled make everywhere"
+
+    def test_cxx_package_name_per_manager(self):
+        """The VIRTUAL key cxx maps to each manager's own spelling."""
+        mod = _load_cli()
+        assert mod._BUILD_TOOL_PKGS["apt"]["cxx"] == "g++"
+        assert mod._BUILD_TOOL_PKGS["apk"]["cxx"] == "g++"
+        for pm in ("dnf", "yum", "zypper"):
+            assert mod._BUILD_TOOL_PKGS[pm]["cxx"] == "gcc-c++", pm
+        assert mod._BUILD_TOOL_PKGS["pacman"]["cxx"] == "gcc"
+
+    def test_cxx_present_accepts_any_compiler(self, monkeypatch):
+        """g++/c++/clang++ all satisfy cxx — probe binaries, not spellings."""
+        mod = _load_cli()
+        for binary in ("g++", "c++", "clang++"):
+            monkeypatch.setattr(mod.shutil, "which",
+                                lambda n, b=binary: "/usr/bin/" + b if n == b else None)
+            assert mod._build_tool_present("cxx") is True, binary
+        monkeypatch.setattr(mod.shutil, "which", lambda n: None)
+        assert mod._build_tool_present("cxx") is False
+        # a plain tool still uses plain which()
+        monkeypatch.setattr(mod.shutil, "which",
+                            lambda n: "/usr/bin/git" if n == "git" else None)
+        assert mod._build_tool_present("git") is True
+        assert mod._build_tool_present("make") is False
+
+    def test_label_is_human_words(self):
+        mod = _load_cli()
+        assert mod._build_tool_label("cxx") == "c++ compiler"
+        assert mod._build_tool_label("git") == "git"
+
+    def test_build_callers_require_the_whole_toolchain(self):
+        """Both llama build paths must preflight compiler+make too."""
+        src = CLI.read_text(encoding="utf-8", errors="replace")
+        n = src.count('_ensure_build_tools(["git", "cmake", "cxx", "make"])')
+        assert n == 2, f"expected 2 full-toolchain preflights, found {n}"
+        assert '_ensure_build_tools(["git", "cmake"])' not in src, (
+            "a git+cmake-only preflight still exists")
+
+    def test_hints_list_the_whole_toolchain(self):
+        mod = _load_cli()
+        for pm in ("apt", "dnf", "yum", "pacman", "apk", "zypper"):
+            hint = mod._BUILD_TOOL_HINTS[pm]
+            assert "git" in hint and "cmake" in hint, pm
+            assert "make" in hint, f"{pm} hint lacks make: {hint}"
+            assert mod._BUILD_TOOL_PKGS[pm]["cxx"] in hint, (
+                f"{pm} hint lacks its compiler package: {hint}")
+
+    def test_installer_gate_covers_cxx_and_make(self):
+        src = INSTALL_SH.read_text(encoding="utf-8", errors="replace")
+        assert "ensure_build_tools git cmake cxx make" in src, (
+            "the installer must preflight the whole toolchain")
+        # need() understands the virtual key, _pkg_of translates it
+        assert "cxx) command -v g++" in src or "cxx)" in src
+        assert "_pkg_of()" in src and "_tool_label()" in src
+        # the human message names the compiler, not the key
+        assert "c++ compiler" in src
+
+    def test_deps_library_gate_covers_cxx_and_make(self):
+        src = DEPS.read_text(encoding="utf-8", errors="replace")
+        body = src.split("d_have_build_tools()")[1].split("\n}")[0]
+        assert "command -v make" in body, "deps.sh must require make"
+        assert "clang++" in body, "deps.sh must accept any C++ compiler"
+        hint = src.split("d_build_tools_hint()")[1].split("\n}")[0]
+        assert "g++" in hint or "gcc-c++" in hint
+
+
 if __name__ == "__main__":
     import pytest
 

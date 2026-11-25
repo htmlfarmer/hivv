@@ -2421,6 +2421,23 @@ app.post('/v1/chat/completions', async (req, res) => {
             if (data.policyReceipt && !res.headersSent) {
                 res.setHeader('X-Hivv-Policy', data.policyReceipt);
             }
+            // Signed route receipt (Phase 6): non-streaming → the answer
+            // digest IS included, so a client can hash the body it received
+            // and match it against the hub's signature.
+            if (!res.headersSent) {
+                try {
+                    const _ansSha = crypto.createHash('sha256')
+                        .update(JSON.stringify(data.data || {})).digest('hex');
+                    const _rcpt = require('./lib/identity').routeReceiptHeader({
+                        answeredBy: data.answeredBy || 'unknown',
+                        transport: String(data.answeredBy).includes('(relay)') ? 'relay'
+                            : String(data.answeredBy).includes('(cloud)') ? 'cloud' : 'direct',
+                        answerSha256: _ansSha,
+                        durationMs: Date.now() - startTime,
+                    });
+                    if (_rcpt) res.setHeader('X-Hivv-Receipt', _rcpt);
+                } catch (_e) {}
+            }
             return res.json(data.data);
         }
 
@@ -2835,6 +2852,21 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                     }
                     if (data.policyReceipt && !res.headersSent) {
                         res.setHeader('X-Hivv-Policy', data.policyReceipt);
+                    }
+                    // Signed route receipt (Phase 6) — answer digest included
+                    // (non-streaming: the body is final when headers go out).
+                    if (!res.headersSent) {
+                        try {
+                            const _ansSha = crypto.createHash('sha256')
+                                .update(JSON.stringify(data.data || {})).digest('hex');
+                            const _rcpt = require('./lib/identity').routeReceiptHeader({
+                                answeredBy: data.answeredBy || 'unknown',
+                                transport: String(data.answeredBy).includes('(relay)') ? 'relay'
+                                    : String(data.answeredBy).includes('(cloud)') ? 'cloud' : 'direct',
+                                answerSha256: _ansSha,
+                            });
+                            if (_rcpt) res.setHeader('X-Hivv-Receipt', _rcpt);
+                        } catch (_e) {}
                     }
                     return res.json(data.data);
                 }
@@ -3965,6 +3997,17 @@ app.post('/api/nodes/register', async (req, res) => {
     // alone is advisory (recorded, not fatal) -- a bad clock is a health
     // problem, not an attack. Legacy proof (secret/hw_id) allows the key to
     // be REPLACED (recovery + rotation anchor).
+    //
+    // ENFORCEMENT (opt-in, HIVV_IDENTITY_ENFORCE=1): unsigned registration
+    // is refused outright — the flag an operator flips once the fleet has
+    // keys (all current bees do).
+    if (require('./lib/identity').enforcementRequired() && !body.identity) {
+      return res.status(403).json({
+        error: 'this hive requires signed registration',
+        code: 'IDENTITY_REQUIRED',
+        hint: 'upgrade the bee CLI (hivv update) — every register must carry an Ed25519 identity block',
+      });
+    }
     let idv = null;
     if (body.identity) {
       const identity = require('./lib/identity');
@@ -4144,6 +4187,17 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
   // failing signature is recorded and echoed back (status 'failed'/'mismatch'
   // so the bee can rebind) but NEVER rejects the heartbeat: a broken signer
   // must not knock its own bee offline. Quarantined bees stay inert (above).
+  //
+  // ENFORCEMENT (opt-in, HIVV_IDENTITY_ENFORCE=1): unsigned heartbeats are
+  // refused too — full enforcement, not just at the register door.
+  if (require('./lib/identity').enforcementRequired() &&
+      !(req.body && req.body.identity)) {
+    return res.status(403).json({
+      error: 'this hive requires signed heartbeats',
+      code: 'IDENTITY_REQUIRED',
+      hint: 'upgrade the bee CLI (hivv update) — every heartbeat must carry an Ed25519 identity block',
+    });
+  }
   let hbIdv = null;
   if (req.body && req.body.identity) {
     const identity = require('./lib/identity');

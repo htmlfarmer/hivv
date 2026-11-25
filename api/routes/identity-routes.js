@@ -152,6 +152,13 @@ router.post('/revoke', (req, res) => {
   res.status(400).json({ error: 'provide {node_id, revocation} (self) or {principal, reason} (admin)' });
 });
 
+// The hub's own public key — verify any X-Hivv-Receipt header against this.
+router.get('/hub-key', (req, res) => {
+  const info = identity.hubKeyInfo();
+  if (!info) return res.status(503).json({ error: 'hub signing key unavailable' });
+  res.json(info);
+});
+
 // The public CRL — anyone may read who has been revoked and why.
 router.get('/revocations', (req, res) => {
   const revocations = identity.listRevocations();

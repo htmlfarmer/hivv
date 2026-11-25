@@ -681,7 +681,7 @@ d_install_pm2() {
     return 1
 }
 
-# ── build tools (git + cmake) — for building llama.cpp from source ───────
+# ── build tools (git + cmake + C++ compiler + make) — for llama.cpp ──────
 # THE FAILURE THIS FIXES
 # ----------------------
 # 2026-11-21 (asher@wahi): `hivv install llm` on a box without git died with
@@ -694,45 +694,51 @@ d_install_pm2() {
 # safely can, otherwise print the EXACT copy-paste command and return 1.
 # NEVER prompt for a password — `sudo -n` only, or CI hangs.
 d_have_build_tools() {
-    command -v git >/dev/null 2>&1 && command -v cmake >/dev/null 2>&1
+    command -v git >/dev/null 2>&1 || return 1
+    command -v cmake >/dev/null 2>&1 || return 1
+    command -v make >/dev/null 2>&1 || return 1
+    # cxx = ANY C++ compiler — wahi 2026-11-25: configure died with
+    # "No CMAKE_CXX_COMPILER could be found" after git+cmake had passed.
+    command -v g++ >/dev/null 2>&1 || command -v c++ >/dev/null 2>&1 \
+        || command -v clang++ >/dev/null 2>&1
 }
 
 d_build_tools_hint() {
     case "$D_PKG" in
-        apt)    dcmd "sudo apt-get update && sudo apt-get install -y git cmake" ;;
-        dnf)    dcmd "sudo dnf install -y git cmake" ;;
-        yum)    dcmd "sudo yum install -y git cmake" ;;
-        pacman) dcmd "sudo pacman -S --noconfirm git cmake" ;;
-        apk)    dcmd "sudo apk add git cmake" ;;
-        zypper) dcmd "sudo zypper --non-interactive install git cmake" ;;
+        apt)    dcmd "sudo apt-get update && sudo apt-get install -y git cmake g++ make" ;;
+        dnf)    dcmd "sudo dnf install -y git cmake gcc-c++ make" ;;
+        yum)    dcmd "sudo yum install -y git cmake gcc-c++ make" ;;
+        pacman) dcmd "sudo pacman -S --noconfirm git cmake gcc make" ;;
+        apk)    dcmd "sudo apk add git cmake g++ make" ;;
+        zypper) dcmd "sudo zypper --non-interactive install git cmake gcc-c++ make" ;;
         brew)   dcmd "brew install git cmake" ;;
-        *)      dcmd "install git and cmake with your package manager" ;;
+        *)      dcmd "install git, cmake, a C++ compiler and make with your package manager" ;;
     esac
 }
 
 d_install_build_tools() {
     if d_have_build_tools; then
-        dok "build tools present (git, cmake)"
+        dok "build tools present (git, cmake, C++ compiler, make)"
         return 0
     fi
 
-    dwarn "git and/or cmake missing — needed to build llama.cpp from source"
+    dwarn "git/cmake/C++ compiler/make missing — needed to build llama.cpp from source"
 
     case "$D_PKG" in
         apt)
             d_run_privileged apt-get update >/dev/null 2>&1 || true
-            d_run_privileged apt-get install -y git cmake >/dev/null 2>&1
+            d_run_privileged apt-get install -y git cmake g++ make >/dev/null 2>&1
             ;;
-        dnf)    d_run_privileged dnf install -y git cmake >/dev/null 2>&1 ;;
-        yum)    d_run_privileged yum install -y git cmake >/dev/null 2>&1 ;;
-        pacman) d_run_privileged pacman -S --noconfirm git cmake >/dev/null 2>&1 ;;
-        apk)    d_run_privileged apk add --no-cache git cmake >/dev/null 2>&1 ;;
-        zypper) d_run_privileged zypper --non-interactive install git cmake >/dev/null 2>&1 ;;
+        dnf)    d_run_privileged dnf install -y git cmake gcc-c++ make >/dev/null 2>&1 ;;
+        yum)    d_run_privileged yum install -y git cmake gcc-c++ make >/dev/null 2>&1 ;;
+        pacman) d_run_privileged pacman -S --noconfirm git cmake gcc make >/dev/null 2>&1 ;;
+        apk)    d_run_privileged apk add --no-cache git cmake g++ make >/dev/null 2>&1 ;;
+        zypper) d_run_privileged zypper --non-interactive install git cmake gcc-c++ make >/dev/null 2>&1 ;;
         brew)   brew install git cmake >/dev/null 2>&1 ;;
     esac
 
     if d_have_build_tools; then
-        dok "installed build tools (git, cmake)"
+        dok "installed build tools (git, cmake, C++ compiler, make)"
         return 0
     fi
     printf '\n  %s!%s Could not install the build tools automatically.\n' "$D_YLW" "$D_RST"

@@ -309,6 +309,103 @@ function publicSummary(nodeId, idv = null) {
   return base;
 }
 
+// ── the HUB's identity key (route receipts, Phase 6) ───────────────────────
+// One Ed25519 key for the hub's own assertions about ROUTING: "hivv attests
+// this response was answered by node X model Y via Z [over body A]". The
+// private half lives next to the store (0600, env-overridable), the public
+// half is published at GET /api/identity/hub-key so anyone can verify an
+// X-Hivv-Receipt header offline. Distinct from the scanner's attestation key
+// (api/.keys/scan-key) — different purposes, different principals.
+const HUB_KEY_PATH = process.env.HIVV_IDENTITY_HUB_KEY ||
+  path.join(__dirname, '..', '.keys', 'identity-key');
+let _hubKey = null;
+
+function hubSigningKey() {
+  if (_hubKey) return _hubKey;
+  try {
+    let seed = null;
+    try {
+      const raw = fs.readFileSync(HUB_KEY_PATH, 'utf8').trim();
+      if (/^[0-9a-f]{64}$/.test(raw)) seed = Buffer.from(raw, 'hex');
+    } catch (_e) { /* generate below */ }
+    if (!seed) {
+      seed = crypto.randomBytes(32);
+      fs.mkdirSync(path.dirname(HUB_KEY_PATH), { recursive: true });
+      fs.writeFileSync(HUB_KEY_PATH, seed.toString('hex') + '\n', { mode: 0o600 });
+      fs.chmodSync(HUB_KEY_PATH, 0o600);
+    }
+    const privateKey = crypto.createPrivateKey({
+      key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), seed]),
+      format: 'der', type: 'pkcs8',
+    });
+    // The public key must be DERIVED from the private key — an Ed25519 SPKI
+    // structure holds the public POINT, not the seed (sticking the seed in
+    // produces a structurally valid but cryptographically unrelated key:
+    // sign/verify then disagree — found the hard way, 2026-11-25).
+    const rawPublicKey = attest.rawFromPublicKey(crypto.createPublicKey(privateKey));
+    _hubKey = { privateKey, rawPublicKey, principal: attest.principalIdFromRaw(rawPublicKey) };
+    return _hubKey;
+  } catch (e) {
+    console.error('[IDENTITY] hub key unavailable: ' + e.message);
+    return null;
+  }
+}
+
+function hubKeyInfo() {
+  const k = hubSigningKey();
+  if (!k) return null;
+  return {
+    principal: k.principal,
+    public_key: k.rawPublicKey.toString('base64'),
+    algorithm: ALGORITHM,
+    schema: 'hivv.identity.route-receipt.v1',
+  };
+}
+
+// Build + sign a route receipt. answer_sha256 is included ONLY when the
+// full answer body is known at header time (non-streaming paths) — a
+// streaming response signs attribution only, and says so by omission.
+function routeReceipt({ answeredBy, transport, answerSha256 = null,
+                        durationMs = null, now = _nowS() }) {
+  const k = hubSigningKey();
+  if (!k) return null;
+  const statement = {
+    v: 1,
+    kind: 'route.receipt',
+    ts: now,
+    nonce: crypto.randomBytes(8).toString('hex'),
+    answered_by: String(answeredBy || '').slice(0, 200),
+    transport: ['direct', 'relay', 'cloud', 'local', 'hub'].includes(String(transport))
+      ? String(transport) : 'direct',
+  };
+  if (answerSha256 && /^[0-9a-f]{64}$/.test(String(answerSha256))) {
+    statement.answer_sha256 = String(answerSha256);
+  }
+  if (Number.isSafeInteger(durationMs) && durationMs >= 0) {
+    statement.duration_ms = durationMs;
+  }
+  try {
+    const signature = crypto.sign(
+      null, Buffer.from(attest.canonicalize(statement), 'utf8'), k.privateKey
+    ).toString('base64');
+    return { statement, signature, public_key: k.rawPublicKey.toString('base64') };
+  } catch (e) {
+    console.error('[IDENTITY] receipt sign failed: ' + e.message);
+    return null;
+  }
+}
+
+// The X-Hivv-Receipt header value: base64 of the receipt JSON. Set it
+// INSIDE a try/catch at every site — a receipt must never break a response.
+function routeReceiptHeader(opts) {
+  try {
+    const r = routeReceipt(opts);
+    return r ? Buffer.from(JSON.stringify(r), 'utf8').toString('base64') : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 // ── nonce cache (shared) ────────────────────────────────────────────────────
 // Keyed WITH the statement kind: an identity nonce and a manifest nonce are
 // different statements and must not collide into a false replay.
@@ -865,6 +962,15 @@ function verifyStandalone({ statement, signature, public_key: pubB64, principal:
   return problems.length ? { ok: false, problems, principal } : { ok: true, problems: [], principal };
 }
 
+// ── enforcement (opt-in) ────────────────────────────────────────────────────
+// Dual-mode stays the DEFAULT: advisory. An operator who is ready to demand
+// signed registration sets HIVV_IDENTITY_ENFORCE=1 — then register AND
+// heartbeat REQUIRE an identity block (403 IDENTITY_REQUIRED with an
+// actionable hint). Read per-request so a config reload flips it live.
+function enforcementRequired(env = process.env) {
+  return String(env.HIVV_IDENTITY_ENFORCE || '') === '1';
+}
+
 // Test seam: forget the in-memory cache (the file remains).
 function _resetForTests() {
   _cache = null;
@@ -886,6 +992,11 @@ module.exports = {
   listRevocations,
   verifyEndorsement,
   listEndorsements,
+  hubSigningKey,
+  hubKeyInfo,
+  routeReceipt,
+  routeReceiptHeader,
+  enforcementRequired,
   publicSummary,
   getRecord,
   listIdentities,

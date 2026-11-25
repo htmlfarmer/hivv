@@ -654,6 +654,132 @@ def test_revoke_command_requires_reason(cli, capsys):
     assert "--reason" in (captured.out + captured.err)
 
 
+def _fake_node_payload():
+    import time as _time
+    return {"id": "beefake", "name": "beefake", "status": "online",
+            "version": "0.2.test", "last_heartbeat": int(_time.time() * 1000),
+            "lan_ip": "10.0.0.2", "ip": "10.0.0.2", "cpu_model": "testcpu",
+            "local_models": [], "location": {}}
+
+
+def test_node_detail_surfaces_identity_and_trust(cli, capsys, monkeypatch):
+    """hivv node <bee> prints the identity + trust lines (Phases 1 + 5),
+    and folds both blocks into --json output."""
+    def fake_http(method, path, **kw):
+        if path == "/api/control/nodes":
+            return 200, {"nodes": [_fake_node_payload()]}
+        if path == "/api/identity/beefake":
+            return 200, {"principal": "hivv_" + "a" * 32, "status": "active",
+                         "bound_via": "register", "revoked": False,
+                         "manifest": {"seq": 7, "tools": ["t1", "t2"],
+                                      "local_models": [{"name": "m"}]},
+                         "endorsements": [{"role": "owner"}]}
+        if path == "/api/identity/trust/beefake":
+            return 200, {"score": 4.5, "overall": 75, "known": True,
+                         "dimensions": {"identity": 90, "reliability": 70,
+                                        "history": None, "receipts": None},
+                         "evidence": {}}
+        return 404, {}
+
+    monkeypatch.setattr(cli, "http", fake_http)
+
+    class A:
+        name = ["beefake"]
+        json_output = False
+    cli.cmd_node(A())
+    out = capsys.readouterr().out
+    assert "hivv_aaaa" in out, "identity principal must be shown"
+    assert "seq 7" in out, "signed manifest must be shown"
+    assert "endorsed" in out, "operator endorsements must be shown"
+    assert "4.5/6" in out, "measured trust must be shown"
+    # null dimensions print as an em dash, never as 0
+    assert "\u2014" in out
+
+    class J:
+        name = ["beefake"]
+        json_output = True
+    cli.cmd_node(J())
+    data = json.loads(capsys.readouterr().out)
+    assert data["identity"]["principal"].startswith("hivv_")
+    assert data["trust"]["score"] == 4.5
+
+
+def test_node_detail_survives_missing_identity_endpoints(cli, capsys, monkeypatch):
+    """An older hub without /api/identity/* must not break hivv node —
+    the core fields print, the identity lines are simply absent."""
+    def fake_http(method, path, **kw):
+        if path == "/api/control/nodes":
+            return 200, {"nodes": [_fake_node_payload()]}
+        return 0, "connection refused"
+
+    monkeypatch.setattr(cli, "http", fake_http)
+
+    class A:
+        name = ["beefake"]
+        json_output = False
+    cli.cmd_node(A())
+    out = capsys.readouterr().out
+    assert "beefake" in out
+    assert "heartbeat:" in out, "core fields must still print"
+    assert "identity:" not in out
+    assert "Traceback" not in out
+
+
+def test_verify_command_valid_and_invalid(cli, capsys, monkeypatch, tmp_path):
+    """hivv identity verify <file> — the hub's verdict, pretty-printed;
+    INVALID exits 1 (scriptable), VALID exits 0."""
+    calls = []
+
+    def fake_http(method, path, body=None, **kw):
+        calls.append((method, path, body))
+        # the verdict mirrors the statement's answered_by (fixture logic)
+        ok = (body or {}).get("statement", {}).get("answered_by") != "evil/x"
+        if ok:
+            return 200, {"ok": True, "principal": "hivv_" + "c" * 32}
+        return 400, {"ok": False, "problems": ["signature mismatch"],
+                     "principal": "hivv_" + "c" * 32}
+
+    monkeypatch.setattr(cli, "http", fake_http)
+    good = tmp_path / "receipt.json"
+    good.write_text(json.dumps({
+        "statement": {"v": 1, "kind": "route.receipt", "answered_by": "bee/model (direct)"},
+        "signature": "A" * 86 + "==", "public_key": "B" * 43 + "="}))
+
+    class A:
+        action = "verify"
+        target = str(good)
+        json_output = False
+    cli.cmd_identity(A())
+    out = capsys.readouterr().out
+    assert "VALID" in out and "bee/model" in out
+    assert calls and calls[-1][1] == "/api/identity/verify"
+
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({
+        "statement": {"v": 1, "kind": "route.receipt", "answered_by": "evil/x"},
+        "signature": "A" * 86 + "==", "public_key": "B" * 43 + "="}))
+    A.target = str(bad)
+    with pytest.raises(SystemExit) as exc:
+        cli.cmd_identity(A())
+    assert exc.value.code == 1, "INVALID must exit 1"
+    assert "INVALID" in capsys.readouterr().out
+
+
+def test_verify_command_rejects_garbage(cli, capsys, tmp_path):
+    junk = tmp_path / "junk.txt"
+    junk.write_text("this is not json at all")
+
+    class A:
+        action = "verify"
+        target = str(junk)
+        json_output = False
+    with pytest.raises(SystemExit):
+        cli.cmd_identity(A())
+    blob = capsys.readouterr()
+    assert "not valid JSON" in (blob.out + blob.err)
+    assert "Traceback" not in (blob.out + blob.err)
+
+
 def test_endorse_command_requires_target(cli, capsys):
     with pytest.raises(SystemExit):
         class A:

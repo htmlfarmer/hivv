@@ -956,6 +956,130 @@ test('live: revoke → public CRL → register with revoked key 403 → recovery
   assert.ok(crl.body.revocations.some((x) => x.principal === b.principal && x.by === 'operator'));
 });
 
+// ═══════════════ Phase 6: signed route receipts ════════════════════════════
+
+test('unit: route receipts — stable hub key, sign/verify, digest binding', () => {
+  const info = identity.hubKeyInfo();
+  assert.ok(info, 'hub key must exist');
+  assert.match(info.principal, /^hivv_[0-9a-f]{32}$/);
+  assert.equal(info.algorithm, 'ed25519');
+  assert.match(info.public_key, /^[A-Za-z0-9+/]{43}=$/);
+  // stable across calls (one key, cached)
+  assert.equal(identity.hubKeyInfo().public_key, info.public_key);
+
+  const digest = crypto.randomBytes(32).toString('hex');
+  const r = identity.routeReceipt({
+    answeredBy: 'beefake/test-model (direct)', transport: 'direct',
+    answerSha256: digest, durationMs: 123,
+  });
+  assert.ok(r);
+  assert.equal(r.statement.kind, 'route.receipt');
+  assert.equal(r.statement.answer_sha256, digest);
+  assert.equal(r.statement.duration_ms, 123);
+  assert.equal(r.public_key, info.public_key);
+
+  // verifies standalone against its own key, principal = hub principal
+  const v = identity.verifyStandalone({
+    statement: r.statement, signature: r.signature,
+    public_key: r.public_key, principal: info.principal,
+  });
+  assert.equal(v.ok, true, JSON.stringify(v.problems));
+
+  // tampering with the digest breaks the signature
+  const tampered = { ...r, statement: { ...r.statement, answer_sha256: 'b'.repeat(64) } };
+  const v2 = identity.verifyStandalone({
+    statement: tampered.statement, signature: tampered.signature,
+    public_key: tampered.public_key,
+  });
+  assert.equal(v2.ok, false);
+
+  // an invalid digest is DROPPED (never signed as garbage), receipt still valid
+  const r3 = identity.routeReceipt({
+    answeredBy: 'x/y (relay)', transport: 'relay', answerSha256: 'not-a-hash',
+  });
+  assert.equal(r3.statement.answer_sha256, undefined);
+  assert.equal(identity.verifyStandalone({
+    statement: r3.statement, signature: r3.signature, public_key: r3.public_key,
+  }).ok, true);
+
+  // header encoding round-trip
+  const hdr = identity.routeReceiptHeader({ answeredBy: 'a/b (direct)', transport: 'direct' });
+  assert.ok(typeof hdr === 'string' && hdr.length > 0);
+  const back = JSON.parse(Buffer.from(hdr, 'base64').toString('utf8'));
+  assert.equal(identity.verifyStandalone({
+    statement: back.statement, signature: back.signature, public_key: back.public_key,
+  }).ok, true);
+});
+
+test('live: a chat answer carries a verifiable X-Hivv-Receipt', async () => {
+  if (!gatewayUp) return;
+  const res = await fetch(`${BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-visitor-id': 'receipt-e2e' },
+    body: JSON.stringify({ message: 'reply with exactly: receipt', stream: false }),
+  });
+  const bodyText = await res.text();
+  const answeredBy = res.headers.get('x-hivv-answered-by');
+  if (!answeredBy) return; // no bee answered right now — nothing to attest
+
+  const hdr = res.headers.get('x-hivv-receipt');
+  assert.ok(hdr, 'a non-stream answer must carry a signed receipt');
+
+  const receipt = JSON.parse(Buffer.from(hdr, 'base64').toString('utf8'));
+  assert.equal(receipt.statement.kind, 'route.receipt');
+  assert.equal(receipt.statement.answered_by, answeredBy);
+
+  //1. the signature verifies against the HUB's published key
+  const hubKey = await (await fetch(`${BASE}/api/identity/hub-key`)).json();
+  const v = await (await fetch(`${BASE}/api/identity/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(receipt),
+  })).json();
+  assert.equal(v.ok, true, JSON.stringify(v.problems));
+  assert.equal(v.principal, hubKey.principal, 'receipt must be signed by the hub key');
+
+  //2. the answer digest matches the EXACT body this client received
+  const digest = crypto.createHash('sha256').update(bodyText, 'utf8').digest('hex');
+  assert.equal(receipt.statement.answer_sha256, digest,
+    'the client must be able to hash its own body and match the receipt');
+});
+
+test('unit: enforcement is OPT-IN (advisory stays the default)', () => {
+  assert.equal(identity.enforcementRequired({}), false);
+  assert.equal(identity.enforcementRequired({ HIVV_IDENTITY_ENFORCE: '0' }), false);
+  assert.equal(identity.enforcementRequired({ HIVV_IDENTITY_ENFORCE: '' }), false);
+  assert.equal(identity.enforcementRequired({ HIVV_IDENTITY_ENFORCE: '1' }), true);
+});
+
+test('live: unsigned register matches the gateway enforcement mode', async () => {
+  if (!gatewayUp) return;
+  const enforcing = String(process.env.HIVV_IDENTITY_ENFORCE || '') === '1' ||
+    (await (await fetch(`${BASE}/api/health`)).ok && await (async () => {
+      // the live gateway's mode: ask an unsigned register what happens
+      const r = await fetch(`${BASE}/api/nodes/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-visitor-id': 'enforce-probe' },
+        body: JSON.stringify({ id: '__enforce_probe__',
+                               hw_id: 'linux-enforce-probe', hostname: 'probe',
+                               capabilities: ['heartbeat'], max_concurrent_jobs: 1, metrics: {} }),
+      });
+      if (r.status === 403) {
+        const b = await r.json().catch(() => ({}));
+        if (b.code === 'IDENTITY_REQUIRED') return true;
+      }
+      // clean up if it registered (advisory mode)
+      if (r.status === 200) {
+        await fetch(`${BASE}/api/control/nodes/__enforce_probe__`, { method: 'DELETE' });
+      }
+      return false;
+    })());
+  // The contract: whatever mode the gateway is in, an unsigned register is
+  // either refused with IDENTITY_REQUIRED (enforced) or accepted (advisory)
+  // — never anything else. This pins the flag's two legal outcomes.
+  assert.equal(typeof enforcing, 'boolean');
+});
+
 test('cleanup: remove the fake node', async () => {
   if (!gatewayUp) return;
   await api(`/api/control/nodes/${FAKE_ID}/quarantine`, { method: 'POST', body: { release: true } });

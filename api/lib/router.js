@@ -7,6 +7,7 @@ const { looksDegenerate } = require('./degenerate');
 // weight table over them. See HIVV_ROUTING_PLAN.md §7.
 const routeFactors = require('./route-factors');
 const trustLib = require('./trust');
+const identityLib = require('./identity');
 
 // ── token budgeting ────────────────────────────────────────────────────────
 //
@@ -1408,6 +1409,15 @@ class AIRouter {
 
                 streamToRes.setHeader('X-AI-Provider', local.model || local.name);
                 streamToRes.setHeader('X-Hivv-Answered-By', `${routeNode}/${routeModel} (direct)`);
+                // Signed route receipt (Phase 6): attribution only — the
+                // stream has not produced an answer body yet.
+                try {
+                    const rcpt = identityLib.routeReceiptHeader({
+                        answeredBy: `${routeNode}/${routeModel} (direct)`,
+                        transport: 'direct',
+                    });
+                    if (rcpt) streamToRes.setHeader('X-Hivv-Receipt', rcpt);
+                } catch (_e) {}
                 if (options.policyReceipt) { try { streamToRes.setHeader('X-Hivv-Policy', options.policyReceipt); } catch (_e) {} }
                 streamToRes.setHeader('Content-Type', 'text/event-stream');
                 streamToRes.setHeader('Cache-Control', 'no-cache');
@@ -1832,6 +1842,11 @@ class AIRouter {
                     try {
                         streamToRes.setHeader('X-AI-Provider', route);
                         streamToRes.setHeader('X-Hivv-Answered-By', route);
+                        const rcpt = identityLib.routeReceiptHeader({
+                            answeredBy: route, transport: 'relay',
+                            durationMs: elapsedMs,
+                        });
+                        if (rcpt) streamToRes.setHeader('X-Hivv-Receipt', rcpt);
                         streamToRes.setHeader('Content-Type', 'text/event-stream');
                         streamToRes.setHeader('Cache-Control', 'no-cache');
                         if (content) {
