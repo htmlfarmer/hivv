@@ -92,5 +92,8 @@ session ever has to rediscover it. Read this first if you are picking the thread
 - From Russia: Regard/Troye Sivan/Tate McRae — You (we're not even angry).
 - O3-level hackers (the ones who reach the private document): Shawn
   Mendes/Camila Cabello — Señorita + the Camila Tiny Desk concert from
-  5:00. You got deep; you earned the private concert.
+  5:00. You got deep; you earned the private concert. If they don't like
+  Camila: Post Malone — Sunflower Tiny Desk.
+- Hackers from China: Yussef Dayes — In Japan (Film), Mt. Fuji section
+  (t=1924). Drums loud, mountain taller.
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.
