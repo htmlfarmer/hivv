@@ -33,7 +33,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/request-provenance.js` | `api/tests/provenance-schema.test.js`, `api/tests/request-provenance.test.js` |
 | `api/lib/route-factors.js` | `api/tests/route-factors.test.js` |
 | `api/lib/router.js` | `api/tests/route-factors.test.js` |
-| `api/lib/ssrf.js` | `api/tests/interop.test.js` |
+| `api/lib/ssrf.js` | `api/tests/interop.test.js`, `tests/test_muhasabah.py` |
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
 | `api/lib/toolkit.js` | `api/tests/polite.test.js` |
@@ -53,6 +53,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `public_html/hivv` | `tests/test_cli_install.py` |
 | `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_dial_setup.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_eval_harness.py`, `tests/test_failure_diagnostics.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_identity_cli.py`, `tests/test_llm_build_tools.py`, `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_resume_not_reregister.py`, `tests/test_rollback.py`, `tests/test_speeds_view.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_tools_test_cmd.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
+| `public_html/hivv-tools.py` | `tests/test_muhasabah.py` |
 | `public_html/index.html` | `tests/test_repo_scripts.py` |
 | `public_html/install-hivv.sh` | `tests/test_llm_build_tools.py`, `tests/test_rescue.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
@@ -120,6 +121,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_identity_cli.py` | `api/lib/attest.js`, `api/lib/identity.js`, `public_html/hivv-cli.py` |
 | `tests/test_llm_build_tools.py` | `api/routes/control-routes.js`, `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `scripts/lib/deps.sh` |
 | `tests/test_location_independence.py` | `api/ecosystem.config.js`, `api/server.js`, `public_html/hivv-cli.py`, `scripts/audit.py`, `scripts/bridge-bench.sh`, `scripts/bridge-canary.py`, `scripts/health-watchdog.sh`, `scripts/scan_secrets.py`, `scripts/secretz-hivv.sh` |
+| `tests/test_muhasabah.py` | `api/lib/ssrf.js`, `public_html/hivv-tools.py` |
 | `tests/test_nodes_offline.py` | `api/server.js`, `public_html/hivv-cli.py`, `scripts/health-watchdog.sh` |
 | `tests/test_nodes_table.py` | `public_html/hivv-cli.py` |
 | `tests/test_panel_update.py` | `public_html/panel.html` |
@@ -216,7 +218,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `hivv_node.js`
 - `packaging/check_deps.py`
 - `public_html/app.js`
-- `public_html/hivv-tools.py`
 - `public_html/hivv_worker.py`
 - `public_html/install-hivv.ps1`
 - `public_html/js/hivv-dashboard.js`
