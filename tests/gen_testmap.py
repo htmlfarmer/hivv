@@ -264,20 +264,43 @@ def build() -> dict:
     }
 
 
+def _tracked_files() -> list[str]:
+    """The files a COMMIT would contain — the git INDEX.
+
+    The map is a function of the COMMIT, not of whatever happens to be lying
+    around in the working tree. The JSON half already read the index (see
+    _read_pushed_content); this list now does too, so the two halves of the
+    map cannot disagree.
+    """
+    try:
+        r = subprocess.run(["git", "ls-files"], cwd=str(REPO),
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 and r.stdout.strip():
+            return sorted(x for x in r.stdout.splitlines() if x.strip())
+    except Exception:
+        pass
+    # Not a git checkout (an archive, a tarball): fall back to the disk.
+    out = []
+    for pat in ("*.py", "*.js", "*.sh", "*.ps1"):
+        for f in REPO.rglob(pat):
+            try:
+                out.append(str(f.relative_to(REPO)))
+            except ValueError:
+                continue
+    return sorted(out)
+
+
 def untested_code_files(mapping: dict) -> list[str]:
     """Code files NO test references — the honest 'what's uncovered' list."""
     out = []
-    for pat in ("*.py", "*.js", "*.sh", "*.ps1"):
-        for f in sorted(REPO.rglob(pat)):
-            try:
-                rel = str(f.relative_to(REPO))
-            except ValueError:
-                continue
-            n = _norm(rel)
-            if n is None or n.startswith("tests/"):
-                continue
-            if n not in mapping["sources"]:
-                out.append(n)
+    for rel in _tracked_files():
+        if not rel.endswith((".py", ".js", ".sh", ".ps1")):
+            continue
+        n = _norm(rel)
+        if n is None or n.startswith("tests/"):
+            continue
+        if n not in mapping["sources"]:
+            out.append(n)
     return out
 
 
