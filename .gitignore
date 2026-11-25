@@ -26,6 +26,8 @@ api/.p2p.json
 .db-password
 api/data/nodes.json
 api/data/party.json
+api/data/recommendations.json
+api/data/wishes.json
 api/data/identities.json
 api/data/inbox.json
 # the chat upload store — documents people uploaded must NEVER be committed
