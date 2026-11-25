@@ -26,6 +26,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/degenerate.js` | `api/tests/degenerate.test.js` |
 | `api/lib/fast-scan.js` | `api/tests/fast-scan.test.js`, `tests/test_fast_scan_parity.py` |
 | `api/lib/hive-clients.js` | `api/tests/interop.test.js` |
+| `api/lib/horizon.js` | `api/tests/horizon.test.js` |
 | `api/lib/identity.js` | `api/tests/identity.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
 | `api/lib/licenses.js` | `api/tests/licenses.test.js` |
 | `api/lib/local-mode.js` | `api/tests/local-mode.test.js` |
@@ -89,6 +90,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/dashboard.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/degenerate.test.js` | `api/lib/degenerate.js` |
 | `api/tests/fast-scan.test.js` | `api/lib/fast-scan.js` |
+| `api/tests/horizon.test.js` | `api/lib/horizon.js` |
 | `api/tests/identity.test.js` | `api/lib/attest.js`, `api/lib/identity.js` |
 | `api/tests/integration.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/interop.test.js` | `api/lib/a2a-client.js`, `api/lib/hive-clients.js`, `api/lib/mcp-client.js`, `api/lib/ssrf.js`, `api/routes/a2a-routes.js` |

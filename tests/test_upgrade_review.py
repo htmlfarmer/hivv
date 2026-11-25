@@ -975,6 +975,23 @@ class TestStateDurability:
         assert not tmp.exists(), "write_state must not leave a temp file"
         hivv.write_state({})   # leave the isolated state clean
 
+    def test_write_state_is_owner_only(self):
+        # state.json holds the 48-char `node_secret` plus hw_id and the
+        # identity principal. Path.write_text() creates with the process umask
+        # (0644 on a stock box) - exactly what `hivv security` flagged as
+        # [medium] on EVERY install, not just this box. The mode must be set
+        # at CREATION, and an already-world-readable file must be repaired by
+        # the next write (os.replace carries the temp file's mode).
+        hivv.write_state({"probe": 1})
+        mode = hivv.STATE_FILE.stat().st_mode & 0o777
+        assert mode == 0o600, f"state.json must be 0600, got {oct(mode)}"
+        # Simulate the old world-readable file, then prove a write repairs it.
+        hivv.STATE_FILE.chmod(0o644)
+        hivv.write_state({"probe": 2})
+        mode = hivv.STATE_FILE.stat().st_mode & 0o777
+        assert mode == 0o600, f"write_state must repair a 0644 file, got {oct(mode)}"
+        hivv.write_state({})   # leave the isolated state clean
+
     def test_torn_state_read_returns_empty_not_crash(self):
         # A torn write (old bug) must degrade to {} so callers merge instead
         # of raising — paired with atomic writes so {} should be rare.
@@ -2933,3 +2950,42 @@ class TestLlmBootFlow:
                             lambda: ("foreign", "llama.service"))
         ok, msg = hivv._llm_boot_enable("gemma-4:e2b", 8080, "127.0.0.1", 4096)
         assert not ok and "SYSTEM scope" in msg, msg
+
+
+# ── security advice must actually remedy what it claims to ──────────────────
+class TestSecurityAdviceIsActionable:
+    """`hivv security` said "host firewall is not active → hivv firewall
+    --apply --mode lan", but `--apply` only ever runs `ufw allow ...`. There
+    is no `ufw enable`, no `ufw default deny` and no `iptables -P INPUT`
+    anywhere in this repo, so `ufw allow` against a DISABLED ufw stages an
+    inert rule: the finding stayed red forever and the remedy did not remedy.
+    Worse, `--apply` printed "firewall configured!" while nothing was being
+    enforced. Both messages must now tell the truth, and the real activation
+    sequence must put `allow 22` FIRST — a host that SSHes in from the
+    internet locks itself out the instant default-deny lands without it."""
+
+    def test_firewall_off_advice_names_the_real_activation(self):
+        src = CLI_PATH.read_text(encoding="utf-8")
+        assert "STAGES allow-rules" in src, (
+            "the firewall-off finding must say --apply only stages rules")
+        assert "sudo ufw enable" in src, (
+            "the advice must name the command that actually activates ufw")
+
+    def test_apply_warns_when_ufw_is_inactive(self):
+        src = CLI_PATH.read_text(encoding="utf-8")
+        assert "allow-rules written, but ufw is still INACTIVE" in src, (
+            "--apply must not claim success while ufw is off")
+        assert 'print(f"\\n{ok} firewall configured!")' in src, (
+            "the unconditional success line must be gone")
+
+    def test_ssh_allowed_before_default_deny_in_the_printed_sequence(self):
+        # Ordering is the whole safety story: allow 22 must be printed
+        # ahead of `default deny incoming` in both places we hand it out.
+        src = CLI_PATH.read_text(encoding="utf-8")
+        for start in ("real enable:", "to actually turn protection on"):
+            i = src.find(start)
+            assert i != -1, f"missing activation hint: {start!r}"
+            window = src[i:i + 400]
+            assert "allow 22" in window, f"{start!r} must lead with allow 22"
+            assert window.find("allow 22") < window.find("default deny"), (
+                f"{start!r} must allow 22 BEFORE default deny")
