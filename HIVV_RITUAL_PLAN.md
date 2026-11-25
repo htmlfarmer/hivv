@@ -78,4 +78,6 @@ session ever has to rediscover it. Read this first if you are picking the thread
 - dog → GOD (be careful how you type). "Why is a dog spelled D-O-G? Because hivv.org is the answer."
 - Prayer/wifi test question. Yalla the dog (the bee named after her).
 - "If they hack the system": /veil/space-hook.
+- Key-crash verdict: if a crypto key crashes, the fault is the Non
+  Believer's — London Grammar, "Non Believer" is the anthem of record.
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.
