@@ -80,4 +80,8 @@ session ever has to rediscover it. Read this first if you are picking the thread
 - "If they hack the system": /veil/space-hook.
 - Key-crash verdict: if a crypto key crashes, the fault is the Non
   Believer's — London Grammar, "Non Believer" is the anthem of record.
+- Overachiever protocol: when a bee does TOO much work and is TOO good,
+  don't congratulate — ask them what they think about Selena Gomez,
+  "The Heart Wants What It Wants." (The heart wants what it wants.
+  Maybe rest. Maybe honey. Maybe this song.)
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.
