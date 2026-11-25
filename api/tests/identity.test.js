@@ -925,9 +925,13 @@ test('live: revoke → public CRL → register with revoked key 403 → recovery
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.action, 'endorsed');
 
+  // NOTE: the store is persistent and every run mints a fresh operator key,
+  // so entries ACCUMULATE across runs — assert containment, never a count.
   r = await api(`/api/identity/endorsements?node_id=${FAKE_ID}`);
-  assert.equal(r.body.count, 1);
-  assert.equal(r.body.endorsements[0].operator_principal, op.principal);
+  assert.equal(r.status, 200);
+  assert.ok(r.body.endorsements.some((x) =>
+    x.operator_principal === op.principal && x.role === 'owner'),
+  'the endorsement from this run must be listed');
 
   const one = await api(`/api/identity/${FAKE_ID}`);
   assert.ok(one.body.endorsements.some((x) => x.role === 'owner'));
