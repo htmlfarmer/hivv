@@ -111,7 +111,8 @@ test('inbox: 403 without/with-wrong secret, 200 with the enrolled one', async ()
   });
   assert.equal(wrong.status, 403, 'wrong secret must be refused');
 
-  const right = await api(`/api/agents/${FAKE_ID}/inbox?wait=1`, {
+  // wait=0: this case is about AUTH, so it must not sit through a long-poll.
+  const right = await api(`/api/agents/${FAKE_ID}/inbox?wait=0`, {
     headers: { 'x-node-secret': FAKE_SECRET },
   });
   assert.equal(right.status, 200, `enrolled secret must pass: ${JSON.stringify(right.body)}`);
@@ -129,10 +130,52 @@ test('re-register without secret re-issues the ORIGINAL secret (hw_id proven)', 
   assert.equal(body?.node_secret, FAKE_SECRET,
     'must re-issue the ORIGINAL secret — a fresh random one would desync the hub signer');
   // And the inbox works with it again:
-  const inbox = await api(`/api/agents/${FAKE_ID}/inbox?wait=1`, {
+  const inbox = await api(`/api/agents/${FAKE_ID}/inbox?wait=0`, {
     headers: { 'x-node-secret': body.node_secret },
   });
   assert.equal(inbox.status, 200, 'recovered secret must grant inbox access');
+});
+
+// -- 3b. long-poll honours SECONDS (the unit bug) ----------------------------
+test('inbox: wait=N holds N SECONDS, not N milliseconds', async () => {
+  if (!gatewayUp) return;
+
+  // Drain whatever is already queued, so the timing below measures the HOLD
+  // rather than an immediate hit on a pending message.
+  const drain = await api(`/api/agents/${FAKE_ID}/inbox?wait=0`, {
+    headers: { 'x-node-secret': FAKE_SECRET },
+  });
+  if (drain.status === 200 && (drain.body?.messages || []).length > 0) {
+    await api(`/api/agents/${FAKE_ID}/inbox/ack`, {
+      method: 'POST',
+      headers: { 'x-node-secret': FAKE_SECRET },
+      body: { ids: drain.body.messages.map((m) => m.id).filter(Boolean) },
+    });
+  }
+
+  // wait=0 must return at once - a legitimate "just check, do not hold".
+  const t0 = Date.now();
+  const fast = await api(`/api/agents/${FAKE_ID}/inbox?wait=0`, {
+    headers: { 'x-node-secret': FAKE_SECRET },
+  });
+  const fastMs = Date.now() - t0;
+  assert.equal(fast.status, 200, `wait=0 must still work: ${JSON.stringify(fast.body)}`);
+  assert.ok(fastMs < 500, `wait=0 must not hold (took ${fastMs}ms)`);
+
+  // wait=1 must hold for about a second. Before the fix it returned in ~1ms:
+  //   Math.min(parseInt('1') || 50000, 50000) === 1 MILLISECOND
+  // so the agent's long-poll held for a single 250ms tick and then slept a
+  // whole heartbeat -- a ~0.4% duty cycle that made every relay job wait ~30s
+  // for pickup and often blew the CLI's 45s `hivv ask <bee>` timeout.
+  const t1 = Date.now();
+  const slow = await api(`/api/agents/${FAKE_ID}/inbox?wait=1`, {
+    headers: { 'x-node-secret': FAKE_SECRET },
+  });
+  const slowMs = Date.now() - t1;
+  assert.equal(slow.status, 200, `wait=1 must still work: ${JSON.stringify(slow.body)}`);
+  assert.ok(slowMs >= 900,
+    `wait=1 held only ${slowMs}ms - seconds are being read as milliseconds again`);
+  assert.ok(slowMs < 5000, `wait=1 overshot badly (${slowMs}ms)`);
 });
 
 // ── 4. public node detail strips credentials ─────────────────────────────────

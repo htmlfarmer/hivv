@@ -2276,7 +2276,15 @@ app.post('/v1/chat/completions', async (req, res) => {
         const _origWrite = res.write.bind(res);
         res.write = (chunk, ...rest) => {
             if (v1TtfbMs === null && chunk != null
-                && /"content":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
+                // `reasoning_content` FIRST: a thinking model (gemma-4) opens with
+                // reasoning frames, and the custom-endpoint path FORWARDS them to the
+                // client. The old pattern required a quote immediately before
+                // `content`, which `"reasoning_content":"` does not have, so the first
+                // token was stamped at the END of the reply — ttfb came out equal to
+                // duration, `hivv speeds` classified the row as non-stream and dropped
+                // it, and the first-token stats reported nothing (0 of 70 local-custom
+                // rows carried a distinct ttfb).
+                && /"(?:reasoning_content|content)":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
                 v1TtfbMs = Date.now() - startTime;
             }
             return _origWrite(chunk, ...rest);
@@ -2718,7 +2726,12 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             if (chunk != null) {
                 chatOutBytes += Buffer.isBuffer(chunk) ? chunk.length
                     : Buffer.byteLength(String(chunk), 'utf8');
-                if (chatTtfbMs === null && /"content":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
+                // Same reasoning_content rule as the /v1 hook above: a thinking
+                // model streams `reasoning_content` before any `content`, and on the
+                // custom-endpoint path those frames reach the client — so first-token
+                // must stamp them or ttfb == duration and the row is misclassified
+                // as non-stream by `hivv speeds`.
+                if (chatTtfbMs === null && /"(?:reasoning_content|content)":"(?:[^"\\]|\\.)+/.test(String(chunk))) {
                     chatTtfbMs = Date.now() - chatStartTime;
                 }
             }
