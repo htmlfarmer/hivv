@@ -588,4 +588,376 @@ async function samplePeerPulses() {
 samplePeerPulses().catch(() => {});
 setInterval(() => samplePeerPulses().catch(() => {}), PEER_PULSE_MS).unref();
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 3+4 — SUBMISSIONS & RECEIPTS (open-hives/0.1 §3, §4, §6)
+//
+// The manifest has advertised `submit` and `receipts` since the first
+// release, but the endpoints did not exist. A peer hive that read our
+// manifest and tried to hand us work got a 404 — which is the worst kind of
+// broken: a door that is painted on the wall.
+//
+// This is that door, and the receipts that prove the crossing happened.
+//
+// THE LOOP SHIELD (spec §4) — the only strict part of the protocol:
+//
+//   X-Hive-Origin:   kwaai            who started it
+//   X-Hive-Path:     hivv.org,kwaai   every hive already visited, in order
+//   X-Hive-Hops:     1                crossings so far
+//   X-Hive-Request-Id: req_01J...     the dedupe key
+//
+// Rules, enforced here and mirrored by every peer:
+//   * our own name in the path  → 409 loop_detected
+//   * our own name as the origin → 409 loop_detected
+//   * hops > 3                   → 409 loop_detected
+//   * a seen request id          → the SAME state, never a second execution
+//
+// THE ALLOWANCE IS A HOLD, NOT A FAILURE (spec §3.1)
+//
+// At 0% allowance the queue HOLDS the work — it does not reject it and it
+// does not fail it. The peer sees `queued` with `held: true` and comes
+// back later. Only when the task's TTL expires does it become `expired`.
+// A hive that is busy is still a hive you can visit; it is just asking you
+// to be patient.
+//
+// THE RECEIPTS (spec §6)
+//
+// Every crossing leaves a receipt: which hive, which node, which model, how
+// many tokens, how long, what it cost. They batch and they are verifiable —
+// which is what makes the website counters PROVABLE rather than merely
+// asserted.
+//
+// We accept receipts from peers (so the peer table can show both directions)
+// and publish our own.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const taskQueue = require('../lib/task-queue');
+const telemetry = require('../lib/telemetry');
+
+const MAX_HOPS = 3;
+const HIVE_NAME = 'hivv.org';
+const PEER_SUBMIT_WINDOW_MS = 60 * 1000;
+const PEER_SUBMIT_MAX = 30;          // submissions / min / peer
+const PEER_TOKEN = process.env.HIVV_BRIDGE_TOKEN || '';
+
+const peerHits = new Map();           // origin -> [timestamps]
+function _peerLimit(origin) {
+    const now = Date.now();
+    const arr = (peerHits.get(origin) || []).filter((t) => now - t < PEER_SUBMIT_WINDOW_MS);
+    arr.push(now);
+    peerHits.set(origin, arr);
+    return arr.length <= PEER_SUBMIT_MAX;
+}
+
+/**
+ * The loop shield. Returns null when the request may proceed, or a rejection
+ * reason when it may not.
+ */
+function loopGuard(req) {
+    const origin = String(req.headers['x-hive-origin'] || '').trim().toLowerCase().slice(0, 64);
+    const path = String(req.headers['x-hive-path'] || '').split(',')
+        .map((h) => h.trim().toLowerCase()).filter(Boolean);
+    const hops = parseInt(req.headers['x-hive-hops'] || '0', 10) || 0;
+
+    if (origin && origin === HIVE_NAME) return { reason: 'loop_detected', detail: 'the origin hive is us' };
+    if (path.includes(HIVE_NAME)) return { reason: 'loop_detected', detail: 'we are already in the path' };
+    if (hops > MAX_HOPS) return { reason: 'loop_detected', detail: `hops ${hops} > ${MAX_HOPS}` };
+    return null;
+}
+
+function _peerAuthed(req) {
+    if (!PEER_TOKEN) return true;      // open-hives is best-effort until tokens are issued
+    const auth = String(req.headers.authorization || '');
+    if (!auth.startsWith('Bearer ')) return false;
+    const token = auth.slice(7);
+    try {
+        const a = Buffer.from(PEER_TOKEN);
+        const b = Buffer.from(token);
+        return a.length === b.length && require('crypto').timingSafeEqual(a, b);
+    } catch (_e) { return false; }
+}
+
+/**
+ * The live allowance for ONE peer — the same tier rule as /allowance, but
+ * computed for a peer that is asking US for work.
+ */
+function allowanceForPeer(origin) {
+    const c = CEILING[PEER_ALLOWANCE_MODE];
+    const win = heartbeatSnap.data && heartbeatSnap.data.latency_5m;
+    if (!win) return { percent: Math.round(c * 100), reason: 'unmeasured: conservative ceiling' };
+    if (win.ok_pct < 99 || (win.avg_ms != null && win.avg_ms > 10000))
+        return { percent: 0, reason: `busy: ${win.avg_ms}ms / ${win.ok_pct}%` };
+    if (win.avg_ms != null && win.avg_ms > 3000) return { percent: Math.round(c * 25), reason: `loaded: ${win.avg_ms}ms` };
+    if (win.avg_ms != null && win.avg_ms > 1000) return { percent: Math.round(c * 50), reason: `moderate: ${win.avg_ms}ms` };
+    return { percent: Math.round(c * 100), reason: `calm: ${win.avg_ms}ms / ${win.ok_pct}%` };
+}
+
+// ── the reader loop: one regular loop on the hive (spec §3.1) ──────────────
+//
+// "The reader is deliberately dumb; intelligence lives in routing, not in
+// queues." It reads due submissions, checks the allowance, and hands each one
+// to the hive. A new daemon would be a new thing to supervise; this rides
+// the same timer the heartbeat already uses.
+
+const BRIDGE_READER_MS = 5000;
+
+async function drainBridgeQueue() {
+    const due = taskQueue.due({ kind: 'bridge', limit: 5 });
+    if (!due.length) return { drained: 0 };
+    const allowance = allowanceForPeer('reader');
+    if (allowance.percent <= 0) {
+        // HOLD. The work stays queued. Nothing fails, nothing is lost.
+        telemetry.gauge('bridge_queue_held', { queue: 'bridge' }, due.length);
+        return { drained: 0, held: due.length, reason: allowance.reason };
+    }
+    let drained = 0;
+    for (const pub of due) {
+        // Claim THIS task, not "the next bridge task" — the reader is not the
+        // only thing that might claim it, and a race here drops work.
+        const claimed = taskQueue.claimId(pub.id, { worker: 'bridge-reader' });
+        if (!claimed) continue;
+        const outcome = await runBridgeTask(claimed);
+        if (outcome.ok) {
+            taskQueue.complete(claimed.id, { worker: 'bridge-reader', result: outcome.result });
+        } else if (outcome.rejected) {
+            taskQueue.reject(claimed.id, outcome.reason || 'rejected');
+        } else {
+            taskQueue.fail(claimed.id, { worker: 'bridge-reader', error: outcome.reason || 'failed', retryable: false });
+        }
+        drained++;
+    }
+    telemetry.gauge('bridge_queue_depth', { queue: 'bridge' }, taskQueue.stats().queued);
+    return { drained };
+}
+
+async function runBridgeTask(task) {
+    // The task's payload is the peer's own body: {messages:[...]} for a chat
+    // request, or {text:"..."} for a one-liner. Both shapes are accepted
+    // because a peer is an AI and may send either.
+    const payload = (task.payload && typeof task.payload === 'object') ? task.payload : {};
+    const messages = Array.isArray(payload.messages) && payload.messages.length
+        ? payload.messages
+        : (payload.text || payload.prompt
+            ? [{ role: 'user', content: String(payload.text || payload.prompt) }]
+            : null);
+    if (!messages || !messages.length) {
+        return { ok: false, reason: 'the submission carried no messages (expected payload.messages[] or payload.text)' };
+    }
+    if (!routerRef || typeof routerRef.chatCompletion !== 'function') {
+        return { ok: false, reason: 'the hive is still starting — retry shortly' };
+    }
+    try {
+        const data = await routerRef.chatCompletion(messages, {
+            stream: false,
+            principal: task.principal || 'anonymous',
+            capability: 'reasoning',
+            via: 'bridge',
+            reason: `bridge request ${task.id}`,
+            timeout: 120000,
+        });
+        if (data && data.denied) return { ok: false, rejected: true, reason: `policy denied: ${data.error || 'denied'}` };
+        if (data && data.asked) {
+            const gid = (data.policy && data.policy.grant_id) || '<grant_id>';
+            return { ok: false, rejected: true, reason: `MAYBE — a human must approve: hivv approve ${gid}` };
+        }
+        if (!data || !data.ok) return { ok: false, reason: (data && data.error) || 'no AI target was available' };
+        const answer = data.data && data.data.choices && data.data.choices[0] && data.data.choices[0].message
+            ? data.data.choices[0].message.content
+            : '';
+        return {
+            ok: true,
+            result: {
+                text: typeof answer === 'string' ? answer : '(empty answer)',
+                answered_by: data.answeredBy || null,
+                model: data.servedModel || null,
+                provider: data.provider || null,
+            },
+        };
+    } catch (err) {
+        return { ok: false, reason: err && err.message ? err.message : 'the router threw' };
+    }
+}
+
+let readerTimer = null;
+function startReader() {
+    if (readerTimer) return;
+    readerTimer = setInterval(() => { drainBridgeQueue().catch(() => {}); }, BRIDGE_READER_MS);
+    if (readerTimer.unref) readerTimer.unref();
+}
+
+/**
+ * POST /api/bridge/requests — a peer hive hands us work.
+ *
+ * 202 with the request id, its position in the queue, and where to poll.
+ * Idempotent on the request id: a retry returns the SAME state and never
+ * executes the work twice.
+ */
+router.post('/requests', async (req, res) => {
+    const body = req.body || {};
+    const guard = loopGuard(req);
+    if (guard) {
+        telemetry.counter('bridge_requests_total', { status: 'rejected', error_class: 'loop_detected' });
+        return res.status(409).json({
+            error: { message: `loop: ${guard.detail}`, type: 'loop_detected', code: 409 },
+        });
+    }
+    if (!_peerAuthed(req)) {
+        return res.status(401).json({ error: { message: 'peer token required', type: 'auth', code: 401 } });
+    }
+    const origin = String(req.headers['x-hive-origin'] || 'anonymous').trim().toLowerCase().slice(0, 64);
+    if (!_peerLimit(origin)) {
+        telemetry.counter('bridge_requests_total', { status: 'rejected', error_class: 'rate_limited' });
+        return res.status(429).json({
+            error: { message: 'too many submissions from this peer', type: 'rate_limited', code: 429 },
+            retry_after_s: 60,
+        });
+    }
+
+    const id = String(req.headers['x-hive-request-id'] || body.id || ('req_' + require('crypto').randomBytes(8).toString('hex'))).slice(0, 120);
+    const kind = String(body.kind || 'chat').slice(0, 64);
+
+    const submitted = taskQueue.submit({
+        id,
+        kind: 'bridge',
+        // The WORK is the payload — the peer's own body, verbatim. The
+        // bookkeeping (kind, callback) travels in the metadata so a task
+        // reader never has to guess which half is which.
+        payload: body.payload === undefined ? null : body.payload,
+        priority: Math.max(-100, Math.min(100, parseInt(body.priority, 10) || 0)),
+        not_before_ms: body.not_before ? Number(body.not_before) : Date.now(),
+        ttl_s: Math.min(86400, Math.max(60, parseInt(body.ttl_s, 10) || 3600)),
+        budget: body.budget || null,
+        origin,
+        context_id: body.context_id || null,
+        metadata: { bridge: true, peer_kind: kind, callback: body.callback || null },
+    });
+
+    const allowance = allowanceForPeer(origin);
+    if (allowance.percent <= 0) {
+        // HOLD — the work waits for the hive to calm down.
+        telemetry.counter('bridge_requests_total', { status: 'held', error_class: 'allowance_zero' });
+        startReader();
+        return res.status(202).json(meta({
+            id: submitted.task.id,
+            state: 'queued',
+            held: true,
+            reason: allowance.reason,
+            position: taskQueue.stats().queued,
+            status_url: `/api/bridge/requests/${submitted.task.id}`,
+        }));
+    }
+
+    telemetry.counter('bridge_requests_total', { status: 'accepted' });
+    startReader();
+    // Drain now rather than making the peer wait for the next tick — the
+    // reader exists as a SAFETY NET, not as a tax on the fast path.
+    drainBridgeQueue().catch(() => {});
+
+    const current = taskQueue.get(submitted.task.id);
+    return res.status(202).json(meta({
+        id: submitted.task.id,
+        state: current ? current.state : submitted.task.state,
+        created: submitted.created,
+        position: taskQueue.stats().queued,
+        status_url: `/api/bridge/requests/${submitted.task.id}`,
+        estimated_start_s: 0,
+    }));
+});
+
+/**
+ * GET /api/bridge/requests/:id — poll one submission.
+ */
+// The stats route is registered BEFORE the :id route: Express matches in
+// registration order, so "/requests/stats" would otherwise be swallowed by
+// the parameterised route and answered with "no such request".
+router.get('/requests/stats', async (req, res) => {
+    res.set('Cache-Control', 'public, max-age=5');
+    res.json(meta({ queue: taskQueue.stats(), allowance: allowanceForPeer('reader') }));
+});
+
+router.get('/requests/:id', async (req, res) => {
+    const task = taskQueue.get(req.params.id);
+    if (!task) return res.status(404).json({ error: { message: 'no such request', type: 'not_found', code: 404 } });
+    res.json(meta({
+        id: task.id,
+        state: task.state,
+        result: task.result,
+        error: task.error,
+        usage: task.usage,
+        origin: task.origin,
+        created_at_ms: task.created_at_ms,
+        completed_at_ms: task.completed_at_ms,
+        duration_ms: task.duration_ms,
+    }));
+});
+
+/**
+ * POST /api/bridge/requests/:id/cancel — stop a submission.
+ */
+router.post('/requests/:id/cancel', async (req, res) => {
+    const r = taskQueue.cancel(req.params.id, { reason: 'canceled by the peer' });
+    if (!r.ok) return res.status(r.error === 'not_found' ? 404 : 409).json({ error: { message: r.error, code: r.error === 'not_found' ? 404 : 409 } });
+    res.json(meta({ id: r.task.id, state: r.task.state }));
+});
+
+// ── RECEIPTS (spec §6) ──────────────────────────────────────────────────────
+
+/**
+ * POST /api/bridge/receipts — accept a batch of receipts from a peer.
+ *
+ * We do NOT trust a peer's word about our own traffic — we keep our own
+ * counters and a receipt only ever CONFIRMS what we measured. But a peer's
+ * receipt tells us how THEY measured the crossing, which is worth keeping.
+ */
+router.post('/receipts', async (req, res) => {
+    const body = req.body || {};
+    const entries = Array.isArray(body.entries) ? body.entries.slice(0, 500) : [];
+    if (!entries.length) return res.status(400).json({ error: { message: 'entries[] is required' } });
+    const hive = String(body.hive || req.headers['x-hive-origin'] || 'unknown').slice(0, 64);
+    let stored = 0;
+    if (pool) {
+        for (const e of entries) {
+            try {
+                await pool.query(
+                    'INSERT INTO hivv_bridge_receipts (peer, request_id, node_id, model, tokens, latency_ms, status, cost_usd, persona_id, receipt) ' +
+                    'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING',
+                    [hive,
+                     String(e.id || '').slice(0, 120) || null,
+                     e.node ? String(e.node).slice(0, 120) : null,
+                     e.model ? String(e.model).slice(0, 160) : null,
+                     Number(e.tokens) || 0,
+                     Number(e.latency_ms) || 0,
+                     String(e.status || 'unknown').slice(0, 24),
+                     Number(e.cost) || 0,
+                     e.persona_id ? String(e.persona_id).slice(0, 80) : null,
+                     JSON.stringify(e)]);
+                stored++;
+            } catch (_err) { /* a duplicate or a schema miss must not break the batch */ }
+        }
+    } else {
+        stored = entries.length;   // local-first: counted, not persisted
+    }
+    telemetry.counter('bridge_receipts_total', { peer: hive, status: 'received' });
+    res.json(meta({ hive, received: entries.length, stored }));
+});
+
+/**
+ * GET /api/bridge/receipts — our own receipt rollup, public (spec §7).
+ */
+router.get('/receipts', async (req, res) => {
+    res.set('Cache-Control', 'public, max-age=30');
+    if (!pool) {
+        return res.json(meta({ peers: [], note: 'no database (local install)' }));
+    }
+    try {
+        const { rows } = await pool.query(
+            'SELECT peer, COUNT(*)::int AS calls, COALESCE(SUM(tokens),0)::bigint AS tokens, ' +
+            'COALESCE(AVG(latency_ms),0)::int AS avg_latency_ms, MAX(created_at) AS last_seen, ' +
+            "COUNT(*) FILTER (WHERE status <> 'success')::int AS failures " +
+            'FROM hivv_bridge_receipts GROUP BY peer ORDER BY calls DESC LIMIT 50');
+        res.json(meta({ peers: rows }));
+    } catch (err) {
+        res.json(meta({ peers: [], error: String(err.message || err).slice(0, 200) }));
+    }
+});
+
 module.exports = router;

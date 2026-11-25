@@ -17,7 +17,9 @@ is pinned here.
 Pure formatting + pure arithmetic: no network, no hub.
 """
 import importlib.util
+import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,6 +34,15 @@ sys.modules["hivv_cli"] = hivv
 spec.loader.exec_module(hivv)
 
 ANSI = re.compile(r"\033\[[0-9;]*[A-Za-z]")
+
+
+def _gateway_up() -> bool:
+    import urllib.request
+    try:
+        with urllib.request.urlopen("http://localhost:3011/api/health", timeout=3) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
 def vis(s: str) -> int:
@@ -234,3 +245,51 @@ class TestHiveTotals:
         t = hivv._hive_totals([n], {})
         assert t["bees"] == 1
         assert t["ram_total_mb"] == 0
+
+
+class TestBuiltColumn:
+    """VERSION is a content hash — equality, not a date. The BUILT column
+    answers the human question ('is that from last week?') with the
+    author date of the commit that shipped that exact hash (2026-11-23)."""
+
+    def test_headers_and_widths_include_built(self):
+        src = CLI_PATH.read_text()
+        assert '"BUILT"' in src, "the nodes table needs the BUILT column"
+        # width16 = 'YYYY-MM-DD HH:MM'
+        assert "IDEAL = [16, 9, 12, 16," in src
+
+    def test_row_carries_version_date(self):
+        src = CLI_PATH.read_text()
+        assert 'n.get("version_date")' in src, (
+            "the row must read version_date from the payload"
+        )
+
+    def test_payload_provides_version_date(self):
+        src = (REPO / "api" / "routes" / "control-routes.js").read_text()
+        assert "version_date" in src
+        assert "version-date" in src, "must use the git-backed helper"
+
+    def test_helper_exists_and_parses(self):
+        r = subprocess.run(["node", "--check",
+                            str(REPO / "api" / "lib" / "version-date.js")],
+                           capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+
+    @pytest.mark.skipif(not _gateway_up(), reason="gateway not running")
+    def test_live_payload_has_wellformed_dates(self):
+        import urllib.request
+        with urllib.request.urlopen(
+                "http://localhost:3011/api/control/nodes", timeout=10) as r:
+            data = json.loads(r.read().decode())
+        pat = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
+        checked = 0
+        for n in data.get("nodes", []):
+            vd_ = n.get("version_date")
+            if vd_ is None:
+                continue          # uncommitted or unknown → table shows '—'
+            assert pat.match(vd_), f"bad date {vd_!r} for {n.get('name')}"
+            checked += 1
+        assert checked >= 1, (
+            "no node produced a date — the git map is broken (or every "
+            "version is uncommitted)"
+        )

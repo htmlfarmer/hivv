@@ -41,7 +41,19 @@ WATCHDOG = REPO / "scripts" / "health-watchdog.sh"
 
 # Isolate EVERY state write (nodes-cache.json lives in STATE_DIR) before the
 # module computes its paths — same contract as test_upgrade_review.py.
+_PRE_STATE = os.environ.get("HIVV_STATE_DIR")
 os.environ["HIVV_STATE_DIR"] = tempfile.mkdtemp(prefix="hivv-test-state-")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_state_after_this_module():
+    """Give the env back after this module's tests — a module-level write
+    leaks into every test running later (full suite red, 2026-11-24)."""
+    yield
+    if _PRE_STATE is None:
+        os.environ.pop("HIVV_STATE_DIR", None)
+    else:
+        os.environ["HIVV_STATE_DIR"] = _PRE_STATE
 
 spec = importlib.util.spec_from_file_location("hivv_cli_offline", CLI_PATH)
 hivv = importlib.util.module_from_spec(spec)
