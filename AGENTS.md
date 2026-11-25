@@ -197,7 +197,35 @@ server all read from it — they cannot drift apart.
   `tools` in the body, and nobody does, so no model on the network ever used a
   tool. Opt out with `"tools": false`, `"tools": []`, or `X-Hivv-Tools: off`;
   narrow it with `X-Hivv-Tools: calculator,current_time`. Cost ≈1850 prompt
-  tokens per request.
+  tokens per request — **or ask for a PROFILE**:
+- **PROFILES — the speed/context-window lever.** Default context is 8192
+  (gemma/qwen) and 4096 for llama-class models, so the full payload is **25% of
+  an 8k window and 50% of a 4k one** before the user speaks. Two orthogonal
+  levers, which compose:
+
+  | spec | schemas | briefing | total |
+  |---|---|---|---|
+  | *(default, = all)* | ~1845 tok | ~271 tok | ~2116 |
+  | `X-Hivv-Tools: fast` | ~430 | ~123 | ~553 |
+  | `X-Hivv-Tools: fast,lean` | ~274 | ~123 | ~397 |
+  | `X-Hivv-Tools: all,lean` | ~1051 | ~271 | ~1322 |
+
+  `fast` = `calculator, current_time, timezone_convert, translate` — and it is
+  **allow-tier ONLY on purpose**: web.search / web.fetch / coding.execute /
+  data.file.read are `ask`, so a "fast" request carrying one could stall waiting
+  for a human to approve a grant. Add one explicitly when you want it:
+  `X-Hivv-Tools: fast,web_search`. Body-level `tool_profile: "fast"` does the
+  same for SDKs that cannot set custom headers (header wins when both are set).
+  `lean` drops per-property prose and cuts descriptions to one sentence —
+  property NAMES/types/enums survive, only the prose goes; it is opt-in because
+  that prose does carry signal for tricky tools.
+
+  **The briefing is filtered to the tools actually attached**, so a `fast`
+  request is never told to use web_search it was not given (and never claims
+  "you have the tools" for news it cannot fetch). With all tools attached the
+  briefing is **byte-identical** to the pre-profile text — pinned by
+  `api/tests/tool-profiles.test.js`. `/api/chat/continue` now resolves tools
+  explicitly instead of injecting a briefing while sending `tools: null`.
 - **The streaming path has a REAL tool loop** (`lib/tool-stream.js`): the router
   writes provider frames straight to the socket, so a tool_call used to reach the
   client before the hub could run it — and a client that receives an unexpected

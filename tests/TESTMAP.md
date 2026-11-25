@@ -36,7 +36,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/ssrf.js` | `api/tests/interop.test.js` |
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
-| `api/lib/toolkit.js` | `api/tests/polite.test.js` |
+| `api/lib/toolkit.js` | `api/tests/polite.test.js`, `api/tests/tool-profiles.test.js` |
 | `api/lib/trust.js` | `api/tests/trust.test.js` |
 | `api/lib/version-date.js` | `api/tests/version-date.test.js` |
 | `api/migrations/020_feedback_grants.sql` | `tests/test_upgrade_review.py` |
@@ -97,6 +97,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/route-factors.test.js` | `api/lib/route-factors.js`, `api/lib/router.js` |
 | `api/tests/task-queue.test.js` | `api/lib/task-queue.js` |
 | `api/tests/telemetry.test.js` | `api/lib/telemetry.js` |
+| `api/tests/tool-profiles.test.js` | `api/lib/toolkit.js` |
 | `api/tests/trust.test.js` | `api/lib/attest.js`, `api/lib/identity.js`, `api/lib/trust.js` |
 | `api/tests/version-date.test.js` | `api/lib/version-date.js` |
 | `tests/test_ask_flags.py` | `public_html/hivv-cli.py` |

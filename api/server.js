@@ -31,27 +31,15 @@ const HIVV_IDENTITY_MSG = {
     content: 'IMPORTANT: When referring to the hivv.org distributed AI network, always write "HIVE" (pronounced /haɪv/, like a beehive) — never spell it as "HIV" or "H-I-V". The project name is HIVV and it rhymes with "hive".'
 };
 
-// The toolkit briefing the model gets when tools are attached. It is built
-// from the LIVE catalog (api/lib/toolkit.js) so it can never name a tool
-// the hive does not have, or miss one it does.
-const TOOL_PRIORITY_RULES = [
-    'TOOL PRIORITY: current_time/calculator/timezone_convert for anything about the date, the time or arithmetic — never do it in your head.',
-    'web_fetch/http_request for a specific URL or an API; web_search for facts, history and current events.',
-    'file_read/file_search for documents the user uploaded; text_parser for JSON/CSV/XML/YAML.',
-    'code_interpreter for real computation, data wrangling and testing code.',
-    'memory to remember something for later; translate for languages.',
-    'EXACT RULES: 1) "news" / "current events" / "what\'s happening in [place]" → use web_search. 2) "what is [fact]" → use web_search. 3) a specific URL → use web_fetch. 4) any arithmetic → use the calculator. 5) "what time is it in [place]" → use current_time or timezone_convert.',
-    'Do NOT say you cannot access live news or the current date — you have the tools. Present results as natural language summaries, not raw data.',
-].join(' ');
+// The briefing rules moved to api/lib/toolkit.js (toolBriefing()) so they
+// can be filtered to the tools THIS request actually carries — a "fast"
+// profile must never be told to use a tool it was not given.
 
-function toolSystemMessage() {
-    const tools = toolkitLib.advertisedTools();
-    if (!tools.length) return { role: 'system', content: 'You have no tools available on this request.' };
-    const names = tools.map((t) => t.name).join(', ');
-    return {
-        role: 'system',
-        content: `You have access to the HIVV toolkit: ${names}. ${TOOL_PRIORITY_RULES}`
-    };
+// The briefing now lives in toolkit.js (toolBriefing) so it can be filtered to
+// the tools THIS request actually carries — a `fast` profile must not be told
+// to use web_search it was not given. Pass the resolved schema list.
+function toolSystemMessage(attached) {
+    return { role: 'system', content: toolkitLib.toolBriefing(attached) };
 }
 
 /**
@@ -86,6 +74,12 @@ function formatToolResultPublic(name, data) {
  *   "tools": false        in the request body
  *   "tools": []          (an explicit empty list)
  *   X-Hivv-Tools: off    (a header)
+ *
+ * Choose a SIZE — the speed/context-window lever:
+ *   X-Hivv-Tools: fast          4 allow-tier tools, ~430 tok of schema (was ~1845)
+ *   X-Hivv-Tools: fast,lean     + trimmed schemas, ~274 tok
+ *   X-Hivv-Tools: all           everything (explicit form of the default)
+ *   tool_profile: "fast"        same, in the body (SDKs that cannot set headers)
  * Narrow it with X-Hivv-Tools: calculator,current_time
  * A client that passes its OWN tools keeps them — we never clobber them.
  */
@@ -94,9 +88,19 @@ function resolveToolAttachment(req, tools) {
     if (toolHeader === 'off' || toolHeader === 'none' || toolHeader === '0' || tools === false) return null;
     if (Array.isArray(tools) && tools.length === 0) return null;             // asked for none
     if (Array.isArray(tools) && tools.length) return tools;                  // the client's own
+
+    // Header wins (it is the explicit, per-request signal); body profile is the
+    // convenience path for clients that cannot attach custom headers.
+    let spec = null;
     if (toolHeader && !['hivv', 'auto', 'on', '1'].includes(toolHeader)) {
-        const only = toolHeader.split(',').map((s) => s.trim()).filter(Boolean);
-        return toolkitLib.openaiSchemas({ only });
+        spec = toolHeader;
+    } else if (req.body && typeof req.body.tool_profile === 'string' && req.body.tool_profile.trim()) {
+        spec = req.body.tool_profile.trim().toLowerCase();
+    }
+    if (spec) {
+        const { lean } = toolkitLib.parseToolSpec(spec);
+        const only = toolkitLib.profileNames(spec);   // null = everything advertised
+        return toolkitLib.openaiSchemas({ only, lean });
     }
     return toolkitLib.openaiSchemas();
 }
@@ -2263,7 +2267,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     // its own tools keeps them.
     const effectiveTools = resolveToolAttachment(req, tools);
     const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
-    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages];
+    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
 
     const useStream = stream === true || stream === 'true' || (req.headers.accept && req.headers.accept.includes('text/event-stream'));
 
@@ -2829,7 +2833,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             const localTools = req.body.local_tools === true;
             // ── Non-streaming: support tool_call loop ───────────────────────────
             const MAX_TOOL_ROUNDS = 5;
-            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages.slice()];
+            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages.slice()];
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
@@ -2930,7 +2934,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         // back, forwards content frames live, and lets the hub run the tool
         // and ask the model again. The client sees one clean answer.
         const MAX_TOOL_ROUNDS = 5;
-        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage()] : []), ...messages];
+        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
         let result = null;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
             const interceptor = new toolStreamLib.ToolStreamInterceptor(res, { maxRounds: MAX_TOOL_ROUNDS });
@@ -3040,8 +3044,20 @@ app.post('/api/chat/continue', async (req, res) => {
         return res.status(400).json({ error: 'messages and tool_results required' });
     }
 
+    // Tools on THIS endpoint only ever come from an explicit signal (a body
+    // `tools` array or an X-Hivv-Tools header) — continue is a continuation of a
+    // loop the client already started, so guessing a fresh default would be
+    // wrong either way. What matters is the invariant: the briefing must never
+    // claim tools we are not sending. It used to be injected unconditionally
+    // while `tools` defaulted to null, i.e. it promised a toolkit the model
+    // did not have.
+    const toolHeader = String((req.headers && req.headers['x-hivv-tools']) || '').trim();
+    const effectiveTools = (toolHeader !== '' || Array.isArray(tools))
+        ? resolveToolAttachment(req, tools) : null;
+    const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
+
     // Build full message list: system + user msg + assistant tool_call msg + tool result
-    const msgList = [HIVV_IDENTITY_MSG, toolSystemMessage(), ...messages];
+    const msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
     if (assistant_message) {
         msgList.push(assistant_message);  // assistant's original tool_call message
     }
@@ -3051,7 +3067,7 @@ app.post('/api/chat/continue', async (req, res) => {
 
     try {
         const data = await router.chatCompletion(msgList, {
-            model, provider, stream: false, tools: tools || null
+            model, provider, stream: false, tools: effectiveTools
         });
         if (!data.ok) return res.status(503).json({ error: { message: data.error } });
 
@@ -3954,6 +3970,16 @@ app.post('/api/nodes/register', async (req, res) => {
       });
     }
     const beeId = String(requestedId).toLowerCase();
+    // The ritual vocabulary belongs to the hive: fajr…isha, salah, wudu,
+    // adhan, dua, hajj, jihad, moon, tongue… a bee may not claim them.
+    if (bee.isReservedId(beeId)) {
+      return res.status(400).json({
+        error: 'bee id is reserved for the hive ritual layer',
+        code: 'BEE_ID_RESERVED',
+        bee_id: beeId,
+        hint: 'these names belong to hivv ritual functions (salah, adhan, wudu, hajj…) — pick another name',
+      });
+    }
 
     // Capture the PREVIOUS identity before registerNode (which may rewrite
     // hw_id from this very request — comparing after would make any hw_id

@@ -88,7 +88,8 @@
    "api/tests/telemetry.test.js"
   ],
   "api/lib/toolkit.js": [
-   "api/tests/polite.test.js"
+   "api/tests/polite.test.js",
+   "api/tests/tool-profiles.test.js"
   ],
   "api/lib/trust.js": [
    "api/tests/trust.test.js"
@@ -305,6 +306,9 @@
   ],
   "api/tests/telemetry.test.js": [
    "api/lib/telemetry.js"
+  ],
+  "api/tests/tool-profiles.test.js": [
+   "api/lib/toolkit.js"
   ],
   "api/tests/trust.test.js": [
    "api/lib/attest.js",

@@ -1121,18 +1121,184 @@ function toolCapability(name) {
  *
  * @param {object} opts  { only?: string[], includeHidden?: boolean }
  */
-function openaiSchemas({ only = null, includeHidden = false } = {}) {
+// ── tool PROFILES — how big is this request's tool payload? ──────────────────
+//
+// WHY: the full toolkit costs ~1,665 tokens of JSON schema PLUS a ~370-token
+// briefing, on EVERY request. Default context windows are 8,192 (gemma/qwen)
+// and 4,096 for llama-class models — so on a 4k bee the tool payload eats HALF
+// the window before the user says anything, and every extra tool is another
+// invitation to open a tool loop (each round is a whole extra model call).
+//
+// Two ORTHOGONAL levers, which compose:
+//   WHICH tools — a named profile (this block)
+//   HOW fat     — `lean`, which strips per-property prose from the schemas
+//
+// `fast` is deliberately made of allow-TIER tools only. web_search / web_fetch /
+// http_request / code_interpreter / file_* are all `ask`: a "fast" request that
+// carried one could STALL waiting for a human to approve a grant. Speed first
+// means nothing that can block. Add one explicitly if you want it:
+//   X-Hivv-Tools: fast,web_search
+const PROFILES = {
+    fast: ['calculator', 'current_time', 'timezone_convert', 'translate'],
+    all: null, // null = every advertised tool (the shipped default)
+};
+
+// Words that name a profile rather than a tool. Anything else in the list is
+// treated as an explicit tool name, so `fast,web_search` composes.
+const PROFILE_TOKENS = new Map([
+    ['fast', 'fast'], ['quick', 'fast'], ['lite', 'fast'], ['small', 'fast'], ['mini', 'fast'],
+    ['all', 'all'], ['full', 'all'], ['detailed', 'all'], ['wide', 'all'],
+]);
+const LEAN_TOKENS = new Set(['lean', 'brief', 'compact', 'slim']);
+
+/**
+ * Parse an X-Hivv-Tools value into its three parts.
+ *   'fast'                → { profile: 'fast', only: null,     lean: false }
+ *   'fast,lean'           → { profile: 'fast', only: null,     lean: true  }
+ *   'fast,web_search'     → { profile: 'fast', only: ['web_search'], lean: false }
+ *   'calculator,translate'→ { profile: null,   only: [...],    lean: false }
+ *   ''                    → { profile: null,   only: null,     lean: false }  = all
+ * @returns {{profile: ('fast'|'all'|null), only: string[]|null, lean: boolean}}
+ */
+function parseToolSpec(spec) {
+    const out = { profile: null, only: null, lean: false };
+    const raw = String(spec == null ? '' : spec).trim().toLowerCase();
+    if (!raw) return out;
+    const names = [];
+    for (const part of raw.split(',')) {
+        const tok = part.trim();
+        if (!tok) continue;
+        if (LEAN_TOKENS.has(tok)) { out.lean = true; continue; }
+        if (PROFILE_TOKENS.has(tok)) { out.profile = PROFILE_TOKENS.get(tok); continue; }
+        names.push(tok);
+    }
+    if (names.length) out.only = names;
+    return out;
+}
+
+/** The concrete tool list a spec asks for, or null for "everything advertised". */
+function profileNames(spec) {
+    const { profile, only } = parseToolSpec(spec);
+    if (!profile) return only && only.length ? only : null;   // no profile: explicit list, else all
+    const base = PROFILES[profile];
+    // `all` is null BY DESIGN — it means "everything advertised". Returning []
+    // here would mean "no tools", so `X-Hivv-Tools: all` would attach nothing.
+    if (base == null) return null;
+    // profile + explicit extras: union, deduped, profile order first
+    return [...new Set([...base, ...(only || [])])];
+}
+
+// Cut a description to its first sentence. Used by `lean`: a one-line hint is
+// enough for the model to pick a tool, and the examples are what cost tokens.
+function firstSentence(s) {
+    const str = String(s || '').trim();
+    if (!str) return '';
+    const m = str.match(/^[^.!?]*[.!?]/);
+    return (m ? m[0] : str).trim();
+}
+
+// Drop every per-property 'description' from a JSON schema. Structure (types,
+// required, enums, property names) is untouched — only the prose goes.
+// OPT-IN: property descriptions do carry real signal for tricky tools, which is
+// why `lean` is never the default.
+function leanParameters(node) {
+    if (Array.isArray(node)) return node.map(leanParameters);
+    if (node && typeof node === 'object') {
+        const out = {};
+        for (const [k, v] of Object.entries(node)) {
+            if (k === 'description') continue;
+            out[k] = leanParameters(v);
+        }
+        return out;
+    }
+    return node;
+}
+
+function openaiSchemas({ only = null, includeHidden = false, lean = false } = {}) {
     const list = includeHidden ? TOOLS : advertisedTools();
     return list
         .filter((t) => (!only || only.includes(t.name) || (t.aliases || []).some((a) => only.includes(a))))
-        .map((t) => ({
-            type: 'function',
-            function: {
-                name: t.name,
-                description: t.schema_description || t.description,
-                parameters: t.parameters,
-            },
-        }));
+        .map((t) => {
+            const description = t.schema_description || t.description;
+            return {
+                type: 'function',
+                function: {
+                    name: t.name,
+                    description: lean ? firstSentence(description) : description,
+                    parameters: lean ? leanParameters(t.parameters) : t.parameters,
+                },
+            };
+        });
+}
+
+// ── the briefing ─────────────────────────────────────────────────────────────
+//
+// The system message that tells the model WHICH tools it has and when to reach
+// for one. Built from the LIVE catalog so it can never name a tool the hive does
+// not have — and now filtered to the tools actually attached, so a `fast` request
+// is never told to use web_search it was not given.
+//
+// Each rule declares the tools it needs. With all 12 attached every rule applies
+// and the output is byte-identical to the pre-profile briefing.
+const BRIEFING_RULES = [
+    { needs: ['current_time', 'calculator', 'timezone_convert'],
+      text: 'TOOL PRIORITY: current_time/calculator/timezone_convert for anything about the date, the time or arithmetic — never do it in your head.' },
+    { needs: ['web_fetch', 'http_request', 'web_search'],
+      text: 'web_fetch/http_request for a specific URL or an API; web_search for facts, history and current events.' },
+    { needs: ['file_read', 'file_search', 'text_parser'],
+      text: 'file_read/file_search for documents the user uploaded; text_parser for JSON/CSV/XML/YAML.' },
+    { needs: ['code_interpreter'],
+      text: 'code_interpreter for real computation, data wrangling and testing code.' },
+    { needs: ['memory', 'translate'],
+      text: 'memory to remember something for later; translate for languages.' },
+];
+
+// Numbered sub-rules of "EXACT RULES" — split so each one only appears when the
+// tool it points at is actually attached.
+const EXACT_RULES = [
+    { needs: ['web_search'], text: '"news" / "current events" / "what\'s happening in [place]" → use web_search.' },
+    { needs: ['web_search'], text: '"what is [fact]" → use web_search.' },
+    { needs: ['web_fetch', 'http_request'], text: 'a specific URL → use web_fetch.' },
+    { needs: ['calculator'], text: 'any arithmetic → use the calculator.' },
+    { needs: ['current_time', 'timezone_convert'], text: '"what time is it in [place]" → use current_time or timezone_convert.' },
+];
+
+/**
+ * The briefing for a given attached set.
+ * @param {Array|null} attached — the resolved tool schemas (null/undefined = all advertised)
+ */
+function toolBriefing(attached) {
+    const catalog = advertisedTools();
+    // An ARRAY is authoritative even when empty — [] means "the client asked
+    // for none", and must not fall through to "everything" the way null does.
+    const names = Array.isArray(attached)
+        ? attached.map((t) => t && t.function && t.function.name).filter(Boolean)
+        : catalog.map((t) => t.name);
+    if (!names.length) return 'You have no tools available on this request.';
+    const have = new Set(names);
+    const applies = (rule) => rule.needs.some((n) => have.has(n));
+
+    const parts = BRIEFING_RULES.filter(applies).map((r) => r.text);
+    const exact = EXACT_RULES.filter(applies);
+    if (exact.length) {
+        parts.push('EXACT RULES: ' + exact.map((r, i) => `${i + 1}) ${r.text}`).join(' '));
+    }
+    // The reassurance line claims BOTH live news and the current date. Only say
+    // it when the tools that make it true are attached — otherwise `fast` would
+    // instruct the model to claim a search ability it was not given.
+    const hasSearch = have.has('web_search');
+    const hasClock = have.has('current_time') || have.has('timezone_convert');
+    if (hasSearch && hasClock) {
+        parts.push('Do NOT say you cannot access live news or the current date — you have the tools. Present results as natural language summaries, not raw data.');
+    } else if (hasSearch) {
+        parts.push('Do NOT say you cannot access live news — you have web_search. Present results as natural language summaries, not raw data.');
+    } else if (hasClock) {
+        parts.push('Do NOT say you cannot access the current date — you have the clock tools.');
+    }
+
+    const list = names.join(', ');
+    const rules = parts.length ? ' ' + parts.join(' ') : '';
+    return `You have access to the HIVV toolkit: ${list}.${rules}`;
 }
 
 /** MCP-shaped tool definitions (the MCP SDK wants {name, description, inputSchema}). */
@@ -1271,6 +1437,11 @@ module.exports = {
     openaiSchemas,
     mcpDefs,
     catalog,
+    // tool profiles (fast/all + lean schemas + the briefing)
+    PROFILES,
+    parseToolSpec,
+    profileNames,
+    toolBriefing,
     execute,
     safeFetch,
 };
