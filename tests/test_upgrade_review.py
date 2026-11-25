@@ -2361,6 +2361,46 @@ class TestErrorTaxonomy:
         assert "loading" in hivv._http_err_hint(503)
         assert hivv._http_err_hint(418) == ""
 
+    def test_404_body_distinguishes_model_from_endpoint(self):
+        # ollama's 404 body says WHICH model failed — the hint must use it
+        # instead of blaming the port (yalla, 2026-11-25: model 'local' not
+        # found was reported as "endpoint not found (wrong port)").
+        body = json.dumps({"error": {"message": "model 'local' not found"}})
+        h404 = hivv._http_err_hint(404, body)
+        assert "model" in h404 and "endpoint not found" not in h404
+        # a bodyless 404 keeps the classic endpoint message (pinned above)
+
+    def test_real_model_falls_back_when_nothing_answers(self):
+        # port 9 = discard: connection refused → 'local' (llama.cpp-safe)
+        assert hivv._real_model("http://127.0.0.1:9") == "local"
+
+    def test_real_model_reads_an_ollama_tags_list(self, monkeypatch):
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return json.dumps({"models": [{"name": "qwen2.5:0.5b"}]}).encode()
+
+        monkeypatch.setattr(hivv.urllib.request, "urlopen",
+                            lambda req, timeout=None: _Resp())
+        got = hivv._real_model("http://127.0.0.1:11434/v1/chat/completions")
+        assert got == "qwen2.5:0.5b"
+
+    def test_direct_chat_sends_the_heartbeat_model_not_a_placeholder(self):
+        # the yalla failure, pinned at the source: the direct path must use
+        # the node's real model, and no payload builder may hardcode the
+        # placeholder again (the one allowed mention is this file's own
+        # docstring — see the count guard).
+        src = Path(hivv.__file__).read_text(encoding="utf-8")
+        assert 'm.get("model") or m.get("name") or "local"' in src
+        assert src.count('"model": "local"') <= 1, (
+            "a payload builder hardcoded model 'local' again — ollama 404s on it"
+        )
+
     def test_error_bodies_in_stream_get_classified(self):
         ctx = '{"error":"request (2372 tokens) exceeds the available context size (256 tokens)"}'
         assert "n_ctx_slot" in hivv._stream_error_hint(ctx)

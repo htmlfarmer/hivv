@@ -240,3 +240,100 @@ class TestSpeedLedgerCoercion:
         assert by_user["u1"]["avg_duration_ms"] == 150      # (100+200)/2
         by_node = {n["key"]: n for n in d["summary"]["by_node"]}
         assert "masjid" in by_node and "yalla" in by_node
+
+
+class TestToolkit400Retry:
+    """An optional extra must never kill the conversation.
+
+    wahi (2026-11-25) answers a BARE chat with OK but 400s the SAME request
+    carrying `tools`. The context pre-flight cannot catch that: it only
+    fires when the slot size is knowable, and here the slot looked big
+    enough — so `hivv ask wahi` died on its only port and fell through to
+    the relay (which then timed out at 45s while the bee answered in ~52s).
+    Proven by relaying both payloads to that bee: no tools → done in 52s,
+    with tools → error in 6s.
+
+    The rule: on HTTP 400, strip the toolkit and ask the SAME port again.
+    """
+
+    @pytest.fixture
+    def net_400(self, monkeypatch):
+        """The wahi shape: tools → 400, bare → streamed answer."""
+        sent = []
+
+        def fake_http(method, path, **kw):
+            if path == "/api/control/nodes":
+                return 200, {"nodes": [dict(BEE)]}
+            if path == "/api/tools/catalog":
+                return 403, "nope"          # forces the offline fallback list
+            return 404, {}
+
+        def fake_urlopen(req, timeout=None):
+            if req.full_url.endswith("/v1/chat/completions"):
+                payload = json.loads(req.data.decode())
+                if payload.get("tools"):
+                    sent.append("tools")
+                    raise urllib.error.HTTPError(
+                        req.full_url, 400, "Bad Request", {},
+                        io.BytesIO(b'{"error":{"message":"no tools"}}'))
+                sent.append("bare")
+            return FakeResponse(sse_body())
+
+        monkeypatch.setattr(hivv, "http", fake_http)
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: True)
+        monkeypatch.setattr(hivv, "_node_llm_ports", lambda n: [8080])
+        monkeypatch.setattr(hivv, "_local_ip", lambda: "")
+        monkeypatch.setattr(hivv, "_tool_schemas",
+                            lambda: [{"type": "function", "function": {
+                                "name": "probe",
+                                "parameters": {"type": "object", "properties": {}}}}])
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        monkeypatch.delenv("HIVV_THINK", raising=False)
+        return sent
+
+    def test_400_strips_the_toolkit_and_retries_the_same_port(self, net_400,
+                                                              monkeypatch, capsys):
+        out = run_ask(monkeypatch, capsys, json_output=True)
+        d = json.loads(out.out)
+        assert net_400 == ["tools", "bare"], (
+            "the toolkit must be sent first, then retried WITHOUT it — "
+            f"got {net_400}"
+        )
+        assert d["ok"] is True, d
+        assert d["reply"] == "Hello"
+        assert any("400 with tools" in e for e in d["errors"]), d["errors"]
+
+    def test_the_retry_is_announced_to_a_human(self, net_400, monkeypatch, capsys):
+        # the banner, the warning and the reply all share stdout (the same
+        # stream the existing `port N failed` line already uses)
+        out = run_ask(monkeypatch, capsys)
+        assert "refused the toolkit (HTTP 400)" in out.out, out.out
+        assert "retrying without tools" in out.out
+
+    def test_no_retry_when_the_server_never_saw_tools(self, monkeypatch, capsys):
+        """A 400 on a payload with NOTHING to strip must not loop."""
+        monkeypatch.setattr(hivv, "http",
+                            lambda *a, **k: (200, {"nodes": [dict(BEE)]})
+                            if a[1] == "/api/control/nodes" else (404, {}))
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: True)
+        monkeypatch.setattr(hivv, "_node_llm_ports", lambda n: [8080])
+        monkeypatch.setattr(hivv, "_local_ip", lambda: "")
+        monkeypatch.setattr(hivv, "_tool_schemas", lambda: [])   # offline, no catalog
+        calls = []
+
+        def fake_urlopen(req, timeout=None):
+            calls.append(req.full_url)
+            raise urllib.error.HTTPError(req.full_url, 400, "Bad Request", {},
+                                         io.BytesIO(b'{}'))
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        monkeypatch.delenv("HIVV_THINK", raising=False)
+        # the direct path fails, the relay (faked to 404) fails too, and a
+        # JSON consumer gets its object on stdout BEFORE the nonzero exit
+        with pytest.raises(SystemExit):
+            run_ask(monkeypatch, capsys, json_output=True)
+        d = json.loads(capsys.readouterr().out)
+        assert d["ok"] is False
+        assert any("400" in e for e in d["errors"]), d["errors"]
+        chats = [u for u in calls if u.endswith("/v1/chat/completions")]
+        assert len(chats) == 1, "nothing to strip → exactly one attempt"

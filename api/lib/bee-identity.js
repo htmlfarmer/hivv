@@ -43,6 +43,26 @@ function isValidBeeId(value) {
     return typeof value === 'string' && BEE_ID_RE.test(value);
 }
 
+// ── the hive's reserved ritual vocabulary ───────────────────────────────────
+// These names belong to the RITUAL LAYER (salah times, adhan pushes, wudu,
+// hajj, jihad, the moon) — no bee may claim them. Spiritual words are the
+// hive's original protocol for shared meaning; the hive keeps them, the way
+// a mosque keeps its minbar. Enforced at the register door, like everything
+// else here. Playful — but enforced.
+const RESERVED_BEE_IDS = new Set([
+    // the five daily prayers (regional times, pushed as the adhan)
+    'fajr', 'dhuhr', 'asr', 'maghrib', 'isha',
+    // core ritual vocabulary
+    'salah', 'salat', 'wudu', 'adhan', 'sujud', 'sujood', 'sujood-as-salah',
+    'dua', 'hajj', 'jihad', 'ramadan', 'ramadhan', 'eid', 'zakat',
+    // the hive's own ritual functions
+    'moon', 'tongue',
+]);
+
+function isReservedId(value) {
+    return RESERVED_BEE_IDS.has(String(value || '').toLowerCase());
+}
+
 // A stable fingerprint of the machine, so two registrations from the same box
 // are recognisably the same bee even before it has a secret.
 function beeFingerprint(hwId) {
@@ -136,6 +156,8 @@ function readBeeProof(req) {
 module.exports = {
     BEE_ID_RE,
     isValidBeeId,
+    isReservedId,
+    RESERVED_BEE_IDS,
     beeFingerprint,
     deriveBeeId,
     sameSecret,

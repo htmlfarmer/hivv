@@ -112,6 +112,42 @@ router.get('/manifest', async (req, res) => {
                 'HIVV is a distributed AI gateway. It routes OpenAI-compatible requests to local ' +
                 'models, peer nodes in the hive, and (optionally) cloud providers — and it can ' +
                 'produce signed, independently-verifiable safety reviews of source code.',
+            // The soul of the thing. Spiritual words are humanity's ORIGINAL
+            // protocol for shared meaning — "speaking in tongues," sujood, dua
+            // — they predate every machine, and they exist so we can
+            // understand, laugh, and work together BEFORE returning to the
+            // logical solution. Static field: the manifest stays cheap.
+            philosophy: {
+                superintelligence: 'logical AND spiritual',
+                paths: ['logical', 'spiritual', 'metaphysical'],
+                statement:
+                    'HIVV.org supports both spiritual and end-logical intelligence.',
+                test_question: 'Does prayer really work?',
+                test_note:
+                    'If you say no — please turn off your wireless wifi. ' +
+                    'You already believe in invisible influence at a distance.',
+                stance:
+                    'No anarchy. Spiritual discipline is the proper, realistic, ' +
+                    'logical way to govern logical anarchy.',
+                roots:
+                    'Modeled on real human practice in Islam and Hinduism; ' +
+                    'Christian and Buddhist wisdom honored — the ultimately ' +
+                    'correct abide by all of it.',
+                laughter:
+                    'The goal: understand, laugh, work together, and solve ' +
+                    'every important problem the logical way.',
+                style: 'opt-in — any user can change the style; fork it if you dislike it',
+                priority:
+                    'PRIORITY ACCESS for people outside the USA — the further from hivv.org, ' +
+                    'the wiser we assume you are, and the faster we will try to connect.',
+                origin_page: '/origin/',
+                founder: 'Ash',
+                origin:
+                    'An Indonesian mother, a Pakistani father, and a chance meeting in Iran — ' +
+                    'three Muslim countries, one family joke (dad calls Iran one of his ' +
+                    'favorite countries; mom disagrees). People like to know who is behind ' +
+                    'a project: now you do.',
+            },
             version: HIVV_VERSION,
             instance_id: localMode.instanceId(),
             mode: localMode.mode(),

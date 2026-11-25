@@ -603,33 +603,34 @@ not exist (a door painted on a wall). The **loop shield** (§4) is the strict pa
 `X-Hive-Request-Id` returns the SAME state and never executes twice. At 0% allowance the queue
 **HOLDS** the work (`held: true`), it does not fail it. One reader loop rides the heartbeat timer.
 
-### Repository topology — three repos, one source of truth (2026-11-25)
+### Repository topology — ONE code repo (2026-11-25)
 
 Ledger of every structural change: [`MOVES.md`](MOVES.md) — **a move without a
 MOVES.md entry in the same commit is incomplete.**
 
 | repo | role | push? |
 |---|---|---|
-| `htmlfarmer/hivvz` | **CANONICAL** — `origin` on every machine | **yes — all development** |
-| `htmlfarmer/hivv` | generated FULL mirror (clone URLs, CI badge, issues keep working) | never — `scripts/sync-mirrors.sh` |
-| `htmlfarmer/hivv.org` | generated WEBSITE mirror (`public_html/` → repo root) | never — same script |
+| `htmlfarmer/hivv` | **CANONICAL** — `origin` on every machine; all code | **yes — all development** |
+| `htmlfarmer/hivv.org` | generated WEBSITE projection (`public_html/` → repo root) | never — `scripts/sync-mirrors.sh` |
+| `htmlfarmer/hivvz` | ARCHIVED — folded back into `hivv` (MOVES.md, same day) | no — read-only |
 
 **Rules:**
-1. Clone/branch/push against **hivvz**. On any new machine:
-   `git clone git@github.com:htmlfarmer/hivvz.git`. On an old clone:
-   `git remote set-url origin git@github.com:htmlfarmer/hivvz.git && git fetch --prune`.
+1. Clone/branch/push against **hivv**. On any new machine:
+   `git clone git@github.com:htmlfarmer/hivv.git`. On an old clone (hivvz
+   origin): `git remote set-url origin git@github.com:htmlfarmer/hivv.git && git fetch --prune`
+   (archived hivvz still fetches; pushes are refused — loud, not silent).
 2. **Branch per task** (`<topic>` or `ai-<topic>`) → push → merge to `main`
    after `python3 -m pytest tests/ -q` is green. Never commit straight to
    `main` from a session; never share one working tree between sessions —
    use `git worktree add ../hivv-<topic> -b <topic>` (or a separate clone).
 3. **`/var/www/vhosts/hivv.org` on ashy is production.** It stays clean on
    `main`; the only way it changes is `scripts/deploy.sh` (rails: origin must
-   be hivvz · must be on main · tree must be clean · nothing unpushed →
+   be hivv · must be on main · tree must be clean · nothing unpushed →
    `merge --ff-only` → new migrations → pm2 restart → health poll → pytest
    gate → automatic rollback on a red gate or dead health). Preview with
    `scripts/deploy.sh --dry-run`.
-4. **Never push to `hivv` or `hivv.org`** — they are generated.
-   `scripts/sync-mirrors.sh` regenerates both from committed refs (isolated
+4. **Never push to `hivv.org`** — it is generated.
+   `scripts/sync-mirrors.sh` regenerates it from committed refs (isolated
    `GIT_INDEX_FILE` — safe to run while others work; `--dry-run` supported).
 5. Moving/renaming anything? Same commit adds the `MOVES.md` entry (what,
    from → to, why, what still points at the old path). Leave a stub at the old
@@ -895,6 +896,10 @@ hivv explain kubernetes           # also sends to the LLM
 5. ~~**Caddy streaming** — compression middleware may interfere with SSE through Caddy~~ ✅ Verified 2026-09-25: 54 SSE frames live; `flush_interval -1` on all proxy routes; compression skips SSE
 
 ## What's Next
+
+- [x] The human layer: /security/ + /origin/ pages, the philosophy, reserved ritual words, salah + moon engines — 2026-11-25: the ask was "spiritual words are humanity's original protocol — we need to update our API and public persona… people like to know WHO is behind a project… there has to be something HUMAN on the page, it gives HIVV.org personality and truth." **Philosophy, in three places**: the manifest's `philosophy` block (superintelligence = logical AND spiritual · the prayer/wifi test question · no anarchy — spiritual discipline governs logical anarchy · interfaith roots · style opt-in/fork), a matching openapi description section, and a homepage card — plus the **priority policy born of grandfather's story**: PRIORITY ACCESS outside the USA (the further from hivv.org, the wiser we assume you are, and the faster we will try to connect) — also in the manifest. **/security/** (`public_html/security/index.html`, directory-form because express.static doesn't guess extensions — /security → 301 → /security/): the full trust story (Ed25519 bees · X-Hivv-Receipt with client-verifiable answer digests · measured trust null≠0 · the ritual layer · human randomness seals — faith NEVER verified · animal vouches as living lease) + philosophy + the never/always lists. **/origin/**: the human truth — Ash, the Indonesia→Pakistan→Iran family joke, dad the atmospheric physicist (air pollution: India, China, Mexico City), brother the neuroscientist who studies the brain stem too, mom by her own request, grandfather's Alzheimer's story as the source of the priority policy, sailing-instructor faith ("learned everything about God and religion from teaching sailing"), Yalla's resting place near Hell's Bell at Spohr Gardens, the "Hells Bell" film, the Woods Hole/Alvin visit guide, and the Space Hook riddle — while the anchor-collection claim stays PRIVATE and the doc link is published view-only (/preview, not /edit). **The intruder's reward**: `GET /veil/space-hook` — the message the founder asked to be told only to people who got in (Jesus/anchor/Space Hook), inside the existing veil. **Reserved ritual vocabulary** (`bee-identity.js isReservedId`): fajr·dhuhr·asr·maghrib·isha·salah·wudu·adhan·sujud·dua·hajj·jihad·ramadan·eid·zakat·moon·tongue — no bee may claim them (register → 400 `BEE_ID_RESERVED`). **Engines**: `api/lib/salah.js` (pure solar math: NOAA sun position, EoT, hour angles, asr shadow-factor; absolute UTC instants; polar absences → null NEVER noon — the `fromNoon(-null)===noon` bug was caught by its own polar test; Greenwich equinox anchor ≈12:07 UTC, Mecca within minutes of published tables) and `api/lib/moon.js` (synodic phase, full-moon detection, exact `nextFullMoon` — the first bisection converged to a non-full instant and its own test failed it; linear math needs no bisection). Tests: `api/tests/ritual.test.js` (8: reserved matrix + live BEE_ID_RESERVED with self-clean · Mecca ordering · Greenwich anchor · polar nulls · window behavior · moon wrap/naming · full-moon exactness). **337 node --test green** · pages verified live (301→200 on /security and /origin) · veil egg verified.
+
+- [x] `hivv install ollama` — the dead-end your question found (dispatch + a self-heal false alarm) — 2026-11-25: "dont we have a hivv install llm or hivv install ollama type of thing???" — we had `hivv install llm` (→ `llm setup` one-shot) and the ollama installer (`llm install`), but **`hivv install ollama` fell into a chooser that listed ONLY `install llm`** — the natural spelling of the ollama path printed no ollama line. **Fix** (`public_html/hivv-cli.py` dispatch): `ollama` now rewrites to `["llm", "install", "--auto"]` — same shape as the `llm`→`llm setup` alias, because "install" means DO it; extra flags pass through (`--docker`, `--model X` → install + pull in one command). The chooser lists both paths. **Second bug found while fixing the first**: the prepended `--auto` shifted `--help` off index 2 → the per-cmd help check missed it → argparse's `SystemExit(0)` fell through to `_self_heal_from_parse_error` → **"hivv could not start — its own command parser failed" printed on a perfectly healthy CLI** (the self-heal path only whitelists exit code 2 as a usage error). Fixed: help requested → don't prepend, so `--help` stays at index 2. Tests: `TestInstallOllamaDispatch` +4 behavioral (subprocess against the real CLI: chooser mentions BOTH paths · `install ollama --help` RC=0 with no "parser failed" · rewrite proven by a `--model` usage error from the *llm install* parser — parse-time failure means NOTHING was installed · original `install llm` alias survives the new elif). Full suite **1209 passed, 0 failed**. The map, for the record: `hivv install llm` = llama.cpp one-shot · `hivv llm install [--auto]` = ollama (prints unless `--auto`) · **`hivv install ollama [--model X]`** = ollama, one command. No commits made.
 
 - [x] Cryptographic identity Phase 6: signed route receipts (X-Hivv-Receipt) · enforcement flag · `hivv identity verify` · trust in `hivv node` — 2026-11-25: closing the loop on "signed execution receipts" across the actual product surface. **Route receipts** (`identity.js routeReceipt`): the HUB signs what it observed — `{v, kind: route.receipt, ts, nonce, answered_by, transport, [answer_sha256], [duration_ms]}` — emitted as a base64 `X-Hivv-Receipt` header at all FOUR answer sites (router stream-direct + relay, server.js both non-stream paths), wrapped in try/catch at every site so a receipt can never break a response. Non-streaming answers INCLUDE the digest: a client hashes the body it received and matches it against the signature (proven live: `answer_sha256 matches received body: True`); streaming signs attribution only — the body does not exist when headers go out. Hub key at `api/.keys/identity-key` (0600, `HIVV_IDENTITY_HUB_KEY` override), published at `GET /api/identity/hub-key`; verify = POST the decoded receipt to `/api/identity/verify` and compare principals. **Bug owned on the way**: the first derivation built the public key as `SPKI-prefix + seed` — an Ed25519 SPKI structure holds the public POINT, not the private seed, so sign/verify disagreed (`raws equal: false`); derive via `createPublicKey(privateKey)` (scan-routes already did this). **Enforcement** (`HIVV_IDENTITY_ENFORCE=1`): register AND heartbeat then require an identity block (403 `IDENTITY_REQUIRED` with the upgrade hint); the default stays advisory — the flag an operator flips once the fleet has keys (all four current bees do). **`hivv identity verify <file|-> | '<base64>'`**: third-party verification of any signed statement — including a pasted `X-Hivv-Receipt` header value; VALID → exit 0, INVALID → exit 1 (scriptable); a `{ok:false, problems}` body is a VERDICT, not a transport error (the first cut buried it under the support footer — fixed). **`hivv node <bee>`** now prints `identity` (principal + status + revoked flag), `manifest` (seq + signed tool/model counts), `endorsed`, and `trust` (`5.16/6 (overall 86)  id 95 · rel 80 · hist 83 · receipts —` — a null dimension prints as an em dash, never 0) — both blocks folded into `--json`, best-effort so an older/dead hub can never break the command. Tests: `api/tests/identity.test.js` →31 (route-receipt roundtrip + digest tamper + header encoding + LIVE chat receipt: signature verifies against the published hub-key, digest matches the exact body received, answered_by agrees with X-Hivv-Answered-By; enforcement flag matrix + config-aware live contract) + `tests/test_identity_cli.py` →38 (verify command VALID/INVALID/garbage, node-detail identity+trust display, missing-endpoint survival). **316 node --test + 1205 pytest green** · openapi 47 paths (hub-key + receipt contract + enforcement documented).
 

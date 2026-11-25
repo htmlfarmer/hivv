@@ -1315,6 +1315,70 @@ class TestFullToolchainGate:
         assert "g++" in hint or "gcc-c++" in hint
 
 
+class TestInstallOllamaDispatch:
+    """`hivv install ollama` must reach the installer, not a chooser that
+    never mentions ollama.
+
+    THE DEAD-END THIS GUARDS AGAINST (2026-11-25)
+    ─────────────────────────────────────────────
+    "dont we have a hivv install llm or hivv install ollama type of
+    thing???" — we had `hivv install llm` (→ `llm setup`) and the ollama
+    installer (`llm install`) but `hivv install ollama` fell into a
+    chooser listing ONLY `install llm`. Both commands must be one hop
+    from `hivv install`.
+
+    Second bug found while fixing the first: prepending `--auto` shifted
+    `--help` off index 2, so the per-cmd help check missed it, argparse
+    exited 0, and that SystemExit fell through to the self-heal footer —
+    "its own command parser failed" printed on a perfectly healthy CLI.
+    """
+
+    @staticmethod
+    def _run(*args):
+        return subprocess.run([sys.executable, str(CLI), *args],
+                              capture_output=True, text=True, timeout=60)
+
+    def test_chooser_mentions_both_paths(self):
+        r = self._run("install")
+        assert r.returncode == 0, r.stderr
+        out = r.stdout
+        assert "install llm" in out, "the chooser must keep the llama path"
+        assert "install ollama" in out, (
+            "the chooser must mention ollama — it never did")
+
+    def test_install_ollama_help_is_clean(self):
+        """--help must not be shifted off index 2 by the prepended --auto."""
+        r = self._run("install", "ollama", "--help")
+        assert r.returncode == 0, r.stderr
+        assert "llm install" in r.stdout, "help must come from llm install"
+        combined = r.stdout + r.stderr
+        assert "parser failed" not in combined, (
+            "a healthy CLI must not claim its own parser failed")
+        assert "self-heal" not in combined.lower()
+
+    def test_install_ollama_rewrites_to_the_installer(self):
+        """A usage error from the llm-install parser proves the rewrite.
+
+        `--model` with no value fails DURING parse_args — so cmd_llm_install
+        never runs and NOTHING is installed, yet the message names the
+        target parser: argv really became ["llm", "install", ...].
+        """
+        r = self._run("install", "ollama", "--model")
+        combined = r.stdout + r.stderr
+        assert "expected one argument" in combined, (
+            f"did not reach the llm-install parser:\n{combined}")
+        assert "llm install" in combined
+        # and it must NOT have fallen through to chat
+        assert "smart" not in combined.lower()
+
+    def test_install_llm_path_still_works(self):
+        """The original alias must survive the new elif."""
+        r = self._run("install", "llm", "--help")
+        assert r.returncode == 0, r.stderr
+        assert "llm setup" in r.stdout
+        assert "parser failed" not in (r.stdout + r.stderr)
+
+
 if __name__ == "__main__":
     import pytest
 
