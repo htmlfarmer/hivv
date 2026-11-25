@@ -190,6 +190,16 @@ test('live: bad input is a clean 4xx, never a 500', async () => {
   assert.equal((await fetch(BASE + '/api/hive/salah?lat=abc&lon=1')).status, 400);
 });
 
+test('brand: /api/hivv is canonical, /api/hive never breaks (same router)', async () => {
+  if (!gatewayUp) return;
+  const a = await fetch(BASE + '/api/hivv/salah?lat=46.73&lon=-116.99');
+  const b = await fetch(BASE + '/api/hive/salah?lat=46.73&lon=-116.99');
+  assert.equal(a.status, 200, 'the canonical brand path must work');
+  assert.equal(b.status, 200, 'the legacy path must keep working (embedded share-cards)');
+  const pa = await a.json(), pb = await b.json();
+  assert.deepEqual(pa.prayers, pb.prayers, 'both doors must serve IDENTICAL data');
+});
+
 test('source: the heartbeat handler actually marks (the wiring pin)', () => {
   const fs = require('fs');
   const path = require('path');

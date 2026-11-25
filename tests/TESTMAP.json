@@ -17,6 +17,9 @@
   "api/lib/a2a-client.js": [
    "api/tests/interop.test.js"
   ],
+  "api/lib/attendance.js": [
+   "api/tests/salah.test.js"
+  ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
    "api/tests/trust.test.js",
@@ -55,6 +58,9 @@
    "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
+  "api/lib/licenses.js": [
+   "api/tests/licenses.test.js"
+  ],
   "api/lib/local-mode.js": [
    "api/tests/local-mode.test.js"
   ],
@@ -85,7 +91,8 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/salah.js": [
-   "api/tests/ritual.test.js"
+   "api/tests/ritual.test.js",
+   "api/tests/salah.test.js"
   ],
   "api/lib/ssrf.js": [
    "api/tests/interop.test.js"
@@ -154,6 +161,7 @@
    "tests/test_bee_chat.py",
    "tests/test_boot_command.py",
    "tests/test_cli_chat_diagnostics.py",
+   "tests/test_cli_discovery.py",
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
    "tests/test_cli_parser.py",
@@ -173,6 +181,7 @@
    "tests/test_nodes_table.py",
    "tests/test_resume_not_reregister.py",
    "tests/test_rollback.py",
+   "tests/test_salah_cli.py",
    "tests/test_speeds_view.py",
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
@@ -286,6 +295,9 @@
    "api/lib/ssrf.js",
    "api/routes/a2a-routes.js"
   ],
+  "api/tests/licenses.test.js": [
+   "api/lib/licenses.js"
+  ],
   "api/tests/local-mode.test.js": [
    "api/lib/local-mode.js"
   ],
@@ -314,6 +326,10 @@
   "api/tests/route-factors.test.js": [
    "api/lib/route-factors.js",
    "api/lib/router.js"
+  ],
+  "api/tests/salah.test.js": [
+   "api/lib/attendance.js",
+   "api/lib/salah.js"
   ],
   "api/tests/task-queue.test.js": [
    "api/lib/task-queue.js"
@@ -345,6 +361,9 @@
    "public_html"
   ],
   "tests/test_cli_chat_diagnostics.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_cli_discovery.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_cli_install.py": [
@@ -458,6 +477,9 @@
    "public_html/hivv-cli.py"
   ],
   "tests/test_rollback.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_salah_cli.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_scan_secrets.py": [

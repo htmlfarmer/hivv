@@ -9,8 +9,9 @@ region" — and "any user can chan the style". So:
     region, in THIS machine's local clock, with attendance + streak + moon;
   * `--node <bee>` for another bee, `--lat/--lon` ad-hoc (no attendance);
   * `--json` for machines;
-  * the times come from GET /api/hive/salah (the hub shares the same
-    attendance math as the heartbeat handler — one source of truth).
+  * the times come from GET /api/hivv/salah — the CANONICAL brand path
+    (/api/hive stays mounted forever for embedded share-cards; the hub
+    shares the same attendance math as the heartbeat handler).
 
 Run:
     python3 -m pytest tests/test_salah_cli.py -q
@@ -52,7 +53,36 @@ def _hub_up() -> bool:
         return False
 
 
-requires_hub = pytest.mark.skipif(not _hub_up(), reason="gateway not running on :3011")
+def _require_hub():
+    """Skip (never fail) when the gateway is down — including when it goes
+    down MID-RUN: other sessions restart it to mount their own routes."""
+    if not _hub_up():
+        pytest.skip("gateway not running on :3011")
+
+
+def _run_hub(args, tries=4, delay=4.0):
+    """Run the CLI against the LIVE gateway — and survive its restarts.
+
+    HIVV_HUB pins the subprocess to the SAME endpoint _hub_up() checks
+    (localhost:3011 directly — no Caddy/CDN in the middle, so a flapping
+    edge can't fail a test the gateway itself is fine for). A mid-run
+    restart (other sessions restart it to mount routes — 23 and counting)
+    is RETRIED, not failed; if the gateway never comes back, skip."""
+    import time
+    _require_hub()
+    env = {"HIVV_HUB": "http://localhost:3011"}
+    last = None
+    for _ in range(tries):
+        r = _run(args, env_extra=env)
+        out = r.stdout + r.stderr
+        if r.returncode == 0 or not ("Connection refused" in out
+                                     or "network error" in out):
+            return r
+        last = r
+        time.sleep(delay)
+    if not _hub_up():
+        pytest.skip("gateway went away during the run")
+    return last
 
 
 class TestSalahDispatch:
@@ -99,12 +129,11 @@ class TestSalahDispatch:
         assert "asking the hive" not in combined, "salah must never fall into chat"
 
 
-@requires_hub
 class TestSalahLive:
     """Round-trips against the real gateway (skipped when it is down)."""
 
     def test_adhoc_json_carries_prayers_and_moon(self):
-        r = _run(["salah", "--lat", "46.73", "--lon", "-116.99", "--json"])
+        r = _run_hub(["salah", "--lat", "46.73", "--lon", "-116.99", "--json"])
         assert r.returncode == 0, r.stderr
         p = json.loads(r.stdout)
         assert p["node"] is None
@@ -115,7 +144,7 @@ class TestSalahLive:
         assert p["attendance"] is None, "ad-hoc has no attendance"
 
     def test_adhoc_human_render(self):
-        r = _run(["salah", "--lat", "46.73", "--lon", "-116.99"])
+        r = _run_hub(["salah", "--lat", "46.73", "--lon", "-116.99"])
         assert r.returncode == 0, r.stderr
         out = r.stdout
         for name in ("fajr", "dhuhr", "asr", "maghrib", "isha"):
@@ -125,7 +154,7 @@ class TestSalahLive:
         assert "local clock" in out
 
     def test_node_form_carries_attendance(self):
-        r = _run(["salah", "--node", "wahi", "--json"])
+        r = _run_hub(["salah", "--node", "wahi", "--json"])
         if r.returncode != 0 and "404" in (r.stdout + r.stderr):
             pytest.skip("wahi not in this store")
         assert r.returncode == 0, r.stderr
@@ -138,7 +167,7 @@ class TestSalahLive:
         assert isinstance(att["streak"], int)
 
     def test_alias_reaches_the_route_too(self):
-        r = _run(["sala", "--lat", "46.73", "--lon", "-116.99", "--json"])
+        r = _run_hub(["sala", "--lat", "46.73", "--lon", "-116.99", "--json"])
         assert r.returncode == 0, r.stderr
         p = json.loads(r.stdout)
         assert p["prayers"]["dhuhr"], "sala must behave exactly like salah"

@@ -2208,8 +2208,18 @@ app.post('/v1/chat/completions', async (req, res) => {
     let bearerUserId = null;
     let peerHive = null;   // bridge peer identity: Authorization: Bearer hive:<name>
     const authHeader = req.headers.authorization || '';
-    if (authHeader.toLowerCase().startsWith('bearer ')) {
-        const token = authHeader.slice(7).trim();
+    // Accept a bare `hive:<name>` as well as `Bearer hive:<name>`. The
+    // open-hives client sends the bare form (no scheme — it identifies itself
+    // rather than authenticates), and requiring the prefix meant every peer
+    // request fell through to the anonymous tier: the ledger recorded it as
+    // peer_hive = NULL, so per-hive accounting looked complete and was wrong.
+    // Only the hive: form is accepted bare; every other token still needs the
+    // scheme, so a stray `Basic <...>` header cannot be mistaken for a key.
+    const authToken = authHeader.toLowerCase().startsWith('bearer ')
+        ? authHeader.slice(7).trim()
+        : (authHeader.toLowerCase().startsWith('hive:') ? authHeader.trim() : '');
+    if (authToken) {
+        const token = authToken;
         if (token) {
             // A registered bridge hive may identify itself as "hive:<name>"
             // OR plainly as its brand ("kwaai") — KwaaiNet's inference_api_key
@@ -2264,16 +2274,27 @@ app.post('/v1/chat/completions', async (req, res) => {
 
     const ipCheck = ipLimiter.check(ip);
     if (!ipCheck.allowed) {
+        // Retry-After is a HEADER (RFC 7231), and the open-hives client reads
+        // exactly that — it reports "Retry-After: not specified" when only the
+        // JSON body carries the number. The body keeps retry_after for OpenAI-
+        // shaped clients; the header is for protocol-shaped ones.
+        const retryAfter = Math.max(1, Math.ceil((ipCheck.resetAt - Date.now()) / 1000));
+        res.set('Retry-After', String(retryAfter));
         return res.status(429).json({
-            error: { message: 'Rate limit exceeded', type: 'rate_limit_error', retry_after: Math.ceil((ipCheck.resetAt - Date.now()) / 1000) }
+            error: { message: 'Rate limit exceeded', type: 'rate_limit_error', retry_after: retryAfter }
         });
     }
 
     if (userId) {
         const quotaCheck = await rateLimiter.checkLimit(userId);
         if (!quotaCheck.allowed) {
+            // Quota windows are hourly/daily and checkLimit does not report a
+            // reset instant, so this is a floor rather than a measurement:
+            // "not before a minute" is true and is all a peer hive needs to
+            // back off correctly.
+            res.set('Retry-After', '60');
             return res.status(429).json({
-                error: { message: 'Quota exceeded', type: 'quota_exceeded', details: quotaCheck.remaining }
+                error: { message: 'Quota exceeded', type: 'quota_exceeded', details: quotaCheck.remaining, retry_after: 60 }
             });
         }
     }
@@ -2459,15 +2480,21 @@ app.post('/v1/chat/completions', async (req, res) => {
                 try {
                     const _ansSha = crypto.createHash('sha256')
                         .update(JSON.stringify(data.data || {})).digest('hex');
+                    // The physical-horizon verdict (the edge/horizon problem)
+                    const _hor = require('./lib/horizon').forAnsweredBy(
+                        data.answeredBy, (n) => orch.nodes.get(n));
+                    res.setHeader('X-Hivv-Horizon',
+                        require('./lib/horizon').header(_hor));
                     const _rcpt = require('./lib/identity').routeReceiptHeader({
                         answeredBy: data.answeredBy || 'unknown',
                         transport: String(data.answeredBy).includes('(relay)') ? 'relay'
                             : String(data.answeredBy).includes('(cloud)') ? 'cloud' : 'direct',
                         answerSha256: _ansSha,
                         durationMs: Date.now() - startTime,
+                        horizon: _hor,
                     });
                     if (_rcpt) res.setHeader('X-Hivv-Receipt', _rcpt);
-                } catch (_e) {}
+                } catch (_e) { console.error('[HORIZON-DEBUG]', _e && _e.message); }
             }
             return res.json(data.data);
         }
@@ -2682,9 +2709,33 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
     if (!messages && message) {
         messages = [{ role: 'user', content: String(message) }];
     }
+
     if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: { message: 'message or messages array required' } });
     }
+
+    // Signed horizon + receipt for EVERY success exit — this handler has
+    // THREE (tool-loop final, local-tool exec, max-rounds fallback), and
+    // a warning that only covers one door is not a warning.
+    const _sendSigned = (finalBody, answeredBy) => {
+        if (res.headersSent) return;
+        try {
+            const _ansSha = crypto.createHash('sha256')
+                .update(JSON.stringify(finalBody || {})).digest('hex');
+            const _hor = require('./lib/horizon').forAnsweredBy(
+                answeredBy || 'unknown', (n) => orch.nodes.get(n));
+            res.setHeader('X-Hivv-Horizon',
+                require('./lib/horizon').header(_hor));
+            const _rcpt = require('./lib/identity').routeReceiptHeader({
+                answeredBy: answeredBy || 'unknown',
+                transport: String(answeredBy || '').includes('(relay)') ? 'relay'
+                    : String(answeredBy || '').includes('(cloud)') ? 'cloud' : 'direct',
+                answerSha256: _ansSha,
+                horizon: _hor,
+            });
+            if (_rcpt) res.setHeader('X-Hivv-Receipt', _rcpt);
+        } catch (e) { console.error('[HORIZON]', e && e.message); }
+    };
 
     // ── AUTO-ATTACH THE TOOLKIT ────────────────────────────────────────────
     //
@@ -2889,25 +2940,12 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
                     if (data.policyReceipt && !res.headersSent) {
                         res.setHeader('X-Hivv-Policy', data.policyReceipt);
                     }
-                    // Signed route receipt (Phase 6) — answer digest included
-                    // (non-streaming: the body is final when headers go out).
-                    if (!res.headersSent) {
-                        try {
-                            const _ansSha = crypto.createHash('sha256')
-                                .update(JSON.stringify(data.data || {})).digest('hex');
-                            const _rcpt = require('./lib/identity').routeReceiptHeader({
-                                answeredBy: data.answeredBy || 'unknown',
-                                transport: String(data.answeredBy).includes('(relay)') ? 'relay'
-                                    : String(data.answeredBy).includes('(cloud)') ? 'cloud' : 'direct',
-                                answerSha256: _ansSha,
-                            });
-                            if (_rcpt) res.setHeader('X-Hivv-Receipt', _rcpt);
-                        } catch (_e) {}
-                    }
+                    _sendSigned(data.data, data.answeredBy);
                     return res.json(data.data);
                 }
                 if (localTools && round === 0) {
                     // Return tool_calls to CLI for local execution
+                    _sendSigned({ local_execution_required: true }, data.answeredBy);
                     return res.json({
                         local_execution_required: true,
                         tool_calls: toolCalls,
@@ -2941,6 +2979,8 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             }
             // Exceeded max rounds
             _provRecord({ model: model || 'auto', provider: provider || null });
+            _sendSigned(lastData, data.answeredBy);
+            console.log('[SIGNED-DEBUG] exit3 lastData len=' + JSON.stringify(lastData || {}).length);
             return res.json(lastData);
         }
 
@@ -3689,6 +3729,13 @@ router.setPerf(perfLib);
 router.setRelay(relayLib);
 HoneyRoutes.inject(orch, usageTracker);
 RelayRoutes.inject(orch);
+ // BRAND RULE (2026-11-25, the founder's question: "we want hivv, right?"):
+ // hivv is the brand — /api/hivv is the CANONICAL namespace for new docs
+ // and new consumers. /api/hive stays mounted FOREVER: the share command
+ // hands users /api/hive/share-card/<id>.svg URLs to embed in their bios,
+ // and breaking an embedded image in someone's profile is never acceptable.
+ // Same router, two doors — nothing can drift between them.
+ app.use('/api/hivv', HoneyRoutes);
  app.use('/api/hive', HoneyRoutes);
  app.use('/api/relay', RelayRoutes);
 

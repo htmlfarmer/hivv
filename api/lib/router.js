@@ -8,6 +8,7 @@ const { looksDegenerate } = require('./degenerate');
 const routeFactors = require('./route-factors');
 const trustLib = require('./trust');
 const identityLib = require('./identity');
+const horizonLib = require('./horizon');
 
 // ── token budgeting ────────────────────────────────────────────────────────
 //
@@ -614,6 +615,7 @@ class AIRouter {
         const stick = this._stickyGet(options);
         const bigPrompt = (options.promptEst || 0) > 1200; // ≈OpenCode's 5k-token system prompt
         const hubLoc = this._hubLocation();
+        horizonLib.setHubLoc(hubLoc);   // the horizon's fixed reference point
         // Prefer the EXACT (node, model) pair: a bee serving two models must not
         // hand both candidates the same tps/latency (the old label-only match
         // aggregated across models, so on masjid the Qwen and the gemma were
@@ -756,6 +758,7 @@ class AIRouter {
         // that only prints a number is a number nobody can argue with.
         const weights = routeFactors.weightsFor(mode, this._routeCfg.weights);
         const hubLoc = this._hubLocation();
+        horizonLib.setHubLoc(hubLoc);   // the horizon's fixed reference point
         // gateway_config.routing.weights has TWO shapes in the wild. Per-mode
         // (weights.<mode>.<factor>) is the contract and IS applied. A FLAT map
         // (weights.<factor>) predates this feature and was never read by the old
@@ -1409,12 +1412,24 @@ class AIRouter {
 
                 streamToRes.setHeader('X-AI-Provider', local.model || local.name);
                 streamToRes.setHeader('X-Hivv-Answered-By', `${routeNode}/${routeModel} (direct)`);
+                // The physical-horizon verdict (the edge/horizon problem):
+                // warn whenever this answer leaves walkable, verifiable space.
+                const hor1 = horizonLib.classify({
+                    isLocal: this._isLocalUrl(local.url),
+                    isPeer: !!local.nodeId,
+                    isPrivatePath: this._isPrivateAddress(this._addressOf(local, this._nodeForTarget(local))),
+                    nodeLoc: (this._nodeForTarget(local) || {}).location || null,
+                    hubLoc: this._hubLocation(),
+                });
+                try { streamToRes.setHeader('X-Hivv-Horizon', horizonLib.header(hor1)); } catch (_e) {}
                 // Signed route receipt (Phase 6): attribution only — the
-                // stream has not produced an answer body yet.
+                // stream has not produced an answer body yet. The horizon
+                // verdict is INSIDE the signature — unstrippable.
                 try {
                     const rcpt = identityLib.routeReceiptHeader({
                         answeredBy: `${routeNode}/${routeModel} (direct)`,
                         transport: 'direct',
+                        horizon: hor1,
                     });
                     if (rcpt) streamToRes.setHeader('X-Hivv-Receipt', rcpt);
                 } catch (_e) {}
@@ -1865,12 +1880,19 @@ class AIRouter {
                     const approxTokens = Math.max(1, Math.round(content.length / 4));
                     const tps = Math.round(approxTokens / Math.max(0.5, elapsedMs / 1000));
                     const route = `${nodeName}/${model} (relay)`;
+                    const hor2 = horizonLib.classify({
+                        isLocal: false, isPeer: true,
+                        isPrivatePath: horizonLib.isPrivateIp(String(node.ip || node.lan_ip || '')),
+                        nodeLoc: node.location || null,
+                        hubLoc: this._hubLocation(),
+                    });
                     try {
                         streamToRes.setHeader('X-AI-Provider', route);
                         streamToRes.setHeader('X-Hivv-Answered-By', route);
+                        streamToRes.setHeader('X-Hivv-Horizon', horizonLib.header(hor2));
                         const rcpt = identityLib.routeReceiptHeader({
                             answeredBy: route, transport: 'relay',
-                            durationMs: elapsedMs,
+                            durationMs: elapsedMs, horizon: hor2,
                         });
                         if (rcpt) streamToRes.setHeader('X-Hivv-Receipt', rcpt);
                         streamToRes.setHeader('Content-Type', 'text/event-stream');

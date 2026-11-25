@@ -623,4 +623,63 @@ router.get('/events', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ── salah: regional prayer times + attendance (HIVV_RITUAL_PLAN.md #1) ──────
+// GET /api/hive/salah?node=wahi      → that bee's region + its attendance
+// GET /api/hive/salah?lat=…&lon=…     → ad-hoc (no attendance)
+// Pure computation over the registered location — no DB, no writes. The
+// engine (lib/salah.js) and the marks (lib/attendance.js) are shared with
+// the heartbeat handler, so what the hub counts and what it shows agree.
+router.get('/salah', (req, res) => {
+  try {
+    const attendance = require('../lib/attendance');
+    const moon = require('../lib/moon');
+    const { node: nodeId, lat: qLat, lon: qLon } = req.query;
+    let node = null;
+    let lat = Number(qLat), lon = Number(qLon);
+    if (nodeId) {
+      node = orchestrator
+        ? (orchestrator.nodes.get(String(nodeId)) ||
+           [...orchestrator.nodes.values()].find(n => n && n.name === String(nodeId)))
+        : null;
+      if (!node) return res.status(404).json({ error: 'unknown bee: ' + nodeId });
+      const loc = node.location || {};
+      lat = Number(loc.lat); lon = Number(loc.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return res.status(409).json({
+          error: 'this bee has no registered location yet (its first register geolocates it)',
+        });
+      }
+    } else if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return res.status(400).json({ error: 'pass ?node=<bee> or ?lat=…&lon=…' });
+    }
+    const now = Date.now();
+    const k0 = attendance.solarDayKey(now, lon);
+    const today = attendance.setForKey(lat, lon, k0);
+    const next = attendance.nextAcross(lat, lon, now);
+    const win = attendance.openWindow(lat, lon, now);
+    const ph = moon.phase(now);
+    const nf = moon.nextFullMoon(now);
+    res.json({
+      node: node ? (node.name || String(nodeId)) : null,
+      location: node ? (node.location || {}) : { lat, lon },
+      date: k0,
+      lat, lon,
+      prayers: Object.fromEntries(attendance.PRAYERS.map(p => [p, today[p]])),
+      next: next ? { prayer: next.prayer, at: next.at, in_ms: next.at - now } : null,
+      window: win ? { prayer: win.prayer, at: win.at,
+                      closes_at: win.closes_at, closes_in_ms: win.closes_at - now } : null,
+      moon: Object.assign({}, ph, {
+        full_now: moon.isFullMoon(now).full,
+        next_full_at: nf.at,
+        next_full_in_ms: nf.at - now,
+      }),
+      attendance: node ? attendance.attendanceOf(node, lat, lon, now) : null,
+      generated_at: now,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

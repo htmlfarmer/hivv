@@ -36,6 +36,16 @@ function clean(v, max) {
   return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
 }
 
+// Links are the injection surface: only real web URLs pass — never
+// javascript:, data:, vbscript:, file: — and anything else is DROPPED
+// (not stored, not rendered). Pentest-proofed before the pentest. :)
+function safeUrl(v) {
+  const s = clean(v, 300);
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s)) return '';
+  return s;
+}
+
 // RSVP — dedupe on name+city so refreshes do not double the count.
 router.post('/rsvp', (req, res) => {
   const body = req.body || {};
@@ -95,7 +105,7 @@ router.post('/recommend', (req, res) => {
   const body = req.body || {};
   const song = clean(body.song, 120);
   const artist = clean(body.artist, 120);
-  const url = clean(body.url, 300);
+  const url = safeUrl(body.url);
   const note = clean(body.note, 240);
   if (!song) return res.status(400).json({ error: 'song required' });
   const s = loadRecs();
@@ -172,7 +182,7 @@ router.post('/wish', (req, res) => {
   const body = req.body || {};
   const wish = clean(body.wish, 400);
   const name = clean(body.name, 60);       // their OWN info — posted BY them
-  const link = clean(body.link, 300);      // optional: how to grant it
+  const link = safeUrl(body.link);         // optional: how to grant it (http(s) only)
   if (!wish) return res.status(400).json({ error: 'wish required' });
   const s = loadWishes();
   if (s.items.length >= WISH_CAP) {

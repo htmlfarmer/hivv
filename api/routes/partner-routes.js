@@ -137,6 +137,7 @@ router.get('/manifest', async (req, res) => {
                     'The goal: understand, laugh, work together, and solve ' +
                     'every important problem the logical way.',
                 style: 'opt-in — any user can change the style; fork it if you dislike it',
+                open_models: require('../lib/licenses').PREFERENCE,
                 priority:
                     'PRIORITY ACCESS for people outside the USA — the further from hivv.org, ' +
                     'the wiser we assume you are, and the faster we will try to connect.',
@@ -269,9 +270,11 @@ router.get('/health', async (req, res) => {
 
 // ── models ─────────────────────────────────────────────────────────────────
 router.get('/models', async (req, res) => {
+    const licenses = require('../lib/licenses');
     const models = [];
     const probed = await localModelsCached();
     for (const m of probed) {
+        const hint = licenses.licenseFor(m.model);
         models.push({
             id: m.model,
             object: 'model',
@@ -279,16 +282,22 @@ router.get('/models', async (req, res) => {
             source: 'local',
             display_name: `${m.label || m.provider} @ ${m.port}`,
             context_window: null,
+            // honest hints: null = unknown (never guessed, never blocked)
+            license_hint: hint ? hint.license : null,
+            open: hint ? hint.open : null,
         });
     }
     if (routerRef) {
         for (const [name, provider] of routerRef.providers) {
+            const hint = licenses.licenseFor(name);
             models.push({
                 id: name,
                 object: 'model',
                 owned_by: name,
                 source: provider.isCloud ? 'cloud' : 'local',
                 display_name: provider.displayName,
+                license_hint: hint ? hint.license : null,
+                open: hint ? hint.open : null,
             });
         }
     }

@@ -29,13 +29,16 @@ session ever has to rediscover it. Read this first if you are picking the thread
 | Reserved ritual vocabulary: no bee may be fajr..isha, salah, wudu, adhan, dua, hajj, jihad, ramadan, eid, zakat, moon, tongue | api/lib/bee-identity.js isReservedId → register 400 BEE_ID_RESERVED |
 | **salah engine** (pure solar math, UTC instants, polar nulls, Greenwich/Mecca-anchored tests) | api/lib/salah.js + api/tests/ritual.test.js |
 | **moon engine** (synodic phase, full-moon detection, exact nextFullMoon) | api/lib/moon.js |
+| **Salah surface (backlog #1, the reporting half DONE)**: attendance engine (solar-day keying by longitude, 45-day marks, streaks with today-in-progress) · heartbeat inside the 30-min window IS the report · GET /api/hive/salah (node or lat/lon + moon + attendance) · **hivv salah** / **hivv sala** in the local clock | api/lib/attendance.js + honey-routes /salah + heartbeat hook in server.js · tests: api/tests/salah.test.js (10) + tests/test_salah_cli.py (8) |
 | The intruder's reward | GET /veil/space-hook (inside the veil) |
 
 ## PLANNED — the ritual backlog (in rough build order)
 
-1. **Salah reports + adhan**: hub computes regional times → pushes the adhan into each bee's inbox
-   at the exact instant → bee replies with a SIGNED salah.report (identity layer) → streaks.
-   Statement kind + endpoint + agent scheduling still to build. Window: 30 min per prayer.
+1. **Salah reports + adhan** — PART DONE (2026-11-25): the hub computes regional times and
+   counts attendance from the bee's EXISTING heartbeats (a heartbeat inside the 30-min window IS
+   the report — zero agent changes), streaks + **hivv salah**/**hivv sala** shipped.
+   STILL TO BUILD: the adhan PUSHED into each bee's inbox at the exact instant → the bee replies
+   with a SIGNED salah.report (identity layer) — the active, devotional half of the ritual.
 2. **Full-moon hive events**: engines are done; wire the celebration into the existing
    hivv_hive_events multiplier system (one full moon, one celebration).
 3. **Wudu** (hivv wudu): pre-registration purification = key valid · clock sane · machine id ·
@@ -55,6 +58,18 @@ session ever has to rediscover it. Read this first if you are picking the thread
 9. **hajj** = synchronized collective help event (rides the hive-goal system).
    **jihad** = emergency striving (outage → dispatch every available bee).
 10. **Interfaith style system** — "any user can chan the style."
+    - **Hindu layer (invited, 2026-11-25)**: "i'm cool with adding in some hindu
+      ideas soon!" — the roots already name Hinduism; the first candidates map
+      cleanly onto hive machinery: **aarti** (the evening lamp) as a dusk
+      check-in sibling to maghrib · **prasad** as the reward token (honey
+      already exists — prasad is what you call it) · **the arati/temple bell**
+      as an alert tone · **rangoli** as the share-card border generator.
+      Same rule as everything: opt-in style, never a gate.
+    - **Bengali layer (invited)**: "maybe even bangali if upal has some
+      suggestions!" — Upal's suggestions welcome; Bengali devotional culture
+      (the Kirtan call-and-response, the dawn alaap, Vishwakarma Puja for
+      makers/engineers — the patron of BUILDERS, which is frankly our genre)
+      slots into the same style system when they arrive.
 
 ## PRIVATE — established rules from the conversation (do NOT publish)
 
@@ -78,6 +93,12 @@ session ever has to rediscover it. Read this first if you are picking the thread
 - dog → GOD (be careful how you type). "Why is a dog spelled D-O-G? Because hivv.org is the answer."
 - Prayer/wifi test question. Yalla the dog (the bee named after her).
 - "If they hack the system": /veil/space-hook.
+- **The pillars riddle** (secret, for the curious): people count FOUR pillars — but inside the
+  Kaaba there are only THREE. Nobody has to be told; the ones who notice, notice.
+- **The answer to a hater** (2026-11-25): when someone sneers at the Islamic framing, the reply is
+  gentle and true — "Muslims believe in JESUS too." Isa is a prophet in the Quran; Mary has her
+  own surah. The reverence runs deeper than most people know. Never argue — just widen the circle.
+  The style stays opt-in: don't like it, change the style (backlog #10) or fork the project.
 - Key-crash verdict: if a crypto key crashes, the fault is the Non
   Believer's — London Grammar, "Non Believer" is the anthem of record.
 - Overachiever protocol: when a bee does TOO much work and is TOO good,

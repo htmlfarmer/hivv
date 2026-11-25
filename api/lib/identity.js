@@ -366,7 +366,7 @@ function hubKeyInfo() {
 // full answer body is known at header time (non-streaming paths) — a
 // streaming response signs attribution only, and says so by omission.
 function routeReceipt({ answeredBy, transport, answerSha256 = null,
-                        durationMs = null, now = _nowS() }) {
+                        durationMs = null, horizon = null, now = _nowS() }) {
   const k = hubSigningKey();
   if (!k) return null;
   const statement = {
@@ -377,6 +377,12 @@ function routeReceipt({ answeredBy, transport, answerSha256 = null,
     answered_by: String(answeredBy || '').slice(0, 200),
     transport: ['direct', 'relay', 'cloud', 'local', 'hub'].includes(String(transport))
       ? String(transport) : 'direct',
+    // The physical-horizon verdict — SIGNED, so the warning cannot be
+    // stripped by anything between us and the reader.
+    ...(horizon && horizon.status
+      ? { horizon: horizon.status,
+          horizon_reason: String(horizon.reason || '').slice(0, 160) }
+      : {}),
   };
   if (answerSha256 && /^[0-9a-f]{64}$/.test(String(answerSha256))) {
     statement.answer_sha256 = String(answerSha256);

@@ -16,8 +16,10 @@ is pinned here.
 
 Pure formatting + pure arithmetic: no network, no hub.
 """
+import hashlib
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -282,14 +284,50 @@ class TestBuiltColumn:
                 "http://localhost:3011/api/control/nodes", timeout=10) as r:
             data = json.loads(r.read().decode())
         pat = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
-        checked = 0
         for n in data.get("nodes", []):
             vd_ = n.get("version_date")
             if vd_ is None:
                 continue          # uncommitted or unknown → table shows '—'
             assert pat.match(vd_), f"bad date {vd_!r} for {n.get('name')}"
-            checked += 1
-        assert checked >= 1, (
-            "no node produced a date — the git map is broken (or every "
-            "version is uncommitted)"
+        # NO ">=1 dated node" assertion: bees auto-update from the WORKTREE
+        # the hub serves, so "every version uncommitted" is the NORMAL steady
+        # state — it failed exactly that way on 2026-11-25 with all six bees
+        # tracking uncommitted work. The map's health is pinned
+        # deterministically by test_git_map_resolves_a_known_commit below.
+
+    def test_git_map_resolves_a_known_commit(self):
+        """The map machinery itself: a KNOWN committed blob → a date;
+        an unknown sha → null. Deterministic — no fleet dependence.
+
+        (The live test above used to require >=1 dated node, but bees follow
+        the served worktree, so a fully-uncommitted fleet is valid state.)
+        """
+        rev = subprocess.run(
+            ["git", "log", "--format=%H", "-1", "--", "public_html/hivv-cli.py"],
+            cwd=str(REPO), capture_output=True, text=True, timeout=30,
+        ).stdout.strip()
+        assert rev, "no commits touch the CLI file?"
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", f"{rev}:public_html/hivv-cli.py"],
+            cwd=str(REPO), capture_output=True, timeout=60,
+        ).stdout
+        assert blob, "could not read the committed blob"
+        sha8 = hashlib.sha256(blob).hexdigest()[:8]
+        node_script = (
+            "const vd = require(process.env.VDF);\n"
+            "const d = vd.forVersion(process.env.VSHA);\n"
+            "const u = vd.forVersion('deadbeef');\n"
+            "if (!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$/.test(d || '')) "
+            "{ console.error('bad date:', d); process.exit(1); }\n"
+            "if (u !== null) { console.error('unknown sha must be null:', u); process.exit(1); }\n"
+            "console.log('ok', d);\n"
         )
+        r = subprocess.run(
+            ["node", "-e", node_script],
+            env=dict(os.environ,
+                     VDF=str(REPO / "api" / "lib" / "version-date.js"),
+                     VSHA=sha8),
+            capture_output=True, text=True, timeout=90,
+        )
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert "ok" in r.stdout, r.stdout
