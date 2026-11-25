@@ -1,7 +1,11 @@
 {
  "sources": {
   "AGENTS.md": [
-   "tests/test_direct_messaging.py"
+   "tests/test_direct_messaging.py",
+   "tests/test_repo_scripts.py"
+  ],
+  "README.md": [
+   "tests/test_repo_scripts.py"
   ],
   "api": [
    "tests/test_telemetry_tasks_a2a.py",
@@ -110,6 +114,7 @@
   "api/server.js": [
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
+   "tests/test_repo_scripts.py",
    "tests/test_scan_secrets.py"
   ],
   "docs/INTEGRATION-CONTRACT.md": [
@@ -170,6 +175,9 @@
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py"
   ],
+  "public_html/index.html": [
+   "tests/test_repo_scripts.py"
+  ],
   "public_html/install-hivv.sh": [
    "tests/test_llm_build_tools.py",
    "tests/test_rescue.py"
@@ -180,6 +188,9 @@
   "public_html/rescue": [
    "tests/test_rescue.py"
   ],
+  "scripts": [
+   "tests/test_repo_scripts.py"
+  ],
   "scripts/audit.py": [
    "tests/test_location_independence.py"
   ],
@@ -188,6 +199,9 @@
   ],
   "scripts/bridge-canary.py": [
    "tests/test_location_independence.py"
+  ],
+  "scripts/deploy.sh": [
+   "tests/test_repo_scripts.py"
   ],
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
@@ -219,8 +233,12 @@
    "tests/test_cli_install.py",
    "tests/test_setup_scripts.py"
   ],
+  "scripts/sync-mirrors.sh": [
+   "tests/test_repo_scripts.py"
+  ],
   "setup.sh": [
    "tests/test_cli_install.py",
+   "tests/test_repo_scripts.py",
    "tests/test_setup_prompts.py",
    "tests/test_setup_scripts.py"
   ]
@@ -401,6 +419,17 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_repo_scripts.py": [
+   "AGENTS.md",
+   "README.md",
+   "api/server.js",
+   "public_html/css/site.css",
+   "public_html/index.html",
+   "scripts",
+   "scripts/deploy.sh",
+   "scripts/sync-mirrors.sh",
+   "setup.sh"
   ],
   "tests/test_rescue.py": [
    "public_html/install-hivv.sh",

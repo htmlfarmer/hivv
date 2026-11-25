@@ -22,6 +22,8 @@ api/.encryption-key
 api/.lyrz-api-key
 api/.db-password
 api/.p2p.json
+# setup.sh writes the DB password to the repo root — never commit it
+.db-password
 api/data/nodes.json
 api/data/inbox.json
 # the chat upload store — documents people uploaded must NEVER be committed
