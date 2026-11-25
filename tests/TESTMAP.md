@@ -14,7 +14,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api` | `tests/test_telemetry_tasks_a2a.py`, `tests/test_toolkit.py` |
 | `api/ecosystem.config.js` | `tests/test_location_independence.py` |
 | `api/lib/a2a-client.js` | `api/tests/interop.test.js` |
-| `api/lib/attest.js` | `api/tests/identity.test.js`, `tests/test_identity_cli.py` |
+| `api/lib/attest.js` | `api/tests/identity.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
 | `api/lib/brainboard.js` | `api/tests/brainboard.test.js` |
 | `api/lib/cache.js` | `api/tests/cache.test.js` |
 | `api/lib/circuit-breaker.js` | `api/tests/circuit-breaker.test.js` |
@@ -23,7 +23,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/degenerate.js` | `api/tests/degenerate.test.js` |
 | `api/lib/fast-scan.js` | `api/tests/fast-scan.test.js`, `tests/test_fast_scan_parity.py` |
 | `api/lib/hive-clients.js` | `api/tests/interop.test.js` |
-| `api/lib/identity.js` | `api/tests/identity.test.js`, `tests/test_identity_cli.py` |
+| `api/lib/identity.js` | `api/tests/identity.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
 | `api/lib/local-mode.js` | `api/tests/local-mode.test.js` |
 | `api/lib/locked-llm.js` | `api/tests/locked-llm.test.js` |
 | `api/lib/mcp-client.js` | `api/tests/interop.test.js` |
@@ -36,6 +36,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
 | `api/lib/toolkit.js` | `api/tests/polite.test.js` |
+| `api/lib/trust.js` | `api/tests/trust.test.js` |
 | `api/lib/version-date.js` | `api/tests/version-date.test.js` |
 | `api/migrations/020_feedback_grants.sql` | `tests/test_upgrade_review.py` |
 | `api/migrations/021_upgrade_diagnostics.sql` | `tests/test_failure_diagnostics.py` |
@@ -91,6 +92,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/route-factors.test.js` | `api/lib/route-factors.js`, `api/lib/router.js` |
 | `api/tests/task-queue.test.js` | `api/lib/task-queue.js` |
 | `api/tests/telemetry.test.js` | `api/lib/telemetry.js` |
+| `api/tests/trust.test.js` | `api/lib/attest.js`, `api/lib/identity.js`, `api/lib/trust.js` |
 | `api/tests/version-date.test.js` | `api/lib/version-date.js` |
 | `tests/test_ask_flags.py` | `public_html/hivv-cli.py` |
 | `tests/test_bee_chat.py` | `public_html/hivv-cli.py` |
@@ -187,7 +189,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/lib/sandbox.js`
 - `api/lib/textparse.js`
 - `api/lib/tool-stream.js`
-- `api/lib/trust.js`
 - `api/lib/usage-tracker.js`
 - `api/routes/bridge-routes.js`
 - `api/routes/capability-discovery.js`
@@ -224,6 +225,8 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/start.sh`
 - `restart.sh`
 - `scripts/bridge-peer-test.sh`
+- `scripts/deploy.sh`
+- `scripts/sync-mirrors.sh`
 - `scripts/update-ip.sh`
 - `status.sh`
 - `public_html/install-hivv.ps1`

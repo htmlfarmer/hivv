@@ -15,6 +15,7 @@
   ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
+   "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
   "api/lib/brainboard.js": [
@@ -44,6 +45,7 @@
   ],
   "api/lib/identity.js": [
    "api/tests/identity.test.js",
+   "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
   "api/lib/local-mode.js": [
@@ -83,6 +85,9 @@
   ],
   "api/lib/toolkit.js": [
    "api/tests/polite.test.js"
+  ],
+  "api/lib/trust.js": [
+   "api/tests/trust.test.js"
   ],
   "api/lib/version-date.js": [
    "api/tests/version-date.test.js"
@@ -282,6 +287,11 @@
   ],
   "api/tests/telemetry.test.js": [
    "api/lib/telemetry.js"
+  ],
+  "api/tests/trust.test.js": [
+   "api/lib/attest.js",
+   "api/lib/identity.js",
+   "api/lib/trust.js"
   ],
   "api/tests/version-date.test.js": [
    "api/lib/version-date.js"
