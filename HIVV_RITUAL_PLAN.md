@@ -59,6 +59,12 @@ session ever has to rediscover it. Read this first if you are picking the thread
 ## PRIVATE — established rules from the conversation (do NOT publish)
 
 - **O3.txt** is 100% private intelligence. Never enters the repo.
+- **Grandpa's surname = Spohr** — SECRET. Never publish it, and never connect
+  him to Spohr Gardens publicly (the venue's own address is public; the family
+  link is not). PUBLIC story instead: Ash does not remember/know his real name;
+  he was a **real beekeeper**; the beekeeping equipment was gifted to his
+  brother's wife's parents and is STILL IN USE today — the trade outlived the
+  memory, which is why a hive of computers carries his craft.
 - **The family's anchor collection** ("world's largest private") — PRIVATE. Do not publish.
 - **Nothing more about mom** than the origin line (Indonesia-born; met dad in Iran).
 - **Street addresses**: public venues only (Spohr Gardens OK). No unit numbers, no residences.

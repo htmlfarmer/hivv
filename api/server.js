@@ -3883,6 +3883,11 @@ const IdentityRoutes = require('./routes/identity-routes');
 if (typeof IdentityRoutes.inject === 'function') {
     IdentityRoutes.inject(orch, pool);   // node records + optional trust persistence
     app.use('/api/identity', IdentityRoutes);
+
+    // The offline party: if the hive crashes, gets hacked, or the world ends,
+    // the bees meet in the same room. This is the signup for that.
+    const PartyRoutes = require('./routes/party-routes');
+    app.use('/api/party', PartyRoutes);
 } else {
     console.warn('[identity] routes/identity-routes.js does not export inject() — ' +
                  '/api/identity is NOT mounted (the module is incomplete).');

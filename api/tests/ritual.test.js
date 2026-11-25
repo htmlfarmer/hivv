@@ -124,6 +124,48 @@ test('moon: phase math wraps and names correctly', () => {
   }
 });
 
+// ── the offline party ───────────────────────────────────────────────────────
+
+test('live: party rsvp — count, dedupe, and the board never leaks contact', async () => {
+  if (!gatewayUp) return;
+  // fixed name+city: dedupe keeps this to ONE guest forever across runs
+  const body = { name: 'E2E Bee', city: 'Testville', contact: 'secret@example.invalid' };
+  const r1 = await fetch(BASE + '/api/party/rsvp', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const d1 = await r1.json();
+  assert.equal(r1.status, 200, JSON.stringify(d1));
+  assert.equal(d1.ok, true);
+  // NOTE: the fixed-name guest persists across runs, so the FIRST rsvp of a
+  // run may already be a duplicate — what must always hold is that a
+  // duplicate never MOVES the count.
+  const countBefore = d1.count;
+
+  const r2 = await fetch(BASE + '/api/party/rsvp', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const d2 = await r2.json();
+  assert.equal(r2.status, 200, JSON.stringify(d2));
+  assert.equal(d2.duplicate, true, 'the same name+city twice must dedupe');
+  assert.equal(d2.count, countBefore, 'a duplicate must not move the count');
+
+  // a name is required
+  const r3 = await fetch(BASE + '/api/party/rsvp', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ city: 'Nowhere' }),
+  });
+  assert.equal(r3.status, 400);
+
+  // the PUBLIC board: names + cities, NEVER contact details
+  const board = await (await fetch(BASE + '/api/party/board')).json();
+  assert.ok(board.count >= 1);
+  assert.ok(board.rsvps.some((x) => x.name === 'E2E Bee'));
+  assert.equal(JSON.stringify(board).includes('secret@example.invalid'), false,
+    'contact details must never appear on the public board');
+});
+
 test('moon: isFullMoon + nextFullMoon', () => {
   const exactFull = moon.NEW_MOON_EPOCH + moon.SYNODIC_MS / 2;
   assert.equal(moon.isFullMoon(exactFull).full, true);

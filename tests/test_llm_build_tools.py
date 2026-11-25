@@ -1379,6 +1379,87 @@ class TestInstallOllamaDispatch:
         assert "parser failed" not in (r.stdout + r.stderr)
 
 
+
+class TestOllamaFamilyResolution:
+    """--model qwen → the best SMALL+FAST tag for THIS box; an oversized
+    explicit tag gets a warning + a smaller alternative as a CHOICE
+    (2026-11-25: "users want to make a model too big — choose small and
+    fast, but warn them as a choice")."""
+
+    @staticmethod
+    def _specs(cpu=4, ram=22.0, vram=None):
+        return {"cpu_count": cpu, "ram_gb": ram,
+                "gpu": ({"vram_gb": vram} if vram else None)}
+
+    def test_budget_shapes(self):
+        mod = _load_cli()
+        # GPU box → 0.9 × VRAM (must FIT the card to be fast)
+        assert mod._ollama_budget(self._specs(cpu=16, ram=64, vram=6)) == 5.4
+        # CPU < 8 cores → half RAM, hard-capped at 4 GB (small + fast)
+        assert mod._ollama_budget(self._specs(cpu=4, ram=22)) == 4.0
+        assert mod._ollama_budget(self._specs(cpu=2, ram=4)) == 2.0
+        # CPU ≥ 8 cores → half RAM, cap 8 GB
+        assert mod._ollama_budget(self._specs(cpu=8, ram=46)) == 8.0
+        assert mod._ollama_budget(self._specs(cpu=8, ram=4)) == 2.0
+
+    def test_family_picks_largest_that_fits(self):
+        mod = _load_cli()
+        # budget 4.0 → qwen3:4b (2.5 GB) beats 1.7b, 8b (5.0) is too big
+        tag, note, warn = mod._resolve_ollama_model("qwen", specs=self._specs(cpu=4, ram=22))
+        assert tag == "qwen3:4b"
+        assert "family 'qwen'" in note and "budget 4.0" in note
+        assert warn == ""
+        # budget 2.0 (tiny box) → steps down to 1.7b
+        tag, _, _ = mod._resolve_ollama_model("qwen", specs=self._specs(cpu=2, ram=4))
+        assert tag == "qwen3:1.7b"
+        # GPU box, budget 5.4 → 8b (5.0 GB) fits
+        tag, _, _ = mod._resolve_ollama_model("qwen", specs=self._specs(cpu=16, ram=64, vram=6))
+        assert tag == "qwen3:8b"
+        # every family resolves to one of ITS OWN tags
+        for fam in ("gemma", "llama", "phi", "mistral", "embed"):
+            tag, note, _ = mod._resolve_ollama_model(fam, specs=self._specs())
+            assert tag in [t for t, _ in mod._OLLAMA_FAMILIES[fam]], (fam, tag)
+
+    def test_oversized_explicit_tag_warns_with_alternative(self):
+        mod = _load_cli()
+        # 235b ≈ 152 GB by estimate — over EVERY plausible budget, so the
+        # assertion is hardware-independent
+        tag, note, warn = mod._resolve_ollama_model("qwen3:235b", specs=self._specs(cpu=4, ram=8))
+        assert tag == "qwen3:235b", "explicit tag is honored unless the human switches"
+        assert note == ""
+        assert "over this box's fast budget" in warn
+        assert "smaller option: qwen3:" in warn
+
+    def test_reasonable_explicit_tag_passes_silent(self):
+        mod = _load_cli()
+        tag, note, warn = mod._resolve_ollama_model("qwen3:4b", specs=self._specs(cpu=4, ram=22))
+        assert (tag, note, warn) == ("qwen3:4b", "", "")
+        # unknown-to-us tags pass through for ollama to judge
+        tag, note, warn = mod._resolve_ollama_model("nomic-embed-text", specs=self._specs())
+        assert (tag, note, warn) == ("nomic-embed-text", "", "")
+
+    def test_size_table_and_estimate(self):
+        mod = _load_cli()
+        assert mod._ollama_size_gb("qwen3:32b") == 20.0      # table hit
+        assert mod._ollama_size_gb("gemma3:4b") == 3.3       # table hit
+        assert mod._ollama_size_gb("mystery:10b") == 6.5     # 10 × 0.65 GB estimate
+        assert mod._ollama_size_gb("no-digits-here") == 0.0  # unknown → no warning
+
+    def test_install_without_auto_prints_resolution_and_does_not_run(self):
+        """hivv llm install --model qwen resolves, prints, and RETURNS —
+        never runs curl|sh unless --auto (subprocess against the real CLI)."""
+        r = subprocess.run([sys.executable, str(CLI), "llm", "install", "--model", "qwen"],
+                           capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+        out = r.stdout + r.stderr
+        assert "family 'qwen'" in out, out[:500]
+        assert r.returncode == 0
+        # an absurdly big explicit tag → warning, still no install (no --auto)
+        r2 = subprocess.run([sys.executable, str(CLI), "llm", "install", "--model", "qwen3:235b"],
+                            capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+        out2 = r2.stdout + r2.stderr
+        assert "over this box's fast budget" in out2, out2[:500]
+        assert "curl -fsSL https://ollama.com/install.sh" in out2  # printed the chooser, did NOT run it
+
 if __name__ == "__main__":
     import pytest
 
