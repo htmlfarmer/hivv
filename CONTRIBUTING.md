@@ -7,18 +7,21 @@ repository holds the gateway, the node/CLI, the trust layer, and the docs.
 
 ## Repository topology (read this first)
 
-Three GitHub repos, **one source of truth** (the ledger of every structural
+Two GitHub repos, **one source of truth** (the ledger of every structural
 change lives in [`MOVES.md`](MOVES.md)):
 
 | repo | role | push to it? |
 |---|---|---|
-| `htmlfarmer/hivvz` | **canonical** — `origin` on every machine | **yes — all development** |
-| `htmlfarmer/hivv` | generated **full mirror** of hivvz (clone URLs, CI badge, issue links keep working) | never — `scripts/sync-mirrors.sh` |
-| `htmlfarmer/hivv.org` | generated **website mirror** (`public_html/` → repo root) | never — same script |
+| `htmlfarmer/hivv` | **canonical** — `origin` on every machine | **yes — all development** |
+| `htmlfarmer/hivv.org` | generated **website projection** (`public_html/` → repo root) | never — `scripts/sync-mirrors.sh` |
+
+(`htmlfarmer/hivvz` is **archived** — folded back into `hivv` on 2026-11-25,
+see MOVES.md. Old clone? `git remote set-url origin
+git@github.com:htmlfarmer/hivv.git && git fetch --prune`.)
 
 **Workflow (branch-per-task, work OUTSIDE the production tree):**
 
-1. `git clone git@github.com:htmlfarmer/hivvz.git` — one clone (or
+1. `git clone git@github.com:htmlfarmer/hivv.git` — one clone (or
    `git worktree`) per session/machine. `/var/www/vhosts/hivv.org` on ashy is
    **production** and stays clean.
 2. `git checkout -b <topic>` → commit → `git push -u origin <topic>` → merge
@@ -28,8 +31,8 @@ change lives in [`MOVES.md`](MOVES.md)):
    preview, `--fast` to skip the test gate). It refuses a dirty tree,
    fast-forwards only, applies new migrations, restarts pm2, polls health and
    runs the test gate — rolling back automatically if either fails.
-4. Refresh the mirrors: `scripts/sync-mirrors.sh` (idempotent, safe to run
-   anytime, never touches your worktree).
+4. Refresh the website projection: `scripts/sync-mirrors.sh`
+   (idempotent, safe to run anytime, never touches your worktree).
 5. **Moving a file or directory? The same commit adds a `MOVES.md` entry**
    (what moved, from → to, why, what still points at the old path).
 

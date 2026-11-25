@@ -1,12 +1,13 @@
 """Repo workflow scripts: deploy.sh · sync-mirrors.sh · MOVES.md.
 
-These pin the SAFETY RAILS of the multi-machine workflow introduced when
-hivvz became the canonical repo (MOVES.md, 2026-11-25):
+These pin the SAFETY RAILS of the single-repo workflow (MOVES.md,
+2026-11-25 — hivvz folded back into hivv):
 
- * deploy refuses a foreign origin, a non-main branch, a dirty tree — all
-   BEFORE any fetch/pm2 touch;
- * sync-mirrors refuses a foreign origin, and regenerates both mirrors from
-   LOCAL bare repos standing in for GitHub (fully offline);
+ * deploy refuses a foreign origin, a STALE hivvz origin, a non-main branch
+   and a dirty tree — all BEFORE any fetch/pm2 touch;
+ * sync-mirrors refuses a foreign origin, and regenerates the WEBSITE
+   projection (hivv.org) from LOCAL bare repos standing in for GitHub
+   (fully offline);
  * the scripts exist, are executable, strict-bash, and carry their flags;
  * MOVES.md / AGENTS.md / CONTRIBUTING.md document the topology.
 
@@ -101,7 +102,7 @@ def test_deploy_flags_and_rails_present():
     text = DEPLOY.read_text(encoding="utf-8")
     assert "--dry-run" in text and "--fast" in text
     assert "merge --ff-only" in text, "deploy must never diverge"
-    assert "htmlfarmer/hivvz" in text, "origin rail"
+    assert "htmlfarmer/hivv.git" in text, "origin rail pins the canonical repo"
     assert "git status --porcelain" in text, "dirty-tree rail"
     assert "api/health" in text, "health poll"
     assert "rollback" in text, "automatic rollback"
@@ -110,10 +111,11 @@ def test_deploy_flags_and_rails_present():
 def test_sync_flags_and_safety_present():
     text = SYNC.read_text(encoding="utf-8")
     assert "--dry-run" in text
-    assert "htmlfarmer/hivvz" in text, "origin rail"
-    assert "--force-with-lease" in text, "website mirror must lease, not blind-force"
+    assert "htmlfarmer/hivv.git" in text, "origin rail pins the canonical repo"
+    assert "--force-with-lease" in text, "projection must lease, not blind-force"
     assert "GIT_INDEX_FILE" in text, "must not disturb the shared index"
-    assert "subtree split" in text, "website mirror source"
+    assert "subtree split" in text, "website projection source"
+    assert "htmlfarmer/hivv.org.git" in text, "projection remote"
     # no blind --force anywhere outside a lease
     for line in text.splitlines():
         stripped = line.strip()
@@ -126,18 +128,22 @@ def test_sync_flags_and_safety_present():
 
 def test_moves_md_documents_topology():
     text = (REPO / "MOVES.md").read_text(encoding="utf-8")
-    assert "htmlfarmer/hivvz" in text
+    # the canonical repo + the fold-up entry
+    assert "htmlfarmer/hivv.git" in text
+    assert "ARCHIVED" in text, "the hivvz fold-up must be recorded"
     assert "sync-mirrors" in text and "deploy.sh" in text
-    assert "2026-11-25" in text, "the topology entry must be dated"
+    assert "2026-11-25" in text, "the topology entries must be dated"
     assert "nohup.out" in text, "pending cleanups belong here"
 
 
 def test_agents_and_contributing_document_the_workflow():
     agents = (REPO / "AGENTS.md").read_text(encoding="utf-8")
     assert "Repository topology" in agents
-    assert "htmlfarmer/hivvz" in agents
+    assert "htmlfarmer/hivv.git" in agents, "canonical clone URL"
+    assert "ARCHIVED" in agents, "the hivvz archive must be documented"
     contrib = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert "Repository topology" in contrib
+    assert "htmlfarmer/hivv.git" in contrib
     assert "scripts/deploy.sh" in contrib
 
 
@@ -164,13 +170,26 @@ def test_deploy_refuses_foreign_origin(tmp_path):
     script = install_script(repo, DEPLOY)
     proc = run([script], repo, check=False)
     assert proc.returncode != 0
-    assert "REFUSED" in proc.stderr and "hivvz" in proc.stderr
+    assert "REFUSED" in proc.stderr and "htmlfarmer/hivv.git" in proc.stderr
+
+
+def test_deploy_refuses_stale_hivvz_origin(tmp_path):
+    # a machine that never ran the MOVES.md set-url one-liner must be told
+    # exactly what to run — pushing to the ARCHIVED repo would fail anyway
+    repo = init_repo(tmp_path / "work")
+    commit_file(repo, "x.txt", "hi")
+    git(repo, "remote", "add", "origin", "git@github.com:htmlfarmer/hivvz.git")
+    script = install_script(repo, DEPLOY)
+    proc = run([script], repo, check=False)
+    assert proc.returncode != 0
+    assert "REFUSED" in proc.stderr
+    assert "git remote set-url origin git@github.com:htmlfarmer/hivv.git" in proc.stderr
 
 
 def test_deploy_refuses_wrong_branch(tmp_path):
     repo = init_repo(tmp_path / "work")
     commit_file(repo, "x.txt", "hi")
-    git(repo, "remote", "add", "origin", "git@github.com:htmlfarmer/hivvz.git")
+    git(repo, "remote", "add", "origin", "git@github.com:htmlfarmer/hivv.git")
     git(repo, "checkout", "-b", "feat/x")
     script = install_script(repo, DEPLOY)
     proc = run([script], repo, check=False)
@@ -180,10 +199,10 @@ def test_deploy_refuses_wrong_branch(tmp_path):
 
 def test_deploy_refuses_dirty_tree(tmp_path):
     # origin URL passes rail 1 but is never contacted: the dirty rail fires
-    # before the fetch. (URL contains htmlfarmer/hivvz on purpose.)
+    # before the fetch.
     repo = init_repo(tmp_path / "work")
     commit_file(repo, "x.txt", "hi")
-    git(repo, "remote", "add", "origin", "git@github.com:htmlfarmer/hivvz.git")
+    git(repo, "remote", "add", "origin", "git@github.com:htmlfarmer/hivv.git")
     (repo / "uncommitted.txt").write_text("work in progress", encoding="utf-8")
     script = install_script(repo, DEPLOY)
     proc = run([script], repo, check=False)
@@ -204,20 +223,21 @@ def test_deploy_help_lists_flags():
 
 @pytest.fixture()
 def mirror_sandbox(tmp_path):
-    """origin + hivv + hivv.org as local bare repos; a work clone on main.
+    """origin + hivv.org as local bare repos; a work clone on main.
 
-    The origin path deliberately contains 'htmlfarmer/hivvz' so the script's
-    origin rail passes — while everything stays on the local filesystem.
-    hivv.org starts with GitHub's real placeholder ('Initial commit'), so the
-    first sync exercises the same force-with-lease path it takes in production.
+    The origin path deliberately contains 'htmlfarmer/hivv.git' so the
+    script's origin rail passes — while everything stays on the local
+    filesystem. hivv.org starts with GitHub's real placeholder
+    ('Initial commit'), so the first sync exercises the same
+    force-with-lease path it takes in production.
     """
     origin_dir = tmp_path / "htmlfarmer"
     origin_dir.mkdir()
 
     # canonical repo with a website + gateway + license
     seed = init_repo(tmp_path / "seed")
-    run(["git", "init", "--bare", "-b", "main", str(origin_dir / "hivvz.git")], tmp_path)
-    git(seed, "remote", "add", "origin", str(origin_dir / "hivvz.git"))
+    run(["git", "init", "--bare", "-b", "main", str(origin_dir / "hivv.git")], tmp_path)
+    git(seed, "remote", "add", "origin", str(origin_dir / "hivv.git"))
     commit_file(seed, "public_html/index.html", "<html><body>site</body></html>", "site")
     commit_file(seed, "public_html/css/site.css", "body{color:#000}", "css")
     commit_file(seed, "api/server.js", "console.log('gateway')", "api")
@@ -226,13 +246,9 @@ def mirror_sandbox(tmp_path):
     git(seed, "push", "origin", "main")
 
     # work clone = what sync-mirrors runs in
-    work = clone_repo(origin_dir / "hivvz.git", tmp_path / "work")
+    work = clone_repo(origin_dir / "hivv.git", tmp_path / "work")
 
-    # full-mirror target (empty, like a fresh GitHub repo)
-    run(["git", "init", "--bare", "-b", "main", str(tmp_path / "hivv.git")], tmp_path)
-    git(work, "remote", "add", "hivv", str(tmp_path / "hivv.git"))
-
-    # website-mirror target WITH GitHub's placeholder commit
+    # website-projection target WITH GitHub's placeholder commit
     run(["git", "init", "--bare", "-b", "main", str(tmp_path / "hivv.org.git")], tmp_path)
     site_seed = init_repo(tmp_path / "site-seed")
     git(site_seed, "remote", "add", "origin", str(tmp_path / "hivv.org.git"))
@@ -243,7 +259,7 @@ def mirror_sandbox(tmp_path):
 
     script = install_script(work, SYNC)
     return {"work": work, "script": script, "seed": seed, "origin": origin_dir,
-            "hivv": tmp_path / "hivv.git", "hivv_org": tmp_path / "hivv.org.git"}
+            "hivv_org": tmp_path / "hivv.org.git"}
 
 
 def test_sync_refuses_foreign_origin(tmp_path):
@@ -253,31 +269,24 @@ def test_sync_refuses_foreign_origin(tmp_path):
     script = install_script(repo, SYNC)
     proc = run([script], repo, check=False)
     assert proc.returncode != 0
-    assert "REFUSED" in proc.stderr and "hivvz" in proc.stderr
+    assert "REFUSED" in proc.stderr and "htmlfarmer/hivv.git" in proc.stderr
 
 
-def test_sync_generates_both_mirrors(mirror_sandbox):
+def test_sync_generates_website_projection(mirror_sandbox):
     work = mirror_sandbox["work"]
     proc = run([mirror_sandbox["script"]], work)
     assert "sync-mirrors: done." in proc.stdout
 
-    # full mirror: origin's tip landed on hivv, with the site AND the api
-    hivv_head = git(mirror_sandbox["hivv"], "log", "-1", "--format=%H", "main").stdout.strip()
-    origin_head = git(work, "rev-parse", "origin/main").stdout.strip()
-    assert hivv_head == origin_head, "hivv must mirror origin exactly"
-    files = git(mirror_sandbox["hivv"], "ls-tree", "-r", "--name-only", "main").stdout
-    assert "api/server.js" in files and "public_html/index.html" in files
-
-    # website mirror: public_html at the ROOT + generated README + LICENSE,
+    # website projection: public_html at the ROOT + generated README + LICENSE,
     # and NO api/ (that is not the website)
     site_files = git(mirror_sandbox["hivv_org"], "ls-tree", "-r", "--name-only", "main").stdout
     assert "index.html" in site_files, "public_html must be at the repo root"
     assert "css/site.css" in site_files
     assert "README.md" in site_files and "LICENSE" in site_files
-    assert "api/server.js" not in site_files, "website mirror must not carry the gateway"
+    assert "api/server.js" not in site_files, "projection must not carry the gateway"
     assert "public_html/" not in site_files, "prefix must be stripped"
     readme = git(mirror_sandbox["hivv_org"], "show", "main:README.md").stdout
-    assert "GENERATED MIRROR" in readme and "htmlfarmer/hivvz" in readme
+    assert "GENERATED MIRROR" in readme and "htmlfarmer/hivv" in readme
     # GitHub's placeholder is gone from main (documented in MOVES.md)
     subjects = git(mirror_sandbox["hivv_org"], "log", "--format=%s", "main").stdout
     assert "Initial commit" not in subjects.splitlines()[:1]
@@ -287,14 +296,11 @@ def test_sync_is_idempotent(mirror_sandbox):
     work = mirror_sandbox["work"]
     run([mirror_sandbox["script"]], work)
     site1 = git(mirror_sandbox["hivv_org"], "rev-parse", "main").stdout.strip()
-    full1 = git(mirror_sandbox["hivv"], "rev-parse", "main").stdout.strip()
 
     proc = run([mirror_sandbox["script"]], work)
     assert "already in sync" in proc.stdout, "second run must be a no-op"
     site2 = git(mirror_sandbox["hivv_org"], "rev-parse", "main").stdout.strip()
-    full2 = git(mirror_sandbox["hivv"], "rev-parse", "main").stdout.strip()
-    assert site1 == site2, "website mirror must not churn empty commits"
-    assert full1 == full2
+    assert site1 == site2, "projection must not churn empty commits"
 
 
 def test_sync_reflects_new_website_commits(mirror_sandbox):
@@ -308,7 +314,4 @@ def test_sync_reflects_new_website_commits(mirror_sandbox):
 
     run([mirror_sandbox["script"]], work)
     content = git(mirror_sandbox["hivv_org"], "show", "main:index.html").stdout
-    assert "v2" in content, "website mirror must pick up new commits"
-    hivv_head = git(mirror_sandbox["hivv"], "log", "-1", "--format=%H", "main").stdout.strip()
-    origin_head = git(work, "rev-parse", "origin/main").stdout.strip()
-    assert hivv_head == origin_head
+    assert "v2" in content, "projection must pick up new commits"

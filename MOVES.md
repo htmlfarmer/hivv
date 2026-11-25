@@ -32,6 +32,31 @@ automatically.
 
 ## Entries (newest first)
 
+### 2026-11-25 — ONE code repo: hivvz folded back into hivv (supersedes the entry below)
+
+- **What moved:** `origin` on ashy: `htmlfarmer/hivvz` → **`htmlfarmer/hivv`**.
+  The three-repo split below collapsed: `hivv` had become a *generated full
+  mirror* of hivvz (to keep clone URLs / CI badge / issues working) — two
+  byte-identical full copies is exactly the redundancy a mirror was meant to
+  avoid. **`hivv` is THE canonical repo again**; `hivvz` is **ARCHIVED**
+  (read-only; same branches, content identical at fold time — nothing lost).
+  The duplicate `hivv` remote on ashy was removed (origin IS hivv now).
+  The website projection `hivv.org` keeps its job — it is a different *view*
+  of the same source, not a copy — and `scripts/sync-mirrors.sh` now only
+  regenerates that half.
+- **Why:** one source of truth, zero duplication — every existing clone URL,
+  the CI badge, issue links and the CLI's self-heal string keep working with
+  NO mirror step; no second full copy to sync, to scan, or to accidentally
+  push to.
+- **Still points at the old path:** machines whose `origin` still says
+  `hivvz` — run on each clone:
+  `git remote set-url origin git@github.com:htmlfarmer/hivv.git && git fetch --prune`
+  (archived hivvz still FETCHES, but pushes are refused — loud, not silent).
+  The deploy/sync origin rails and `tests/test_repo_scripts.py` fixtures now
+  pin `htmlfarmer/hivv.git` and actively REFUSE a hivvz origin.
+- **Cleanup status:** done on ashy (remotes · scripts · docs · tests);
+  pending: the other machines' `origin` URLs (command above).
+
 ### 2026-11-25 — Repository topology: three repos, one source of truth
 
 - **What moved:** nothing on disk. The git REMOTE topology changed:

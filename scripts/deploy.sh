@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # deploy.sh — bring the LIVE gateway tree (/var/www/vhosts/hivv.org) up to
-# date from canonical hivvz and restart safely.
+# date from canonical hivv and restart safely.
 #
 # The only supported way to change production:
-#   commit → push to hivvz (from ANY machine) → run this on the gateway box.
+#   commit → push to hivv (from ANY machine) → run this on the gateway box.
 # Never edit this tree by hand — see MOVES.md / CONTRIBUTING.md.
 #
 # Order: rails → fetch → merge --ff-only → new migrations → deps if changed →
@@ -27,14 +27,15 @@ for a in "$@"; do
   esac
 done
 
-# ── rail 1: only canonical hivvz deploys here ───────────────────────────────
+# ── rail 1: only canonical hivv deploys here ────────────────────────────────
+# The '.git' suffix keeps a stale hivvz origin AND the hivv.org URL out.
 origin_url=$(git remote get-url origin 2>/dev/null || true)
 case "$origin_url" in
-  *htmlfarmer/hivvz*) ;;
+  *htmlfarmer/hivv.git*) ;;
   *)
-    echo "deploy: REFUSED — origin is '$origin_url', not htmlfarmer/hivvz." >&2
+    echo "deploy: REFUSED — origin is '$origin_url', not htmlfarmer/hivv.git." >&2
     echo "  Production only deploys from the canonical repo. Fix:" >&2
-    echo "    git remote set-url origin git@github.com:htmlfarmer/hivvz.git" >&2
+    echo "    git remote set-url origin git@github.com:htmlfarmer/hivv.git" >&2
     exit 1 ;;
 esac
 
@@ -62,12 +63,12 @@ if [ -n "$dirty" ]; then
   exit 1
 fi
 
-echo "==> fetching hivvz..."
+echo "==> fetching hivv..."
 git fetch origin --prune
 
 ahead=$(git rev-list --count origin/main..HEAD)
 if [ "$ahead" -gt 0 ]; then
-  echo "deploy: REFUSED — local main has $ahead commit(s) not on hivvz." >&2
+  echo "deploy: REFUSED — local main has $ahead commit(s) not on hivv." >&2
   echo "  Push them first (git push origin main), or discard them" >&2
   echo "  (git reset --hard origin/main) — production runs published code only." >&2
   exit 1
