@@ -1320,6 +1320,30 @@ class AIRouter {
                 // punishes this bee's score, so a fast garbage model gets routed
                 // LESS traffic instead of winning the speed lottery (network guard).
                 this.perf?.record({ node: routeNode, model: routeModel, tps: tokensPerSec, latencyMs: Math.round(elapsed * 1000), ok: !looksDegenerate(qualityBuf), promptTps });
+
+                // DEEPER TELEMETRY — the bee-level span. This is the second
+                // hop of the waterfall: the request span above says "the hive
+                // answered"; THIS says which machine answered, how fast, and
+                // whether the answer was worth listening to.
+                try {
+                    const telemetry = require('./telemetry');
+                    const parent = options.trace || null;
+                    const child = parent ? telemetry.childContext(parent) : telemetry.startContext(null);
+                    telemetry.span(child, {
+                        name: 'bee.completion',
+                        kind: 'server',
+                        status: looksDegenerate(qualityBuf) ? 'error' : 'ok',
+                        error_class: looksDegenerate(qualityBuf) ? 'empty_completion' : null,
+                        attributes: {
+                            node: routeNode,
+                            model: routeModel,
+                            transport: 'direct',
+                        },
+                    });
+                    telemetry.histogram('bee_completion_ms', { node: routeNode, model: routeModel }, Math.round(elapsed * 1000));
+                    telemetry.histogram('bee_tokens_per_sec', { node: routeNode, model: routeModel }, tokensPerSec);
+                    telemetry.counter('bee_completions_total', { node: routeNode, model: routeModel, status: looksDegenerate(qualityBuf) ? 'degenerate' : 'ok' });
+                } catch (_e) { /* telemetry must never break a completion */ }
                 // warm-cache stickiness: same principal back within 3 min → same bee
                 this._stickySet(options, `${routeNode}::${AIRouter._prettyModel(local.model || 'local')}`);
 
@@ -1587,6 +1611,22 @@ class AIRouter {
                         console.log(`[RELAY] stream write failed: ${e.message}`);
                     }
                     this.perf?.record({ node: nodeName, model, tps, latencyMs: elapsedMs, ok: true, via: 'relay' });
+                    // DEEPER TELEMETRY — the relay hop of the waterfall. The
+                    // bee is behind NAT here: the hub could not reach it
+                    // directly, it went through the inbox. Saying so is the
+                    // difference between "slow model" and "slow network".
+                    try {
+                        const telemetry = require('./telemetry');
+                        const parent = options.trace || null;
+                        const child = parent ? telemetry.childContext(parent) : telemetry.startContext(null);
+                        telemetry.span(child, {
+                            name: 'bee.completion',
+                            kind: 'server',
+                            attributes: { node: nodeName, model, transport: 'relay' },
+                        });
+                        telemetry.histogram('bee_completion_ms', { node: nodeName, model }, elapsedMs);
+                        telemetry.counter('bee_completions_total', { node: nodeName, model, status: 'ok' });
+                    } catch (_e) { /* telemetry must never break a completion */ }
                     options.onRoute?.({ node: nodeName, model, via: 'relay' });
                     return { ok: true, provider: route, tokensPerSec: tps, totalTokens: approxTokens, servedModel: model, answeredBy: route };
                 }
@@ -1673,6 +1713,9 @@ class AIRouter {
                 privacy: options.privacy,
                 policyReceipt: options.policyReceipt,
                 gen: options.gen,
+                // The trace context travels down so the bee-level span is a
+                // CHILD of the request span, not a separate story.
+                trace: options.trace,
             });
             if (localRes.ok) {return localRes;}
 
@@ -1750,8 +1793,23 @@ class AIRouter {
     async chatCompletion(messages, options = {}) {
         const { model, stream = true, provider, userId, apiUrl, api_url, tools, toolChoice } = options;
 
+        // ── DEEPER TELEMETRY: one trace per request ──────────────────────
+        // Every chat path on the hive funnels through here — /api/chat,
+        // /v1/chat/completions, MCP, A2A and the hive-to-hive bridge — so
+        // this is the ONE place where a request becomes a span.
+        //
+        // An inbound W3C `traceparent` is INHERITED, so a request that
+        // arrives from a peer hive keeps its trace_id across the crossing
+        // and the waterfall reads as one story, not two.
+        const telemetry = require('./telemetry');
+        const traceCtx = telemetry.startContext(
+            options.traceparent ? telemetry.parseTraceparent(options.traceparent) : null
+        );
+        const traceStarted = Date.now();
+
         const capture = new StreamCapture();
         const rOpts = {
+            trace: traceCtx,
             preferredProvider: provider,
             preferredModel: model,
             userId,
@@ -1776,11 +1834,61 @@ class AIRouter {
         };
         const res = await this.routeWithFailover(messages, rOpts);
 
-        if (!res.ok) {return res;}
+        if (!res.ok) {
+            // A failure is still a measurement: WHICH class it was is the
+            // whole point of the taxonomy. countError() normalises it.
+            telemetry.countError(res.error || new Error('route failed'), { status: res.status });
+            telemetry.counter('requests_total', {
+                endpoint: options.endpoint || 'chat',
+                transport: 'failed',
+                status: 'error',
+            });
+            telemetry.histogram('request_duration_ms', {
+                transport: 'failed',
+                endpoint: options.endpoint || 'chat',
+            }, Date.now() - traceStarted);
+            telemetry.span(traceCtx, {
+                name: 'hive.chat',
+                kind: 'server',
+                status: 'error',
+                error_class: telemetry.classifyError(res.error || new Error('route failed'), { status: res.status }),
+                attributes: { endpoint: options.endpoint || 'chat', transport: 'failed' },
+            });
+            return res;
+        }
 
         // routeWithFailover stamps rOpts.policyReceipt (the gate's ALLOW rule) —
         // surface it so the non-streaming path can set X-Hivv-Policy too.
         const policyReceipt = rOpts.policyReceipt || null;
+
+        // The request-level measurement: ONE counter, ONE histogram sample,
+        // ONE root span. The transport is read from the receipt the router
+        // already stamps ("node/model (direct)" or "(relay)").
+        const answeredBy = res.answeredBy || '';
+        const transport = /\(relay\)/.test(answeredBy) ? 'relay'
+            : /\(direct\)/.test(answeredBy) ? 'direct'
+            : 'cloud';
+        const servedModel = res.servedModel || res.provider || 'unknown';
+        telemetry.counter('requests_total', {
+            endpoint: options.endpoint || 'chat',
+            transport,
+            status: 'success',
+        });
+        telemetry.histogram('request_duration_ms', {
+            transport,
+            endpoint: options.endpoint || 'chat',
+            model: servedModel,
+        }, Date.now() - traceStarted);
+        telemetry.span(traceCtx, {
+            name: 'hive.chat',
+            kind: 'server',
+            attributes: {
+                endpoint: options.endpoint || 'chat',
+                transport,
+                model: servedModel,
+                answered_by: answeredBy,
+            },
+        });
 
         if (!stream) {
             const parsed = capture.parseSSE();

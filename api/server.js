@@ -2300,6 +2300,10 @@ app.post('/v1/chat/completions', async (req, res) => {
                     tools: effectiveTools,
                     toolChoice: tool_choice ?? null,
                     ...osOpts,
+                    // DEEPER TELEMETRY: the caller's trace travels with the
+                    // request, so a trace that started at a peer hive stays
+                    // ONE story across the crossing.
+                    traceparent: req.headers.traceparent || null,
                     timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
                 });
                 if (!data.ok) break;
@@ -2799,7 +2803,8 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
-                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools: effectiveTools, ...osOpts
+                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools: effectiveTools, ...osOpts,
+                    traceparent: req.headers.traceparent || null
                 });
                 if (!data.ok) {
                     if (data.denied) return res.status(403).json({ verdict: 'NO', policy: data.policy, error: data.error });
@@ -3725,6 +3730,62 @@ setInterval(() => policyLib.expireOldGrants().catch(() => {}), 3600000).unref();
 const McpRoutes = require('./routes/mcp-routes');
 McpRoutes.inject(orch, router);
 app.use('/mcp', McpRoutes);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEPER TELEMETRY — spans, histograms, error taxonomy, SLOs, live series.
+//
+// The hive already had a health endpoint, a request ledger, a per-model EWMA
+// and a live roster. This adds the layer that answers the questions those
+// cannot: p99 latency, WHICH error class is growing, how deep the queues
+// are, and whether we are burning the error budget.
+//
+// LOCAL-FIRST: with no database attached it still answers everything from
+// memory. The database is a mirror, never a dependency.
+const telemetryLib = require('./lib/telemetry');
+const TelemetryRoutes = require('./routes/telemetry-routes');
+TelemetryRoutes.inject(orch);
+app.use('/api/telemetry', TelemetryRoutes);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE TASK FOUNDATION — one queue for every kind of distributed work.
+//
+// The relay (inference jobs to NAT'd bees), the coder bees, the hive-to-hive
+// bridge and A2A all need the same nine things: a pollable state machine,
+// idempotency, priority, a TTL, LEASES so a dead worker loses nothing,
+// retries, a budget, cancellation, and a receipt.
+//
+// One implementation, four skins. In-memory by default; Postgres mirrors it
+// so a restart does not lose submitted work.
+const taskQueueLib = require('./lib/task-queue');
+taskQueueLib.start(pool);
+telemetryLib.start(pool);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A2A (Agent2Agent v1.0) — HIVV as an A2A SERVER.
+//
+// MCP says "here are my tools"; A2A says "here is my agent, give it a task".
+// We now answer both directions of both protocols: /mcp is the MCP server,
+// /api/a2a is the A2A server, and lib/mcp-client.js + lib/a2a-client.js are
+// the OUTBOUND halves (call another MCP server, give another agent a task).
+//
+// The policy gate is NOT bypassed: a denied action is TASK_STATE_REJECTED
+// and an approval-needed action is TASK_STATE_AUTH_REQUIRED — never a
+// silent failure.
+const A2ARoutes = require('./routes/a2a-routes');
+A2ARoutes.inject(orch, router, process.env.HIVV_PUBLIC_URL || 'https://hivv.org');
+app.use('/api/a2a', A2ARoutes);
+
+// The agent card. A2A v1.0 says /.well-known/agent-card.json (v0.2 said
+// /.well-known/agent.json — a card is a card, so we serve both). Caddy
+// serves the static copy at the well-known path; these routes serve the LIVE
+// card for clients that ask the gateway directly.
+const a2aCardHandler = (req, res) => {
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(A2ARoutes.agentCard());
+};
+app.get('/agent-card.json', a2aCardHandler);
+app.get('/.well-known/agent-card.json', a2aCardHandler);
+app.get('/.well-known/agent.json', a2aCardHandler);
 
 // ---- HIVV_OPENCODE_PLAN: dial — connect once, then direct to the bee ----
 // `hivv dial` (localhost shim) dials for candidates, forwards each request

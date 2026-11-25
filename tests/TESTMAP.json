@@ -4,7 +4,11 @@
    "tests/test_direct_messaging.py"
   ],
   "api": [
+   "tests/test_telemetry_tasks_a2a.py",
    "tests/test_toolkit.py"
+  ],
+  "api/lib/a2a-client.js": [
+   "api/tests/interop.test.js"
   ],
   "api/lib/brainboard.js": [
    "api/tests/brainboard.test.js"
@@ -28,21 +32,39 @@
    "api/tests/fast-scan.test.js",
    "tests/test_fast_scan_parity.py"
   ],
+  "api/lib/hive-clients.js": [
+   "api/tests/interop.test.js"
+  ],
   "api/lib/local-mode.js": [
    "api/tests/local-mode.test.js"
   ],
   "api/lib/locked-llm.js": [
    "api/tests/locked-llm.test.js"
   ],
+  "api/lib/mcp-client.js": [
+   "api/tests/interop.test.js"
+  ],
   "api/lib/request-provenance.js": [
    "api/tests/provenance-schema.test.js",
    "api/tests/request-provenance.test.js"
+  ],
+  "api/lib/ssrf.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/lib/task-queue.js": [
+   "api/tests/task-queue.test.js"
+  ],
+  "api/lib/telemetry.js": [
+   "api/tests/telemetry.test.js"
   ],
   "api/migrations/020_feedback_grants.sql": [
    "tests/test_upgrade_review.py"
   ],
   "api/migrations/021_upgrade_diagnostics.sql": [
    "tests/test_failure_diagnostics.py"
+  ],
+  "api/routes/a2a-routes.js": [
+   "api/tests/interop.test.js"
   ],
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
@@ -60,7 +82,8 @@
   "public_html": [
    "tests/test_bridge.py",
    "tests/test_cli_install.py",
-   "tests/test_cli_link.py"
+   "tests/test_cli_link.py",
+   "tests/test_telemetry_tasks_a2a.py"
   ],
   "public_html/chat/app.js": [
    "tests/test_personas.py",
@@ -166,6 +189,13 @@
    "api/lib/fast-scan.js"
   ],
   "api/tests/integration.test.js": [],
+  "api/tests/interop.test.js": [
+   "api/lib/a2a-client.js",
+   "api/lib/hive-clients.js",
+   "api/lib/mcp-client.js",
+   "api/lib/ssrf.js",
+   "api/routes/a2a-routes.js"
+  ],
   "api/tests/local-mode.test.js": [
    "api/lib/local-mode.js"
   ],
@@ -178,6 +208,12 @@
   ],
   "api/tests/request-provenance.test.js": [
    "api/lib/request-provenance.js"
+  ],
+  "api/tests/task-queue.test.js": [
+   "api/lib/task-queue.js"
+  ],
+  "api/tests/telemetry.test.js": [
+   "api/lib/telemetry.js"
   ],
   "tests/test_ask_flags.py": [
    "public_html/hivv-cli.py"
@@ -290,6 +326,10 @@
   ],
   "tests/test_sync_review.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_telemetry_tasks_a2a.py": [
+   "api",
+   "public_html"
   ],
   "tests/test_testmap.py": [
    "public_html/chat/app.js",

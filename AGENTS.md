@@ -452,6 +452,78 @@ enum). `X-Hivv-Plain: 1` on a request suppresses hivv's custom frames entirely.
 resolves the project root from inherited `$PWD`, not the real cwd (else files land in whatever
 directory started the agent).
 
+### Deeper telemetry, the task foundation, and MCP/A2A interoperability
+
+Plan: [`HIVV_TELEMETRY_TASKS_PLAN.md`](HIVV_TELEMETRY_TASKS_PLAN.md) — shipped 2026-11-25.
+
+**`api/lib/telemetry.js` — the telemetry core.** Four primitives, always available
+(local-first: NO database is a valid configuration):
+- **counter** (monotonic), **histogram** (distribution), **gauge** (last value), **span** (one unit of work).
+- A **span carries a trace**: `trace_id` is minted at the edge or INHERITED from a W3C
+  `traceparent` header, so a request that crossed a relay AND a peer hive reads as ONE story.
+  `parseTraceparent` refuses malformed input rather than guessing.
+- **The label allow-list IS the privacy boundary.** `LABEL_ALLOW` is an explicit set; anything
+  outside it is DROPPED and counted. A caller cannot accidentally record a prompt as a label —
+  the boundary is code, not a convention.
+- **Percentiles are EXACT while the reservoir holds every sample** (a bounded reservoir of raw
+  observations), bucket-interpolated after that, and the result says `exact: true|false`.
+  Buckets alone would report a p50 of 78 for a series of 100 ms requests.
+- **Error taxonomy** (closed vocabulary, ordered rules): `timeout · rate_limited · policy_denied ·
+  policy_pending · sandbox_denied · not_found · unavailable · upstream_5xx · upstream_4xx ·
+  connection · dns · tls · decode · empty_completion · cancelled · validation · auth · unknown`.
+- **SLOs + burn rate**: `burn_rate = (1 − actual) / (1 − target)`. A metric with no samples reports
+  `null`, NEVER `0` — "no data" and "measured zero" are different truths.
+
+**`api/routes/telemetry-routes.js`** — `GET /api/telemetry/{overview,counters,gauges,histograms,
+series,errors,slo,spans,traces,traces/:id,nodes,metrics}` + `POST /api/telemetry/observe` (a bee
+pushes its OWN measurements). `/metrics` is **Prometheus text exposition**. The audience model
+mirrors `provenance-routes.js`: `view=public|partner|operator`, **default `operator`** (control
+token or admin session) — a guessed URL never hands out the detail.
+
+**`api/lib/task-queue.js` — THE task foundation.** One implementation of the nine things four
+job systems had each solved separately: pollable state machine · idempotency on an external id ·
+priority + `not_before` · TTL · **leases** (a lock would strand work when a bee dies behind NAT) ·
+retries with a cap · budget · cancellation · receipt.
+States: `queued → running → done | failed | expired | rejected | canceled`.
+**`failed` can be retried; `rejected` cannot** (a peer at 0% allowance REJECTS work, it does not
+fail it). **Interruption is NOT failure**: `interrupt(id,{kind:'auth'})` keeps the task ALIVE while
+a human decides — A2A renders it `TASK_STATE_AUTH_REQUIRED`, never `FAILED`. In-memory by default;
+Postgres mirror = `hivv_tasks` (migration 029).
+
+**`api/lib/hive-clients.js` — the adapter layer.** One interface (`probe`/`submit`/`status`/`cancel`)
+over five adapters: `blnq` (blnq.org's worker pool, **worker-HMAC signed**), `mcp`, `a2a`, `bridge`
+(open-hives/0.1), `local`. Every adapter maps the remote's vocabulary onto OUR task states
+explicitly — never by guessing.
+> **blnq contract:** `message = ts\nnonce\nMETHOD\npath\nsha256(rawBody)`,
+> `signature = HMAC-SHA256(auth_token, message)`, headers `Authorization: Bearer` +
+> `X-Auth-Timestamp` / `X-Auth-Nonce` / `X-Auth-Signature`, ±300 s window. `path` INCLUDES the query
+> string. Pinned by a fixed expected signature in `api/tests/interop.test.js`; a second test reads
+> blnq's own `workerAuth.js` when it is on this box. **The contract changes on BOTH sides, never one.**
+
+**`api/lib/mcp-client.js` — the OUTBOUND MCP client.** HIVV was an MCP *server*; now it can also
+*call* one. Streamable HTTP, stateless: `initialize → notifications/initialized → tools/list |
+tools/call`. The SERVER's protocol version wins. SSE-framed answers are tolerated. SSRF-guarded,
+deadline-bounded, size-capped.
+
+**`api/lib/a2a-client.js` — the OUTBOUND A2A client.** Both bindings: JSON-RPC 2.0 (canonical, tried
+first) and REST (`POST /message:send`, `GET /tasks/{id}`, `POST /tasks/{id}:cancel`). Agent card from
+`/.well-known/agent-card.json` (v1.0), v0.2 path still accepted.
+
+**`api/routes/a2a-routes.js` — HIVV as an A2A SERVER (v1.0).** `POST /api/a2a` (JSON-RPC:
+`SendMessage · GetTask · ListTasks · CancelTask · GetAgentCard`) + the REST binding
+(`/api/a2a/message:send`, `/api/a2a/tasks/:id`, …) + the agent card at
+`/.well-known/agent-card.json` (STATIC on disk so Caddy serves it with no gateway involvement;
+**generated** from the route by `scripts/gen-agent-card.js` so the two cannot drift; LIVE at
+`/api/a2a/agent-card`). **The policy gate is NOT bypassed**: denied → `TASK_STATE_REJECTED`,
+MAYBE → `TASK_STATE_AUTH_REQUIRED` with the exact `hivv approve <grant>` command.
+
+**The hive-to-hive door now exists.** `POST /api/bridge/requests` (open-hives/0.1 §3) and the
+receipt endpoints (§6) are LIVE — the manifest advertised them since day one while the routes did
+not exist (a door painted on a wall). The **loop shield** (§4) is the strict part: our name in
+`X-Hive-Path` or `X-Hive-Origin` → 409 `loop_detected`; `X-Hive-Hops > 3` → 409; a seen
+`X-Hive-Request-Id` returns the SAME state and never executes twice. At 0% allowance the queue
+**HOLDS** the work (`held: true`), it does not fail it. One reader loop rides the heartbeat timer.
+
 ## Running / Restarting
 
 ```bash
@@ -712,6 +784,12 @@ hivv explain kubernetes           # also sends to the LLM
 5. ~~**Caddy streaming** — compression middleware may interfere with SSE through Caddy~~ ✅ Verified 2026-09-25: 54 SSE frames live; `flush_interval -1` on all proxy routes; compression skips SSE
 
 ## What's Next
+
+- [x] `hivv eval` — the study bench: golden questions × route modes, scored — 2026-11-24: the ask was "various tests that are helpful that we can study with the AI" — the hive had a dozen ways to be INVOKED but no repeatable way to be STUDIED. Shipped: `hivv eval run [--modes smart,fast,cheap,…] [--suite FILE] [--repeat N] [--timeout S] [--json] [--no-save] [--strict]` — runs a fixed suite across route modes (aliases expanded + deduped) via `POST /api/chat` (stream:false), scores each answer DETERMINISTICALLY (contains/not_contains/exact/regex/numeric-with-tolerance/json — deliberately NO model-as-judge in v1: a bench whose scores drift with the judge is not a bench), records the `X-Hivv-Answered-By` receipt + the answer (truncated) per case, prints per-case rows + a per-mode summary (pass rate, avg ms), and saves every run to `STATE_DIR/evals/<ts>-<suite>.json` so runs compare over time. `hivv eval cases` prints the suite; bare `hivv eval` is a chooser (the dispatch intercepts it — never the smart-default chat trap; unknown actions die LOUD). Builtin suite (6 forever-green cases): instruction canary, 17×23, 15% of 240, the bat-and-ball logic trap, JSON shape, tool-date (current_time). Suite files: JSON {name, cases:[{id, prompt, expect}]} with a clean die() on every malformation. `http()` gained an additive `with_headers=True` — response headers (the receipts) were unreachable before. First LIVE run already produced study signal: masjid/Qwen2.5-0.5B scored 3/6 (passed instruction/JSON/tool-use; failed percent — answered 0.36 — and the logic trap — answered 0.1). New `tests/test_eval_harness.py` (27: parser/dispatch, every scorer type pass+fail, suite-loader malformations, full-run with a faked transport incl. mode-alias expansion, JSON mode, HTTP-error rows, strict exit — it caught a real UnboundLocalError on the HTTP-error path). Wired into root help + per-command help; TESTMAP regenerated (50 test files — the map only counts git-TRACKED tests, so `git add` a new test file before regenerating). Full suite: 1064 passed — the only 2 reds belong to the concurrent telemetry session's `api/tests/telemetry.test.js:60` (a credential-shaped fixture tripped the pre-push scanner) + its verify cascade.
+
+- [x] LLM install: flaky-clone resilience + root-vs-user targeting — 2026-11-24: `hivv install llm` on wahi printed the ENTIRE manual 6-step walkthrough it was supposedly running automatically, then died `git clone failed (rc=128)` ("RPC failed; curl 56 … early EOF") — a FULL clone of llama.cpp (169k objects, ~400 MB) with no retry, and the debris poisoned the next run ("already exists — skipping clone" → baffling cmake failure). **CLI** (`hivv-cli.py`): clone is now `git -c http.version=HTTP/1.1 clone --depth 1` (~60 MB — install-hivv.sh always did this, the CLI didn't) ×3 attempts with partial-tree cleanup between them, then a tarball fallback (curl/wget → codeload tar.gz → `shutil.move`), and the final `die` prints the manual command as the way forward; `_llama_tree_state()` classifies the path (missing/partial/source/built/occupied) — a foreign `~/llama.cpp` is NEVER deleted (move-aside instruction instead), an unwritable root-owned tree gets the exact `sudo chown -R $USER …` fix, and the manual walkthrough prints only WITHOUT `--auto`. **root vs user**: `_llm_target_home()` (SUDO_USER's home when euid==0; a real root login keeps /root) now derives `_LLAMA_CPP_DIR` + `_llm_which`; after a sudo build `_llm_hand_back()` chowns tree+models to the invoking user, `llm setup` says "via sudo — installing for <user>", the background llama-server spawns with `user=/group=` (a root-owned server is one the user can't stop), PATH advice names the TARGET user's rc (`_llm_rc_path`/`_llm_path_advice`, zsh/fish-aware, idempotent) instead of root's `~/.bashrc`, and `_llm_boot_enable` refuses under sudo with "run as <user>: hivv llm boot on" (root has no --user session). **installer** (`install-hivv.sh`): same SUDO_USER targeting (`LLAMA_HOME`/`LLAMA_USER` — `curl | sudo bash` used to build /root/llama.cpp invisible to the logged-in user), clone retry ×3 + partial cleanup, CMakeLists-as-truth source check (tarball trees count, not just `.git`), never-delete-foreign guard, `chown -R` hand-back (tree/model/rc), server started via `sudo -u $LLAMA_USER -H` with logs in the user's home. `tests/test_llm_build_tools.py` → 66 green (18 new: behavioral clone retry/cleanup with faked subprocess, occupied-dir protection, sudo-home resolution, rc advice, boot refusal, installer pins). TESTMAP regenerated (was stale from the bridge/dog/earth/music routes). 1012 pytest green
+
+- [x] Full suite red: import-time env leakers + stale relay test — 2026-11-24: three full-suite runs died on the same 4–5 failures while the LLM work above was being verified. Root cause: `tests/test_cli_install.py` and `tests/test_upgrade_review.py` set `HIVV_HUB=http://127.0.0.1:1` (dead-port fast-fail) + `HIVV_STATE_DIR=<mkdtemp>` at IMPORT time and never restored them, so every later subprocess inherited them — `test_tools_test_cmd`'s `hivv tools test` saw an empty state dir → "tools server not installed" → downloaded from the dead port → "Connection refused" → 2 failures → `hivv verify` → `test_verify_drift` cascade. Fixed at BOTH ends: each leaker (`test_cli_install`, `test_upgrade_review`, `test_failure_diagnostics`, `test_nodes_offline`) captures the originals before assigning and restores them in a module-scoped autouse fixture (its own tests keep the poison — nothing changes during the module), and `test_tools_test_cmd` additionally pops `HIVV_STATE_DIR`/`HIVV_HUB` from the child env (belt). Also fixed the documented pre-existing `test_bee_chat` legacy-backstop failure: the committed alive-filter in `_relay_endpoints` (the 90s-TTL fix) made "all five legacy ports present on a LIVE box" impossible — the test now stubs the probes and pins BOTH branches (nothing alive → all five as backstop; 8090 alive → only survivors, dead legacy dropped). Full suite: **1012 passed, 0 failed**
 
 - [x] One emergency command (rescue) + no-sudo-first advice + installer hands off properly — 2026-11-23: wahi proved the gap — a root-owned install + a user with NO sudo was stuck (update died on .bak Permission denied ×7; tools downloads too) and every hint LED WITH SUDO; after a SUCCESSFUL user-local reinstall the box was STILL stuck because (a) the shell kept resolving `hivv` to the old /usr/local copy (PATH order + bash hash) and (b) the installer's no-sudo auto-switch set `WITH_SERVICE=0`, deferring the agent handoff to a manual doctor --fix, so the old agent kept running the old code for 23h. Shipped: **`public_html/rescue`** — `curl -sSL hivv.org/rescue | bash`, one memorable line: detects the wall (install dir not writable by THIS user), repairs via installer `--mode=user` (sudo NEVER assumed), fixes THIS shell's PATH + `hash -r` (the stale-cache trap), `doctor --fix` repairs the agent unit, `systemctl --user restart` replaces the live old process (enable --now alone never restarts a running service), then VERIFIES and says "user-local — self-healing". Pipe-safe (no unguarded read), offline-testable (`HIVV_HUB` override in BOTH scripts), idempotent. **Tips/doctor now lead with it**: `USER_INSTALL_CMD` = the rescue line, the permission-denied tip says "you do NOT need sudo" first (sudo only after, labelled one-time — ordering pinned by test), and `hivv doctor` prints it PROACTIVELY when the client dir isn't writable (before the wall, not in a tip after). **Installer**: auto-switch now installs the service (WITH_SERVICE=1, matching its own user-mode rethink), restarts a RUNNING agent after rewriting the unit (was_active → restart, so the new code actually executes), and warns with the exact `export PATH=… && hash -r` fix when an older copy shadows the new one. New `tests/test_rescue.py` (10, incl. a fully-offline E2E: real rescue piped via curl file:// against a fixture hub, real 0555 wall, fake systemctl — proves wall→repair→PATH→restart→verify) + `tests/test_user_install_cmd.py` updated. TESTMAP regenerated. 951 pytest green
 
