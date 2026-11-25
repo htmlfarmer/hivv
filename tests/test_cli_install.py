@@ -579,12 +579,66 @@ class TestDoctorFixDoesNotCrash:
         )
 
 
+class TestUnitValidatorPredicate:
+    """Type=forking + a FOREGROUND ExecStart is the yalla restart loop.
+
+    yalla shipped `ExecStart=... _agent` + `Type=forking` + `PIDFile=`.
+    systemd waits for a PIDFile the foreground process never writes, times
+    out ("start operation timed out. Terminating."), and restarts forever:
+    1422 restarts / 1639 timeouts in two days. The old predicate read that
+    combo as HEALTHY, so `hivv doctor` never flagged the unit - and because
+    the agent died at ~90s, `_self_repair` (cycle%10) and the auto-update
+    (cycle%5) never ran either: 0 SELF-REPAIR lines across 1490 restarts.
+    """
+
+    # (is_daemon_exec, has_fork, has_pidfile, expect_broken)
+    CASES = [
+        # foreground `_agent` + Type=simple -> healthy
+        (False, False, False, False),
+        # foreground `_agent` + simple + a stray PIDFile line -> healthy
+        (False, False, True, False),
+        # foreground `_agent` + forking, no PIDFile -> broken
+        (False, True, False, True),
+        # **yalla**: foreground `_agent` + forking + PIDFile -> broken
+        (False, True, True, True),
+        # `hivv start` without Type=forking -> broken
+        (True, False, False, True),
+        # `hivv start` + forking but no PIDFile -> broken
+        (True, True, False, True),
+        # `hivv start` + Type=forking + PIDFile -> healthy
+        (True, True, True, False),
+    ]
+
+    def test_truth_table(self):
+        for daemon, fork, pidf, expect in self.CASES:
+            got = hivv._unit_broken(daemon, fork, pidf)
+            assert got is expect, (
+                f"_unit_broken(daemon={daemon}, fork={fork}, pidfile={pidf}) "
+                f"= {got}, expected {expect}")
+
+    def test_yalla_combo_is_caught(self):
+        # The exact combination that looped 1422 times. The OLD predicate
+        # returned False here - `(has_fork and not has_pidfile)` is
+        # `True and not True`, and `is_daemon_exec` is False for `_agent`.
+        assert hivv._unit_broken(False, True, True) is True
+
+    def test_foreground_simple_stays_healthy(self):
+        # The valid foreground combo must not be flagged - a false positive
+        # would rewrite every healthy agent unit on the fleet.
+        assert hivv._unit_broken(False, False, False) is False
+
+    def test_daemon_forking_pidfile_stays_healthy(self):
+        # The other valid combo (`hivv start` + forking + PIDFile).
+        assert hivv._unit_broken(True, True, True) is False
+
+
 if __name__ == "__main__":
     print("\nHIVV — CLI install / source-protection regression tests\n")
     rc = 0
     for cls_name in ("TestInstallLayout", "TestSetupInstallsTheCommand",
                      "TestUpdateNeverOverwritesSource",
-                     "TestDoctorFixDoesNotCrash"):
+                     "TestDoctorFixDoesNotCrash",
+                     "TestUnitValidatorPredicate"):
         cls = globals()[cls_name]
         for meth in sorted(m for m in dir(cls) if m.startswith("test_")):
             inst = cls()

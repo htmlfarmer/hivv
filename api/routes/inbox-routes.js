@@ -120,7 +120,22 @@ router.get('/:nodeId/inbox', (req, res) => {
   if (!node) return res.status(404).json({ error: 'Node not found' });
   if (!nodeSecretGuard(req, res, node)) return;
 
-  const wait = Math.min(parseInt(req.query.wait) || POLL_DEFAULT_MS, POLL_DEFAULT_MS);
+  // `wait` is in SECONDS - the spec above says `?wait=50` = a 50s max wait.
+  //
+  // The old line was `Math.min(parseInt(req.query.wait) || POLL_DEFAULT_MS,
+  // POLL_DEFAULT_MS)`, which reads the SECONDS value as MILLISECONDS: the CLI
+  // sends ?wait=max(2, HEARTBEAT_S-5) = 55, and Math.min(55, 50000) === 55, so
+  // the long-poll held for 55ms (a single 250ms tick) and the agent then slept
+  // a full heartbeat. Inbox duty cycle was ~0.4%, which is why every relay job
+  // and `hivv ask <bee>` waited ~30s for pickup (often hitting the CLI's 45s
+  // timeout) while the direct path answered in 0.2s.
+  //
+  // Absent/invalid -> the 50s default. 0 -> return at once (a legitimate
+  // "just check, do not hold"). Clamped to POLL_DEFAULT_MS so a client cannot
+  // pin a connection open indefinitely.
+  const waitSecRaw = parseInt(req.query.wait, 10);
+  const waitSec = Number.isNaN(waitSecRaw) ? Math.round(POLL_DEFAULT_MS / 1000) : waitSecRaw;
+  const wait = Math.min(Math.max(waitSec, 0) * 1000, POLL_DEFAULT_MS);
   const deadline = Date.now() + wait;
   const POLL_MS = 250;
 

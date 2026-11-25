@@ -1726,6 +1726,16 @@ class AIRouter {
             }
 
             streamToRes.setHeader('X-AI-Provider', 'local-custom');
+            // RECEIPT. Without it provenance gets answered_by = null, so
+            // transport falls back to extra.provider === 'local-custom' and
+            // `hivv speeds` prints that PROVIDER NAME in its "per answering
+            // bee" rollup as though it were a machine. The local-bee path has
+            // always set this header; this path never did. The hostname is the
+            // same label _routeLabel() would give it, so provenance and
+            // hivv_model_perf finally agree about who answered.
+            let customHost = 'local-custom';
+            try { customHost = new URL(apiUrl).hostname || 'local-custom'; } catch (_e) { /* keep fallback */ }
+            streamToRes.setHeader('X-Hivv-Answered-By', `${customHost}/local (direct)`);
             streamToRes.setHeader('Content-Type', 'text/event-stream');
             streamToRes.setHeader('Cache-Control', 'no-cache');
             streamToRes.setHeader('Connection', 'keep-alive');
@@ -1735,6 +1745,7 @@ class AIRouter {
             const decoder = new TextDecoder();
             let totalTokens = 0;
             let startTime = Date.now();
+            let firstTokenAt = 0;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -1747,8 +1758,14 @@ class AIRouter {
                     if (line.startsWith('data: ') && !line.includes('[DONE]')) {
                         try {
                             const data = JSON.parse(line.slice(6));
-                            if (data.choices?.[0]?.delta?.content) {
+                            const delta = data.choices?.[0]?.delta;
+                            // Count BOTH fields. A thinking model (gemma-4) puts its
+                            // entire answer in reasoning_content, so counting only
+                            // `content` reported total_tokens = 1 for a whole reply
+                            // and left the tps division nothing to work with.
+                            if (delta?.content || delta?.reasoning_content) {
                                 totalTokens++;
+                                if (!firstTokenAt) firstTokenAt = Date.now();
                             }
                         } catch {}
                     }
@@ -1756,7 +1773,16 @@ class AIRouter {
             }
 
             const elapsed = (Date.now() - startTime) / 1000;
-            const tokensPerSec = totalTokens > 0 ? Math.round(totalTokens / Math.max(elapsed, 0.1)) : 0;
+            // GENERATION speed, not wall clock. startTime is stamped before the
+            // read loop, so `elapsed` swallowed prompt PREFILL: measured live, a
+            // 4000-token prompt plus one token of output divided out to tps = 0,
+            // while the same 1-token reply through the local-bee path reported
+            // tps 70. The EWMA then ranked the hub's own fast endpoint dead last
+            // (localhost gemma tps 2.0 vs ashy gemma tps 32.7 — same model).
+            // Divide by the time since the FIRST TOKEN instead; if nothing was
+            // generated, wall clock is still the honest fallback.
+            const genSeconds = firstTokenAt > 0 ? (Date.now() - firstTokenAt) / 1000 : elapsed;
+            const tokensPerSec = totalTokens > 0 ? Math.round(totalTokens / Math.max(genSeconds, 0.1)) : 0;
             streamToRes.write(`data: {"choices":[{"finish_reason":"stats","index":0,"delta":{},"hivv_stats":{"tokens_per_sec":${tokensPerSec},"total_tokens":${totalTokens},"elapsed_ms":${Math.round(elapsed * 1000)}}}]}\n\n`);
             streamToRes.end();
 
