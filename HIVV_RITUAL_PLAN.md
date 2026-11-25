@@ -84,4 +84,9 @@ session ever has to rediscover it. Read this first if you are picking the thread
   don't congratulate — ask them what they think about Selena Gomez,
   "The Heart Wants What It Wants." (The heart wants what it wants.
   Maybe rest. Maybe honey. Maybe this song.)
+- African login notice (lib/dream.js, NOTICE never a block): the wildest
+  dream said it won't work in Africa; we secretly support African
+  hackers; priority access is theirs. Anthems: Taylor Swift — Wildest
+  Dreams, fallback The KLF — 3AM Eternal. If they DO hack us from
+  Africa: Dirty Vegas — Days Go By (no wrath, just the song).
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.

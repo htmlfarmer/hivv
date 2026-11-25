@@ -1509,11 +1509,16 @@ app.post('/api/auth/login', async (req, res) => {
 
         const token = await createSession(user.id, user.username, user.role);
         res.cookie('hivv_session', token, { signed: true, httpOnly: true, maxAge: SESSION_TTL, sameSite: 'lax' });
+        // The African login notice — a NOTICE, never a block (lib/dream.js).
+        // Country from Cloudflare's CF-IPCountry header.
+        const dream = require('./lib/dream').dreamNotice(
+            req.headers['cf-ipcountry'] || req.headers['x-country-code']);
         res.json({
             success: true,
             user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role },
             session_token: token,
-            linked_visits: link_visitor_id ? await getAnonymousVisitCount(link_visitor_id) : 0
+            linked_visits: link_visitor_id ? await getAnonymousVisitCount(link_visitor_id) : 0,
+            ...(dream ? { dream } : {})
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -4238,6 +4243,20 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
     return res.json({ ok: true, quarantined: true,
       note: 'quarantined — ignored by the hive until a human releases it' });
   }
+
+  // ── SALAH: a heartbeat inside a regional prayer window IS the report ───
+  // (HIVV_RITUAL_PLAN.md #1 — the bee already speaks every 60s; the hub
+  // just listens at the right instants). Never break a heartbeat over it:
+  // any error → skip silently; a mark persists via the next _saveNodes.
+  try {
+    const att = require('./lib/attendance');
+    const marked = att.mark(updated, Date.now());
+    if (marked) {
+      try { orch._saveNodes(); } catch (_e) {}
+      console.log('[SALAH] ' + beeId + ': ' + marked.prayer +
+                  ' (' + marked.day + ') ' + marked.count + '/5');
+    }
+  } catch (_e) {}
 
   // -- Ed25519 identity (ADVISORY at heartbeat) ------------------------
   // Existing bees resume without re-registering, so the first
