@@ -75,6 +75,15 @@ const caps = require('../lib/capabilities');
 
 const router = express.Router();
 
+// The A2A REST binding uses the A2A content type (application/a2a+json).
+// Express's json() parser only accepts application/json by default, so the
+// type list is widened — a client that follows the spec EXACTLY must not get
+// an empty body and a confusing "message.parts must carry text".
+const A2A_JSON = express.json({
+    limit: '1mb',
+    type: ['application/json', 'application/a2a+json', 'application/*+json'],
+});
+
 // ── injected by server.js (same pattern as mcp-routes.js) ───────────────────
 let aiRouter = null;
 let orchestrator = null;
@@ -478,7 +487,7 @@ async function rpcDispatch(method, params, ctx) {
     }
 }
 
-router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
+router.post('/', A2A_JSON, async (req, res) => {
     const body = req.body || {};
     const ctx = {
         principal: req.principal || 'anonymous',
@@ -514,7 +523,7 @@ router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
 
 // ── REST binding ────────────────────────────────────────────────────────────
 
-router.post('/message:send', express.json({ limit: '1mb' }), async (req, res) => {
+router.post('/message:send', A2A_JSON, async (req, res) => {
     const ctx = { principal: req.principal || 'anonymous' };
     const r = await rpcDispatch('SendMessage', req.body || {}, ctx);
     if (r.error) return res.status(r.error.code === -32602 ? 400 : 500).json({ error: r.error });

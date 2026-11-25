@@ -493,7 +493,7 @@ States: `queued → running → done | failed | expired | rejected | canceled`.
 **`failed` can be retried; `rejected` cannot** (a peer at 0% allowance REJECTS work, it does not
 fail it). **Interruption is NOT failure**: `interrupt(id,{kind:'auth'})` keeps the task ALIVE while
 a human decides — A2A renders it `TASK_STATE_AUTH_REQUIRED`, never `FAILED`. In-memory by default;
-Postgres mirror = `hivv_tasks` (migration 029).
+Postgres mirror = `hivv_task_queue` (migration 029 — deliberately NOT `hivv_tasks`, which the dashboard schema already owned).
 
 **`api/lib/hive-clients.js` — the adapter layer.** One interface (`probe`/`submit`/`status`/`cancel`)
 over five adapters: `blnq` (blnq.org's worker pool, **worker-HMAC signed**), `mcp`, `a2a`, `bridge`

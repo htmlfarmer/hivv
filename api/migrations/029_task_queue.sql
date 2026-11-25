@@ -24,7 +24,7 @@
 --
 -- IDEMPOTENT: safe to re-run.
 
-CREATE TABLE IF NOT EXISTS hivv_tasks (
+CREATE TABLE IF NOT EXISTS hivv_task_queue (
     id                TEXT PRIMARY KEY,
     kind              TEXT NOT NULL DEFAULT 'generic',
     state             TEXT NOT NULL DEFAULT 'queued',
@@ -63,17 +63,17 @@ CREATE TABLE IF NOT EXISTS hivv_tasks (
     not_before_ms     BIGINT NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_state
-    ON hivv_tasks (state, priority DESC, created_at_ms);
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_kind
-    ON hivv_tasks (kind, state, created_at_ms DESC);
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_context
-    ON hivv_tasks (context_id, created_at_ms DESC);
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_origin
-    ON hivv_tasks (origin, created_at_ms DESC);
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_trace
-    ON hivv_tasks (trace_id)
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_state
+    ON hivv_task_queue (state, priority DESC, created_at_ms);
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_kind
+    ON hivv_task_queue (kind, state, created_at_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_context
+    ON hivv_task_queue (context_id, created_at_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_origin
+    ON hivv_task_queue (origin, created_at_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_trace
+    ON hivv_task_queue (trace_id)
     WHERE trace_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_hivv_tasks_lease
-    ON hivv_tasks (lease_expires_at_ms)
+CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_lease
+    ON hivv_task_queue (lease_expires_at_ms)
     WHERE state = 'running';

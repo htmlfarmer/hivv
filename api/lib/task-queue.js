@@ -530,7 +530,7 @@ async function ensureSchema() {
     if (!pool) return false;
     try {
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS hivv_tasks (
+            CREATE TABLE IF NOT EXISTS hivv_task_queue (
                 id            TEXT PRIMARY KEY,
                 kind          TEXT NOT NULL DEFAULT 'generic',
                 state         TEXT NOT NULL DEFAULT 'queued',
@@ -556,9 +556,9 @@ async function ensureSchema() {
                 expires_at_ms BIGINT NOT NULL DEFAULT 0,
                 not_before_ms BIGINT NOT NULL DEFAULT 0
             );
-            CREATE INDEX IF NOT EXISTS idx_hivv_tasks_state ON hivv_tasks (state, priority DESC, created_at_ms);
-            CREATE INDEX IF NOT EXISTS idx_hivv_tasks_context ON hivv_tasks (context_id, created_at_ms DESC);
-            CREATE INDEX IF NOT EXISTS idx_hivv_tasks_origin ON hivv_tasks (origin, created_at_ms DESC);
+            CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_state ON hivv_task_queue (state, priority DESC, created_at_ms);
+            CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_context ON hivv_task_queue (context_id, created_at_ms DESC);
+            CREATE INDEX IF NOT EXISTS idx_hivv_task_queue_origin ON hivv_task_queue (origin, created_at_ms DESC);
         `);
         return true;
     } catch (err) {
@@ -571,7 +571,7 @@ function _persist(t) {
     if (!pool) return;
     // Fire-and-forget: a slow database must never delay a task transition.
     const sql = `
-        INSERT INTO hivv_tasks
+        INSERT INTO hivv_task_queue
           (id, kind, state, priority, attempts, max_attempts, origin, context_id,
            principal, trace_id, payload, result, error, usage, budget, metadata,
            lease_worker, lease_expires_at_ms, created_at_ms, updated_at_ms,

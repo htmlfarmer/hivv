@@ -241,6 +241,34 @@ class TestMigrations:
                        "interrupted", "budget", "usage", "trace_id"):
             assert column in sql, f"{column} must be a column"
 
+    def test_the_queue_table_does_not_collide_with_the_legacy_task_table(self):
+        """The hive ALREADY had a table named hivv_tasks (migration 003 — the
+        dashboard's agent-task board: uuid id, task_type, decision trees,
+        approval flow). A CREATE TABLE IF NOT EXISTS hivv_tasks was therefore
+        a SILENT no-op: the schema looked created, every INSERT failed with
+        "column kind does not exist", and the queue looked like it was
+        storing things when it was not.
+
+        The queue's table is hivv_task_queue. This canary keeps it that way.
+        """
+        queue = (API / "migrations" / "029_task_queue.sql").read_text()
+        assert "hivv_task_queue" in queue
+        # The legacy name must not be created by the queue's migration...
+        assert "CREATE TABLE IF NOT EXISTS hivv_tasks (" not in queue
+        # ...nor referenced by its writes.
+        assert "INSERT INTO hivv_tasks" not in queue
+        # ...and the code must use the same name the migration creates.
+        lib = _src("lib/task-queue.js")
+        assert "hivv_task_queue" in lib
+        assert "INSERT INTO hivv_tasks" not in lib
+        assert "CREATE TABLE IF NOT EXISTS hivv_tasks (" not in lib
+
+    def test_the_legacy_task_table_still_belongs_to_the_dashboard(self):
+        """The dashboard's own task table must not be disturbed."""
+        legacy = (API / "migrations" / "003_hivv_dashboard_schema.sql").read_text()
+        assert "hivv_tasks" in legacy
+        assert "task_type" in legacy, "the legacy table is the dashboard's, not the queue's"
+
     def test_the_bridge_receipts_table_exists(self):
         sql = (API / "migrations" / "028_deeper_telemetry.sql").read_text()
         assert "hivv_bridge_receipts" in sql

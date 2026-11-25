@@ -395,7 +395,7 @@ ones we trust for our own traffic.
 | `api/routes/telemetry-routes.js` | the telemetry API |
 | `api/routes/a2a-routes.js` | the A2A server + agent card |
 | `api/migrations/028_deeper_telemetry.sql` | the telemetry mirror + bridge receipts |
-| `api/migrations/029_task_queue.sql` | the task table |
+| `api/migrations/029_task_queue.sql` | the task table (`hivv_task_queue` — NOT `hivv_tasks`, which already existed) |
 | `api/tests/telemetry.test.js` | 26 tests |
 | `api/tests/task-queue.test.js` | 23 tests |
 | `api/tests/interop.test.js` | 24 tests |
