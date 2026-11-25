@@ -16,6 +16,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/ecosystem.config.js` | `tests/test_location_independence.py` |
 | `api/lib/a2a-client.js` | `api/tests/interop.test.js` |
 | `api/lib/attest.js` | `api/tests/identity.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
+| `api/lib/bee-identity.js` | `api/tests/ritual.test.js` |
 | `api/lib/brainboard.js` | `api/tests/brainboard.test.js` |
 | `api/lib/cache.js` | `api/tests/cache.test.js` |
 | `api/lib/circuit-breaker.js` | `api/tests/circuit-breaker.test.js` |
@@ -28,11 +29,13 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/local-mode.js` | `api/tests/local-mode.test.js` |
 | `api/lib/locked-llm.js` | `api/tests/locked-llm.test.js` |
 | `api/lib/mcp-client.js` | `api/tests/interop.test.js` |
+| `api/lib/moon.js` | `api/tests/ritual.test.js` |
 | `api/lib/orchestrator.js` | `api/tests/quarantine-recovery.test.js`, `tests/test_resume_not_reregister.py` |
 | `api/lib/polite.js` | `api/tests/polite.test.js` |
 | `api/lib/request-provenance.js` | `api/tests/provenance-schema.test.js`, `api/tests/request-provenance.test.js` |
 | `api/lib/route-factors.js` | `api/tests/route-factors.test.js` |
 | `api/lib/router.js` | `api/tests/route-factors.test.js` |
+| `api/lib/salah.js` | `api/tests/ritual.test.js` |
 | `api/lib/ssrf.js` | `api/tests/interop.test.js` |
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
@@ -94,6 +97,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/provenance-schema.test.js` | `api/lib/request-provenance.js` |
 | `api/tests/quarantine-recovery.test.js` | `api/lib/orchestrator.js` |
 | `api/tests/request-provenance.test.js` | `api/lib/request-provenance.js` |
+| `api/tests/ritual.test.js` | `api/lib/bee-identity.js`, `api/lib/moon.js`, `api/lib/salah.js` |
 | `api/tests/route-factors.test.js` | `api/lib/route-factors.js`, `api/lib/router.js` |
 | `api/tests/task-queue.test.js` | `api/lib/task-queue.js` |
 | `api/tests/telemetry.test.js` | `api/lib/telemetry.js` |
@@ -149,7 +153,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 
 - `api/eslint.config.js`
 - `api/lib/attestation-contract.js`
-- `api/lib/bee-identity.js`
 - `api/lib/capabilities.js`
 - `api/lib/code-analysis.js`
 - `api/lib/context-manager.js`
