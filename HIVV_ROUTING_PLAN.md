@@ -12,6 +12,12 @@
 > never *correct*. `p_wise` — the probability the chosen AI will be wise for this task — becomes
 > the first-class ranking signal. Speed stays as a tiebreaker/cost term.
 >
+> *Update 2026-11-24 (§7): the five-formula `switch(mode)` this law was written against has been
+> replaced by a factor vector + per-mode weight table — latency · speed · capacity · queue ·
+> reliability · quality · cost · privacy · geography · capability · trust. That is the Tier-0 prior
+> getting HONEST, not the brain arriving: `quality` is still a model-name tier, and §2's `p_wise`
+> is what replaces it. Read §7 before touching `_scoreTargets`.*
+>
 > **Design law #4 — the evaluator is itself routed, and may be skipped.** The Scout is the
 > cheapest, fastest thing available (hub-local tiny model). When Tier-0 confidence is high it
 > is bypassed entirely: normal requests cost **1 AI call**, uncertain ones **2**, hard ones
@@ -214,6 +220,132 @@ escalate:0.55,max_inflight:4}`, `wisdom:{decay:0.99,min_samples:20,cold_p:0.5}`.
 2. `hivv route --scout` explain command; dashboard "hive overhead" stat (scout+judge tokens vs answer tokens).
 3. `mode` presets map to brain config (`fast` → skip_threshold 0.95, `quality` → escalate 0.70…).
 **Done when:** a user can see *why* each answer came from the AI it did, in CLI and UI. **Effort:** S–M (0.5–1 day)
+
+---
+
+## 7. Factor routing — the scoring vector ☑ (shipped 2026-11-24)
+
+The public docs promised routing on "speed, quality, cost, privacy and trust".
+The scorer behind that promise was a `switch(mode)` with five ad-hoc formulas:
+
+```js
+quality : _qualityOf(model)*12 + tps*0.15*rel + rand
+fast    : (20000/max(lat,50))*rel + rand
+cost    : free(0|100) + tps*0.1*rel + rand
+trusted : trust*20 + tps*0.1*rel + rand
+balanced: tps*rel + rand*jitter
+```
+
+Every factor meant a different scale (0–130 for `quality`, 4–400 for `fast`),
+so adding a sixth signal meant five more branches and five more chances to get
+the magnitude wrong — and nothing could answer *"WHY did this bee win?"*.
+
+### The shape now
+
+```
+every candidate → the SAME vector of factors, each in [0,1]  (1 = best)
+a mode          → nothing but a weight table over that vector
+score           → 100 · Σ(wᵢ·fᵢ) / Σ(wᵢ)                  ∈ [0,100]
+```
+
+Implemented in **`api/lib/route-factors.js`** (pure, unit-tested) and consumed by
+`router._scoreTargets`. The `switch(mode)` is gone; only two non-preference
+adjustments survive it, plus one line of jitter:
+
+| Adjustment | Why it is not a preference |
+|---|---|
+| `bigPrompt` (promptEst > 1200) | `score = ptps·0.05·rel + score·0.3 + local?30` — prompt-processing dominates because OpenCode ships a 5k-token system prompt on **every** turn; the mode's intent survives at 30% |
+| `sticky` (+45, 3 min) | a warm prompt cache beats any cold candidate — re-paying 15–45s of prompt processing to switch bees is never a win |
+| `jitter` (`routing.jitter`, default 8) | epsilon-greedy: unmeasured bees stay in the rotation without ever outranking a measured one on the factors alone |
+
+### The eleven factors
+
+| # | Factor | Reads from | Normalization | Unknown ⇒ |
+|---|---|---|---|---|
+| 1 | **latency** | perf `ttfb_ms` (preferred) → `ewma_latency_ms` | `1000/(1000+ms)` | **5000 ms prior** (see below) |
+| 2 | **speed** | perf `ewma_tps` EWMA | `tps/(tps+30)` | **8 t/s prior** (`routing.unknown_tps`) |
+| 3 | **capacity** | heartbeat `gpus[].mem_*` → `metrics.mem_pct`, `max_concurrent_jobs`, `active_tasks` | `0.5·freeVRAM + 0.5·freeSlots` | NEUTRAL |
+| 4 | **queue** | `active_tasks` + `relay.activeForNode()` | `1/(1 + active + 2·relay)` | NEUTRAL |
+| 5 | **reliability** | perf `ok/(ok+err)` | `0.25 + 0.75·rate²` | **1.0** (see below) |
+| 6 | **quality** | `_qualityOf(model)` (5..10) | `0.5 + (q−5)/10` | NEUTRAL (0.5) |
+| 7 | **cost** | `free` (local/peer) → `_priceMap` estimate | free = 1; else `1/(1+usd·200)` | NEUTRAL |
+| 8 | **privacy** | `_isLocalUrl` + RFC1918 test on the target address | local 1.0 · LAN 0.85 · public peer 0.7 · cloud 0.4 | — |
+| 9 | **geography** | `routing.hub_location` / geoIP ↔ `node.location` | `1 − min(km,8000)/8000` | NEUTRAL |
+| 10 | **capability** | `_taskRequirements()`: context fit, tool-calling | fraction of applicable requirements met | NEUTRAL |
+| 11 | **trust** | `hivv_node_stats.bee_rank` (used by `trusted`) | `rank/6` | 0 (unranked = unvouched) |
+
+**Three documented exceptions to "unknown = NEUTRAL",** each deliberate:
+
+- **reliability = 1.0** — a brand-new bee must not be locked out of traffic
+  before it can prove itself. Same shape as the old scorer.
+- **speed = 8 t/s, latency = 5000 ms** — *pessimistic priors*, supplied by the
+  caller, not by the factor. `fast` mode must not hand its promise to a bee
+  nobody has ever timed. NEUTRAL would read as "probably fine".
+- Everything else really is NEUTRAL: capacity, queue, geography and capability
+  have no prior, so an unmeasured value is neither rewarded nor punished.
+
+**Privacy and capabilities stay HARD FILTERS** (`_orderByMode`, and the
+transport order in `routeWithFailover` — "privacy filter is a hard gate, not a
+weight"). Their FACTORS only rank candidates that already passed those gates: a
+weight can never buy back a gate.
+
+### Weights are data
+
+`gateway_config.routing.weights.<mode>.<factor>` overlays the defaults; unknown
+factor names and negative values are ignored, and an unknown mode falls back to
+`balanced`. The ratios inside a row are what matter (the score is a weighted
+average). `quality` mode puts 6 on `quality` against 0.8 on `speed` — model
+quality is ~7× more decisive than raw speed there, which is exactly what
+`quality*12 + tps*0.15*rel` used to say.
+
+### Explainability
+
+`GET /api/capabilities/route/dry-run` (and `hivv route`) now returns a
+`routing` block — the formula, the weight table, its total, the factor list,
+and `hub_location` (or `"unknown"`, said out loud rather than guessed) — and every
+candidate row carries its own `factors` object next to `score`.
+
+### Data plumbing added with it
+
+- **TTFT is now measured.** The stream loop timestamps the first content frame
+  and `perf.record({ttfbMs})` EWMAs it (`hivv_model_perf.ewma_ttfb_ms`,
+  **migration 030**). `latency_ms` is the whole reply and always overstates the
+  wait; the latency factor prefers TTFT whenever it exists. Bees may also send
+  `ttfb_ms` in `POST /api/hive/perf-report` (optional — old agents unaffected).
+- **perf survives a restart.** `perf.seed()` rehydrates the EWMA map from the
+  last 14 days of `hivv_model_perf` on boot, with `f*` counters pre-set so the
+  next flush still ships deltas only. Without it every gateway restart reset the
+  whole hive to "unknown bee" — precisely the window where routing matters.
+- **Migration-030 tolerance.** If the column is missing, `flush`/ `snapshot`
+  drop TTFT from the query and remember; a missing column degrades the schema,
+  never the measurements.
+- **Hub geo** — `detectHubLocation()`, fire-and-forget at boot, 1 h TTL,
+  `routing.hub_location` overrides (`'off'` disables the factor). Offline boxes
+  simply keep geography NEUTRAL.
+
+### What this does NOT do yet
+
+- **Task-specific quality is only half-built.** `quality` is still a model-name
+  tier; the task-specific half is `capability` (context fit + tools). The real
+  per-bucket `p_wise` of §2 replaces the `quality` term wholesale when P1/P2 ship.
+- **Vision** is not a requirement yet — there is no per-model vision registry to
+  test against, so an image request does not currently score vision support.
+- **Geography is inert until the hub knows its own location** (or
+  `routing.hub_location` is set). Physical distance also shows up inside TTFT,
+  which is why the factor is low-weight everywhere except `fast`.
+- **Cloud targets are still not in the scoring universe** — they remain a
+  failover tier after `_scoreTargets`. `cost` is wired and priced for them, but
+  it only starts to matter when they join the candidate list.
+
+### Tests
+
+`api/tests/route-factors.test.js` — 39 tests in two layers: every normalizer
+monotone in the thing it measures (plus a NaN-escape hatch), and the **mode
+intent contracts** through the real scorer: fast → lower TTFT wins · quality →
+better model wins at equal speed · cost → donated beats priced by ≥20 · trusted
+→ honey rank decides · private → LAN > public > cloud · balanced → faster,
+healthier and less-loaded bees win · capability → tools and context actually
+route. A canary fails if anyone re-introduces the ad-hoc formulas.
 
 ---
 

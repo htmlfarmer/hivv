@@ -136,7 +136,10 @@ router.post('/perf-report', express.json(), (req, res) => {
     const lat = Math.max(0, Math.min(parseInt(b.latency_ms) || 0, 600000));
     const model = String(b.model || '').slice(0, 60);
     if (!tps || !model) return res.status(400).json({ error: 'model + tps required' });
-    perf.record({ node: node.name || node.node_id, model, tps, latencyMs: lat, ok: true,
+    // ttfb_ms is optional (older agents do not send it) — when present it is
+    // the number the routing latency factor prefers over total latency.
+    const ttfb = Math.max(0, Math.min(parseInt(b.ttfb_ms) || 0, 600000));
+    perf.record({ node: node.name || node.node_id, model, tps, latencyMs: lat, ttfbMs: ttfb, ok: true,
                   via: b.via === 'relay' ? 'relay' : 'direct' });
     res.json({ ok: true, node: node.name || node.node_id, model, tps: Math.round(tps) });
   } catch (e) { res.status(500).json({ error: e.message }); }

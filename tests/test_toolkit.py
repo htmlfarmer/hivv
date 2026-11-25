@@ -698,10 +698,26 @@ class TestLiveGateway(unittest.TestCase):
         self.assertAlmostEqual(body["data"]["result"], 60 / 7, places=8)
 
     def test_web_search_is_maybe_gated(self):
+        """The posture moved 2026-11-24: web search is advertised by default
+        and a loopback operator runs it un-gated (the responsible layer —
+        robots.txt + per-host floor — ships WITH it). The INVARIANT holds in
+        either configuration: flag ON → this loopback invoke is ALLOWED;
+        flag OFF → it still ASKs (schema hidden, gate closed)."""
+        import urllib.request
+        with urllib.request.urlopen(f"{GATEWAY}/api/tools/catalog", timeout=10) as r:
+            cat = json.loads(r.read())
+        enabled = bool(cat.get("web_search_enabled"))
         status, body = self._post("/api/tools/web_search/invoke", {"query": "hivv"})
-        self.assertEqual(status, 202, f"web search should ask first, got {status}: {body}")
-        self.assertEqual(body["verdict"], "MAYBE")
-        self.assertTrue(body.get("grant_id"))
+        if enabled:
+            self.assertEqual(
+                status, 200,
+                f"flag on + loopback operator must run un-gated, got {status}: {body}")
+            self.assertTrue(body.get("ok"), body)
+        else:
+            self.assertEqual(
+                status, 202, f"flag off: web search should ask first, got {status}: {body}")
+            self.assertEqual(body["verdict"], "MAYBE")
+            self.assertTrue(body.get("grant_id"))
 
     def test_web_fetch_is_maybe_gated(self):
         status, body = self._post("/api/tools/web_fetch/invoke", {"url": "https://example.com"})

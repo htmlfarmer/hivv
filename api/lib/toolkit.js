@@ -42,6 +42,7 @@
 // is what turns the advertisement on (and lets an admin run it un-gated).
 
 const ssrf = require('./ssrf');
+const polite = require('./polite');
 const mathLib = require('./math');
 const fileStore = require('./file-store');
 const fileExtract = require('./file-extract');
@@ -198,6 +199,9 @@ async function _webSearch(args) {
 
     if (source === 'auto' || source === 'wikipedia') {
         try {
+            // Official API (ToS-friendly by design) — still subject to the
+            // no-mass-requests floor like every other host we touch.
+            await polite.hold('en.wikipedia.org');
             const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(full)}&srlimit=${limit}&format=json&origin=*`;
             const r = await safeFetch(url, { timeoutMs: LIMITS.searchTimeoutMs, maxBytes: 512 * 1024 });
             if (r.ok && r.status === 200) {
@@ -219,6 +223,8 @@ async function _webSearch(args) {
     if (source === 'auto' || source === 'news') {
         if (results.length < limit) {
             try {
+                // Google News RSS is a published feed — a document, not a page crawl.
+                await polite.hold('news.google.com');
                 const url = `https://news.google.com/rss/search?q=${encodeURIComponent(full)}&hl=en-US&gl=US&ceid=US:en`;
                 const r = await safeFetch(url, { timeoutMs: LIMITS.searchTimeoutMs, maxBytes: 1024 * 1024 });
                 if (r.ok && r.status === 200) {
@@ -335,6 +341,18 @@ async function _calculator(args) {
 async function _webFetch(args) {
     const url = String(args.url || '').trim();
     if (!url) return { ok: false, error: 'a url is required' };
+    // Responsible fetch: robots.txt BEFORE the page, then the per-host pause.
+    // The refusal is honest and specific — the SITE asked us not to read it.
+    const robots = await polite.checkRobots(url);
+    if (!robots.allowed) {
+        return {
+            ok: false,
+            error: `robots.txt on ${robots.origin} disallows this path — the site asked crawlers not to read it, so we did not fetch it`,
+            refused: true,
+            data: { url, robots: 'disallowed' },
+        };
+    }
+    const politeWaitMs = await polite.hold(robots.host, robots.crawlDelay);
     const r = await safeFetch(url, {
         timeoutMs: Math.min(parseInt(args.timeout_ms) || LIMITS.fetchTimeoutMs, 30000),
         maxBytes: LIMITS.fetchMaxBytes,
@@ -366,6 +384,8 @@ async function _webFetch(args) {
         data: {
             url: r.url,
             status: r.status,
+            robots: robots.source,          // transparency: how we behaved
+            polite_wait_ms: politeWaitMs,   // the no-mass-requests pause we paid
             content_type: r.content_type || null,
             format,
             title,
@@ -413,6 +433,12 @@ async function _httpRequest(args) {
         headers['content-type'] = headers['content-type'] || 'application/x-www-form-urlencoded';
     }
 
+    // Politeness, not robots: http_request is an API client (curl-like) and
+    // robots.txt governs page crawling — but the no-mass-requests floor
+    // applies to every host this tool touches.
+    try {
+        await polite.hold(new URL(target).host);
+    } catch (_e) { /* unparseable URL — safeFetch refuses it anyway */ }
     const r = await safeFetch(target, {
         method, headers, body,
         timeoutMs: Math.min(parseInt(args.timeout_ms) || LIMITS.httpTimeoutMs, 30000),

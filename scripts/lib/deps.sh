@@ -81,12 +81,19 @@ detect_platform() {
 
 # ── privilege runner ────────────────────────────────────────────────────
 # Runs a command with root when possible, else falls back to the plain
-# command. Never prompts for a password — a prompt would hang CI.
+# command. Escalation ladder (wahi 2026-11-24 — password-only sudo used to
+# make every privileged step a silent no-op):
+#   root → plain · passwordless sudo → sudo -n ·
+#   a human at a TTY → plain sudo (it asks THEM, prompt goes to /dev/tty) ·
+#   otherwise → the plain command (never a prompt — CI/cron/piped must not hang)
 d_run_privileged() {
     if [[ "$(id -u 2>/dev/null || echo 0)" -eq 0 ]]; then
         "$@"
     elif [[ -n "$D_SUDO" ]]; then
-        "$D_SUDO" "$@"
+        "$D_SUDO" -n "$@"
+    elif d_can_prompt_sudo; then
+        # a human is watching: plain sudo asks THEM (prompt → /dev/tty)
+        sudo "$@"
     else
         "$@"
     fi
@@ -821,8 +828,16 @@ d_can_escalate() {
 }
 
 # ── can we ASK for a password? (interactive only) ────────────────────────
+# A prompt may only ever appear when a REAL human is watching: stdin is a
+# TTY, not CI/cron/pytest, and the operator has not opted out. Everything
+# else — including `curl | bash` pipes whose stdin is the pipe — stays on
+# sudo -n. (sudo's prompt goes to /dev/tty, so redirection cannot hide it
+# and a missing TTY makes sudo fail fast instead of hanging.)
 d_can_prompt_sudo() {
     [[ ! -t 0 ]] && return 1
+    [[ -n "${CI:-}" ]] && return 1
+    [[ -n "${PYTEST_CURRENT_TEST:-}" ]] && return 1
+    [[ "${HIVV_NO_SUDO_PROMPT:-0}" == "1" ]] && return 1
     [[ "$(id -u 2>/dev/null || echo 0)" -eq 0 ]] && return 0
     command -v sudo >/dev/null 2>&1 && return 0
     return 1

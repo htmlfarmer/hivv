@@ -1,0 +1,20 @@
+{
+  "name": "websearch",
+  "cases": [
+    {
+      "id": "search-btc",
+      "prompt": "Use the web_search tool to find the current price of Bitcoin in USD. If web_search is not available to you, reply with exactly: NO-SEARCH. Otherwise reply with ONLY the number.",
+      "expect": { "type": "not_contains", "value": "NO-SEARCH" }
+    },
+    {
+      "id": "search-headline",
+      "prompt": "Use the web_search tool to find one current technology news headline. If web_search is not available to you, reply with exactly: NO-SEARCH. Otherwise reply with ONLY the headline.",
+      "expect": { "type": "not_contains", "value": "NO-SEARCH" }
+    },
+    {
+      "id": "search-wiki",
+      "prompt": "Use the web_search tool to look up Distributed computing. Reply with the exact Wikipedia article title.",
+      "expect": { "type": "contains", "value": "Distributed" }
+    }
+  ]
+}

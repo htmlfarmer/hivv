@@ -166,6 +166,24 @@ class TestSetupScripts:
         assert "sudo -n" in deps, "deps.sh must use sudo -n (never prompt)"
         assert "sudo -n true" in deps
 
+    def test_bare_sudo_only_behind_the_tty_gate(self):
+        """A password prompt may only appear where a human is watching.
+
+        Unattended runs (CI, cron, piped stdin, the suite itself) must
+        stay on `sudo -n` — a prompt with nobody to answer hangs forever
+        (wahi 2026-11-24: password-only sudo used to make every
+        privileged step a silent no-op instead).
+        """
+        deps = read(DEPS)
+        body = deps.split("d_run_privileged()")[1].split("\n}")[0]
+        gate_at = body.find("d_can_prompt_sudo")
+        assert gate_at != -1, "the prompt branch must sit behind the gate"
+        # the bare sudo invocation lives AFTER the gate, in its own branch
+        bare = [i for i, ln in enumerate(body.splitlines())
+                if re.match(r'^\s*sudo "\$@"\s*$', ln)]
+        assert bare, "expected a gated bare-sudo branch"
+        assert "elif d_can_prompt_sudo" in body
+
     # ── 10. Windows script auto-installs too ─────────────────────────
     def test_windows_auto_install(self):
         ps1 = read(SETUP_PS1)

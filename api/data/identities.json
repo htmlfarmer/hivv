@@ -1,0 +1,1603 @@
+{
+  "version": 1,
+  "principals": {
+    "crossbee": {
+      "node_id": "crossbee",
+      "principal": "hivv_abe109dfed6b75ef9bda8cb223804497",
+      "public_key": "8pr+XDPMhWNxrZphkrgiFniYH7F769kYADPTPQ9o0oQ=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795586234,
+      "bound_via": "register",
+      "history": [],
+      "last_ok_at": 1795586234,
+      "last_ok_kind": "node.register"
+    },
+    "ashy": {
+      "node_id": "ashy",
+      "principal": "hivv_465dbfb6caa5c618f8f4677a9aebabe0",
+      "public_key": "3VM5D8OyO2/AP/v1GGnVBnYHmfp6QNqJciJvoPqZfKY=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795587190,
+      "bound_via": "register",
+      "history": [
+        {
+          "principal": "hivv_465dbfb6caa5c618f8f4677a9aebabe0",
+          "public_key": "3VM5D8OyO2/AP/v1GGnVBnYHmfp6QNqJciJvoPqZfKY=",
+          "bound_at": 1795586252,
+          "superseded_at": 1795587073,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_7390db301ffe90d27d89bbba75439450",
+          "public_key": "Z1yoNELJiz8IgSSP4lM5oxHjOkoFoz+DbN671nuKT2E=",
+          "bound_at": 1795587073,
+          "superseded_at": 1795587190,
+          "status": "superseded"
+        }
+      ],
+      "last_ok_at": 1795592838,
+      "last_ok_kind": "capability.manifest",
+      "rotated_via_legacy_proof": true,
+      "last_fail": {
+        "reason": "key_mismatch: node is bound to a different key (present node secret or hw_id to rotate)",
+        "at": 1795587128,
+        "kind": "node.heartbeat"
+      },
+      "cap_seq": 256,
+      "manifest": {
+        "seq": 256,
+        "tools": [
+          "web_search",
+          "current_time",
+          "calculator",
+          "web_fetch",
+          "http_request",
+          "code_interpreter",
+          "file_read",
+          "file_search",
+          "memory",
+          "text_parser",
+          "timezone_convert",
+          "translate",
+          "sysinfo",
+          "opencode"
+        ],
+        "tools_port": 18789,
+        "local_models": [
+          {
+            "provider": "llama.cpp:8090",
+            "model": "gemma-4-E2B-it-Q4_K_M.gguf",
+            "loaded": true,
+            "port": 8090
+          },
+          {
+            "provider": "ollama",
+            "model": "qwen2.5:0.5b",
+            "loaded": true,
+            "port": 11434
+          },
+          {
+            "provider": "ollama",
+            "model": "nomic-embed-text:latest",
+            "loaded": true,
+            "port": 11434
+          }
+        ],
+        "capabilities": [
+          "heartbeat",
+          "cli",
+          "metrics",
+          "signed-requests",
+          "long-poll",
+          "relay"
+        ],
+        "volunteer": true,
+        "verified_at": 1795592838,
+        "principal": "hivv_465dbfb6caa5c618f8f4677a9aebabe0"
+      }
+    },
+    "masjid": {
+      "node_id": "masjid",
+      "principal": "hivv_ace0cfd7bd0099467d75125a3a2e8ca3",
+      "public_key": "bNHl+8AzsCX28q3qDXGDnAm8MSfQjzCgAyGgebTMXVk=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795586302,
+      "bound_via": "heartbeat",
+      "history": [],
+      "last_ok_at": 1795592837,
+      "last_ok_kind": "capability.manifest",
+      "cap_seq": 359,
+      "manifest": {
+        "seq": 359,
+        "tools": [
+          "time",
+          "calculate",
+          "fetch",
+          "search",
+          "sysinfo",
+          "opencode"
+        ],
+        "tools_port": 18789,
+        "local_models": [
+          {
+            "provider": "llama.cpp:8080",
+            "model": "unsloth/gemma-4-E2B-it-GGUF",
+            "loaded": true,
+            "port": 8080
+          },
+          {
+            "provider": "llama.cpp:8081",
+            "model": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+            "loaded": true,
+            "port": 8081
+          }
+        ],
+        "capabilities": [
+          "heartbeat",
+          "cli",
+          "metrics",
+          "signed-requests",
+          "long-poll",
+          "relay"
+        ],
+        "volunteer": true,
+        "verified_at": 1795592837,
+        "principal": "hivv_ace0cfd7bd0099467d75125a3a2e8ca3"
+      }
+    },
+    "wahi": {
+      "node_id": "wahi",
+      "principal": "hivv_9c6c7c6a843765dd33e8e00b8461cd85",
+      "public_key": "fENeIaRepmmH02FUSlwYL0NyyX69DRJahIy4O7qoh7E=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795586350,
+      "bound_via": "heartbeat",
+      "history": [],
+      "last_ok_at": 1795592840,
+      "last_ok_kind": "capability.manifest",
+      "cap_seq": 67,
+      "manifest": {
+        "seq": 67,
+        "tools": [
+          "web_search",
+          "current_time",
+          "calculator",
+          "web_fetch",
+          "http_request",
+          "code_interpreter",
+          "file_read",
+          "file_search",
+          "memory",
+          "text_parser",
+          "timezone_convert",
+          "translate",
+          "sysinfo",
+          "opencode"
+        ],
+        "tools_port": 18789,
+        "local_models": [],
+        "capabilities": [
+          "heartbeat",
+          "cli",
+          "metrics",
+          "signed-requests",
+          "long-poll",
+          "relay"
+        ],
+        "volunteer": true,
+        "verified_at": 1795592840,
+        "principal": "hivv_9c6c7c6a843765dd33e8e00b8461cd85"
+      }
+    },
+    "__identity_e2e__": {
+      "node_id": "__identity_e2e__",
+      "principal": "hivv_efb0688a5e48f5a4941e46e959c549b3",
+      "public_key": "6KVRVtegQ8aJP71CzJ4ngwL/nE/wk/+z8l1bp5Sbal4=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795592860,
+      "bound_via": "register",
+      "history": [
+        {
+          "principal": "hivv_e706ee81e51b55b6b2fe286fd57a8024",
+          "public_key": "Xa/JSd5Gvc7hxHvxnoSQl46qY1kA0pVq0L8VhAy87DA=",
+          "bound_at": 1795586396,
+          "superseded_at": 1795586442,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b6f9c38bb902c5eb92e86f2359b25aeb",
+          "public_key": "qaYiCFK+B8PVfAB7PEIBMru4fpRNXyk3YF5tTBJO0OM=",
+          "bound_at": 1795586442,
+          "superseded_at": 1795586480,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_492cda5611cbae9ff5da63ba9e60027f",
+          "public_key": "02PaHTeaFea9uXFFuW5+T/AKmd9SRF7MGwv/H/Yt4T4=",
+          "bound_at": 1795586480,
+          "superseded_at": 1795586936,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b7cadc9c9bf659bf3a49fac03037ed63",
+          "public_key": "UltW5PNhBg/wLixAAigxKY9IW4TQJA+m/7auEIQumfQ=",
+          "bound_at": 1795586936,
+          "superseded_at": 1795586936,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_8bfab453db42bec85bfdcc843050e042",
+          "public_key": "9z7BUEgiNH1fvta1wZ0TQhGG1//MTJJJKSJjAb/k7xQ=",
+          "bound_at": 1795586936,
+          "superseded_at": 1795586936,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b7a084224706cd8434fb9fa4caccbad1",
+          "public_key": "rcOLXWYNEKfhla/f4zhew05AX9itqNOllDdGBnHDvOA=",
+          "bound_at": 1795586936,
+          "superseded_at": 1795586966,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3044a477e4a8e7ac5847dadfcfc2e304",
+          "public_key": "lq8fkWbTUy7F5sHRUipubY8HscD4E7r6qir0gbUN+LM=",
+          "bound_at": 1795586966,
+          "superseded_at": 1795586966,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_67075c8a10be208956a38071dc707cf4",
+          "public_key": "zo2YG232SPpN2KKVD6/mAfBSKyK0vpkMhmyfuPHKXs8=",
+          "bound_at": 1795586966,
+          "superseded_at": 1795586966,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d828425f47a5e2b5abe18678005a11f4",
+          "public_key": "9bTwArOaYxdVTLUaAzamUDnVSlBmYzc3jrrj44IkNTc=",
+          "bound_at": 1795586966,
+          "superseded_at": 1795586966,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_db3e5babd0414ab452829501bdd25fbe",
+          "public_key": "5uwio0446dXQIC4zbks6XUCcG8COQk1QqH/ibWmYfJk=",
+          "bound_at": 1795586966,
+          "superseded_at": 1795587288,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_e0f025b2796658dd9111f0d74e4d4638",
+          "public_key": "l1JJCXkoppqd30lCmPbHj12yS4ZL8Qw2Ip/5agYS8tI=",
+          "bound_at": 1795587288,
+          "superseded_at": 1795587288,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_5d9e0571a04386b61dc6f95e640eb431",
+          "public_key": "fulZjd+VLxE7fYJqBRUaUueSmLt5SsDROuv+nSu033o=",
+          "bound_at": 1795587288,
+          "superseded_at": 1795587288,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_25f40453d335fc622b613fb08ea9920d",
+          "public_key": "uU7b+7f9zFHb+s5Xh7QLiW/RwjaaYOQMWI9XYun6RB8=",
+          "bound_at": 1795587288,
+          "superseded_at": 1795587288,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_0818d6072a34445f2eab4c43731db32c",
+          "public_key": "dGfpypkgPTU+CL+TP+huZqhVDlC7XPVshxAvC0aTHx4=",
+          "bound_at": 1795587288,
+          "superseded_at": 1795588355,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ad1623e086670a8bb6873928b42f0697",
+          "public_key": "QAnO/WLiElkC8hhWI9dN8MrCDvGD1wUkmyrblwbxhIs=",
+          "bound_at": 1795588355,
+          "superseded_at": 1795588355,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ecd6abb46e76fecd61655ef010648abc",
+          "public_key": "zktl5asNw1gc+5g0J31zT6OC7WzepNuQoPi0+z5G1JA=",
+          "bound_at": 1795588355,
+          "superseded_at": 1795588355,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_77e7fe5f1528317326bb3a0bbefcd90c",
+          "public_key": "fGCrFij0oGELDHDoHi9KrgG9FZkQFKTz0iLIoEvNA/g=",
+          "bound_at": 1795588355,
+          "superseded_at": 1795588355,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1865b46b1e90256451744885d20dc816",
+          "public_key": "zDDKkoq6AS5w+EDAawZh9JVyfuKTnNdHoP/xYPoA9XU=",
+          "bound_at": 1795588355,
+          "superseded_at": 1795588546,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_6345e1fa10b56bd2e1c68ba0a716432a",
+          "public_key": "ekUAL+BFRb1QzEl9yQHXPCH4njHh5YLtbPCqRRhc62c=",
+          "bound_at": 1795588546,
+          "superseded_at": 1795588558,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_bbdee44e1450199d39704400f78f2f7f",
+          "public_key": "b3KXMj8yqmFzGUPsvI4uMsq2zyjQD96ytxcVVv03274=",
+          "bound_at": 1795588558,
+          "superseded_at": 1795588559,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_62b4c847a9755b1c06df87ff4056162a",
+          "public_key": "DsiDpJYz44AXDsh6KqlJi5sWW8D+k/h04ogakP3rQL0=",
+          "bound_at": 1795588559,
+          "superseded_at": 1795588590,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_eb0ac9b3b0e8f059b095350af2278769",
+          "public_key": "rwiNoAJneFKigIAHPTT56Ye/iRazS2lN5rIjOFF9DTw=",
+          "bound_at": 1795588590,
+          "superseded_at": 1795588590,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1968a506bcf94666a951805bf6eae66a",
+          "public_key": "iLMEbiUZMvSlxigeMlHUON3Xz744S/Y+y/5HUB9RRac=",
+          "bound_at": 1795588590,
+          "superseded_at": 1795588590,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_2e3157fcef94d274fe1db4792d5a8533",
+          "public_key": "JvFAHO2FIeZwYnXk597LkV6Ugo/YFtYxOvIBztt3Gek=",
+          "bound_at": 1795588590,
+          "superseded_at": 1795588590,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_777714794a370aafd5251c8fb5c1678d",
+          "public_key": "xi7O5w2WkIQg5YHMq7w0euRi1E7Bu+fnBj+vbdjQdEw=",
+          "bound_at": 1795588590,
+          "superseded_at": 1795588606,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3b2aae20f739a85626c21cdeeeaa2905",
+          "public_key": "gtRjQvAw1lmXnsYkZFEjGMKa9OeazBTkmeqVwgjANAg=",
+          "bound_at": 1795588606,
+          "superseded_at": 1795588606,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_5f51d280a733c872027d54a70b015e0c",
+          "public_key": "WqHMHTbfqfhJTH/DzROdel/NRKK4DCark/dy78wHnfY=",
+          "bound_at": 1795588606,
+          "superseded_at": 1795588606,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d2789f0a4adf3a385cfea1895ac61023",
+          "public_key": "2O1LLVWy4TR3UvDZGh2IOCDLzEkeI+tpwtdAXCsL82s=",
+          "bound_at": 1795588606,
+          "superseded_at": 1795588606,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d960004415ed8dbf227558b253459791",
+          "public_key": "3lKvNc8ur7rhR5o1O33lT9ol9h3Jg3hgwyMQS8L/GNs=",
+          "bound_at": 1795588606,
+          "superseded_at": 1795589191,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_976e0352afec58e621f449fe63285f48",
+          "public_key": "o9Zcovb8iRsotyOiCjmv2HvSxLyEA/UPCFDMrkP1aIY=",
+          "bound_at": 1795589191,
+          "superseded_at": 1795589191,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_caf49d49dacbd26eb6185ad64e7a5377",
+          "public_key": "HyuS2FDn9e5442kxcnN51zKUoMU1EJQnZtZT1m5ydEQ=",
+          "bound_at": 1795589191,
+          "superseded_at": 1795589192,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_086e7036a75eb1adcc9b5e4726557604",
+          "public_key": "p9jFcRsBmgTXQ5KHWh4Ubbs4izi82/WrR6nJCX25cj8=",
+          "bound_at": 1795589192,
+          "superseded_at": 1795589192,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_6910a049431b5f0adc5ec15bb9daefb6",
+          "public_key": "ZMsygiYzOEsnqNxxqJwh7W/35UDbAmfxFUObwDNb498=",
+          "bound_at": 1795589192,
+          "superseded_at": 1795589633,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_60ac2a9130c4eb451df9c027e0d440e5",
+          "public_key": "y2gF1VtoSn6jqlma3axYbanB34w089RQvtawY41xa30=",
+          "bound_at": 1795589633,
+          "superseded_at": 1795589633,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_39a50064ebf3dbf89bc5d24e1c2f4f32",
+          "public_key": "CaREh1dj1WqcH0isZEa2etUer4C3mZNur8nOjsWCiJk=",
+          "bound_at": 1795589633,
+          "superseded_at": 1795589637,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_5bae0da0fd138fe42481113cdf6c7f3f",
+          "public_key": "i/5n4Jx9og3wbSfFeYo+r/qdfhbKn6IEaA3xJL295G4=",
+          "bound_at": 1795589637,
+          "superseded_at": 1795589637,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_c1c3f42c3e3028fae1ed4ab70353cc13",
+          "public_key": "eFYPwznnPF0lqPQ6JseVlboDMkEZDJlPkD7GBGdxp/E=",
+          "bound_at": 1795589637,
+          "superseded_at": 1795590164,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d2e8e4a6d014578dcfbd28c57e287786",
+          "public_key": "rS/zmJCfXv9HCqmacaORM2+qkDN4JIRcuc+X8dhhzlE=",
+          "bound_at": 1795590164,
+          "superseded_at": 1795590164,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_7772957f8cc5b8ff9028300544f8f225",
+          "public_key": "TaRGKAA1UbP+Bs3F/XsOe1Nns3UCAagcoKRfCa89Jls=",
+          "bound_at": 1795590164,
+          "superseded_at": 1795590164,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b925b531071fd9f7b282774b3acd4f3c",
+          "public_key": "FbOxbiTIgPErFhiKg51qSsvQH92os6ypqwhhEc0Tk5U=",
+          "bound_at": 1795590164,
+          "superseded_at": 1795590165,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_5968eb051d6925f01017b1c26a6929db",
+          "public_key": "i4lmripLfjQvqlwWGIYJ+6iGU/HoAveFkZUg9md+iqw=",
+          "bound_at": 1795590165,
+          "superseded_at": 1795590165,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d63d75fc746a2dcd6b40e424da1dfc69",
+          "public_key": "nVbPTY/oJe+L16Sqg69WmJWl8Ske8MeA1l1LlLA+vCo=",
+          "bound_at": 1795590165,
+          "superseded_at": 1795590165,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_07b85117bd28c0611ff4603d7453fbbb",
+          "public_key": "zADWLrvJNSOq7JMVErV/ABlldV9e/+CkY4YlhxsJkV8=",
+          "bound_at": 1795590165,
+          "superseded_at": 1795590165,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_4664819dea0a66773c036ab368c8a218",
+          "public_key": "KoUOMHn8hEG5HZSAItmydTmiwo+WAJfhcwwZiR74s9g=",
+          "bound_at": 1795590165,
+          "superseded_at": 1795590231,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_9e18c785b25f003f1312ef38c6c6919b",
+          "public_key": "g+T0+prXBSIf40EbHhPZd75WK1Ywo781IfzCmv2ebK8=",
+          "bound_at": 1795590231,
+          "superseded_at": 1795590231,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3be656cbb19103d9db07e952ab64da8a",
+          "public_key": "UDSHogWu/HSCbgb4sXv5QvAaYd/FnetlEB20tWAkvFA=",
+          "bound_at": 1795590231,
+          "superseded_at": 1795590231,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d89cc5cf49f4b0397a0b62459af7c960",
+          "public_key": "gf58XP8ss4geDQXhVy/1Z6qofhn/XkiTCeFRNCaiXQc=",
+          "bound_at": 1795590231,
+          "superseded_at": 1795590231,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_c67973225508deaa9077ca8a838ede77",
+          "public_key": "GK7T8EWxh97/fkotW6MT9yMMzgjwF88Y4G1Mj+htV98=",
+          "bound_at": 1795590231,
+          "superseded_at": 1795590232,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_db98326b5852ffed9ad276d6052222d9",
+          "public_key": "3dKZlykjDzoVmv+6I1yT5+i4u2/tJnDNfmtdygs3pSI=",
+          "bound_at": 1795590232,
+          "superseded_at": 1795590232,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_a387b184309e8b58bba96d67c73ac8b5",
+          "public_key": "z/81MyIERdef4uKvDrAyqDUXetyITolUsVPbCANSCGw=",
+          "bound_at": 1795590232,
+          "superseded_at": 1795590232,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_2351e90c9b79a0af10464f242420971c",
+          "public_key": "2Nyidf8dpsZCyB9Kc4THb6L60DMJgNUwDqaHcQHMzKw=",
+          "bound_at": 1795590232,
+          "superseded_at": 1795590271,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_9669c90d390a80bffab81d3ff6ab28c5",
+          "public_key": "6k9SjIK833eQJ/RcXxcB233aFGZNcUTgNzUPNahI+iI=",
+          "bound_at": 1795590271,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_8ae561a246a0885bc1bd4a216177013d",
+          "public_key": "3kKBX3aMovu2hRMuNw1Wqvg1h8t1CKpu6FnlJPdeYUA=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_28f7638b8ab5c78b0e96990ef4e5b6b4",
+          "public_key": "r9Q+CXJLdx5MguyfVNjRwaa24WS+ako+EPmx448pNbI=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_31b730e4c738db6fd591f038597843c0",
+          "public_key": "QWCUPpj2cUrZsB1i2By+54jec5sAiv+Ew5tqKpVRKqs=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ff7033b58ad2db3fcff29893b19397c7",
+          "public_key": "okykSGtMDyj7TVOjpByNvU1BJjvKkg7qCgqkkimXFHI=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_360bae686e17a1c53a500b9a687e6668",
+          "public_key": "oWq/NyNMfEehLQL/TsNigeTq9SIytpJnlZ19CVGxXaE=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_40bc8df0ce4f4c8cb81a271e9b40a405",
+          "public_key": "M3vEb5L/kc73A6K9k9iL8aGfIhL9O3QwvWZjaHN2iqM=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590301,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_e942d1dc96cc22e3ba9f51ed33fda1cc",
+          "public_key": "xEq6ZmY8ZDlBUHN777euzg1kISyJU1D9LHEfaokcy2U=",
+          "bound_at": 1795590301,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_24f6041274b0cbe15d365f2f36a57f60",
+          "public_key": "i3PgFZZYAUSpamnB2ffPfS1i3nsFqw8p38JcfKp+mUM=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_688c0e04518e3d4c6aa8e8069a8905e4",
+          "public_key": "OMEKSrTn2fswPNKyP7Oz5fSAhctQ16g+6W6rXQihayE=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_2ee15f061e716646cf2282a4ce7e8e00",
+          "public_key": "MA36NzdS4c+1eSokOxzJss3FxwqAUm6018OInCJ1ONo=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_99480d4ff9dd7a1c34999ec89a48f2b1",
+          "public_key": "fK6z3JYrf2sAbP36jk8YNcbUC5amHd4VAy3jZaNwj4g=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_771fa5443b594b830312e9722c235958",
+          "public_key": "HQPEcPJnM6R13tIr76cmdmK2w5TrBVoWpfE5m+6Ahzg=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_2f860c6e2f4abf7167c1dbd74bb4798f",
+          "public_key": "VRle0dY5J104bJ1mp7m/bubytRMTMMPvEGhQ9Kb9eRQ=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_ac6cb1bbdfe7a53c056ec68d776629ad",
+          "public_key": "7bIZXN7UIHl4GdVO6bFMBrzdluYR8MWG+XBYK26NAGw=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795590775,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_919ed26815a8710ae9cca41d34d7df08",
+          "public_key": "G/Fp3S9do+6PfNgXGx72uaerfXCBhMWeGE68tGwvTng=",
+          "bound_at": 1795590775,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_387adf844d53d22a9ca8f24437b7da23",
+          "public_key": "Q/aBMZjNImzTnV4S3xVOJ67mJVk7FRK68Ex0p92UaBc=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_dcd520be2462f48ffba7ca374c622c04",
+          "public_key": "yCxGKIz9TMVd4fUgclDrNgCQQPC9yVQPwVg58u5OiUY=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_6be4f14cae3205a7f7ce7de97c9c9289",
+          "public_key": "c5UOIGW/ikqOP980VwafteywGhcf1q+SiEMIN5WzdK0=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_bedb421cf73333ecb044af15a3a31362",
+          "public_key": "b7cDnisrApNzufTw/fqv3aKhvTD2dkVUGNF8tEOzEdk=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_8fe1d2a3ab5e98afc1a67b25a42b80ff",
+          "public_key": "/GSno45i6P2eD8/lc1BsQoFnPD5tMZx6GFIagi0Akbw=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_0fa1b008f433e0d7f05e23aac01957c4",
+          "public_key": "zI4yzUUjqvRmvr7ZuzyBWXB9VMWQWJ9JpVP1iI9ST3A=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_e2e2503e0a5aea0825b84543d55a795f",
+          "public_key": "YbSkyKbrzsgEyugkMiD0rxlDvM3QioOPX5oAGMjalrM=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591523,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_d33fbe49fc638b4b3b784c1f7b6b9284",
+          "public_key": "QrS3dbTJ4qgdshxCncHJ7yawA5Rgm+Oljoyw8VicMUc=",
+          "bound_at": 1795591523,
+          "superseded_at": 1795591524,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_bf4f193ef791edad2b5e6f6aafba35d9",
+          "public_key": "Tfd0DMtnh57OBoocvSrwhbaiW5RzX0m1pkjIaosC6D8=",
+          "bound_at": 1795591524,
+          "superseded_at": 1795591524,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_eb629167a4b06c53c97dd396065f0d11",
+          "public_key": "TtCxQbvuvw3mgByMCzCdsk6NoO7yEMhm3AlqYwvtA8E=",
+          "bound_at": 1795591524,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_9b78d8d5c2dfdce955d514a16cb84711",
+          "public_key": "2D0ZsszNoNv6SQt4smbxW7Ad2yolAnnfYNXMqo13G3U=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_dacf3075d27c286ab69ec517d981638c",
+          "public_key": "bvKHMMbJhPP5/U9rPiYtj2K2KQ+g3oeDmWk9GkQWfW4=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_f66354320f39d82d983b62e4854e10d2",
+          "public_key": "2kIpvuGUI4VxRQ2RSrh3Dc9AP8PCi8jrL61YOWGpeDc=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1a2b00ec5f850a925be426dc1525e585",
+          "public_key": "B8WbZ/k8VgGrAFkmXsdkuPr7RvQabxBvjTHXxyazhAA=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_714385d8984ca79562423f13e853e612",
+          "public_key": "w1am8ytfWbBnYPAr1IfwkFBxtt/nROdxiImrNhtsTVs=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_cb7f5c6dd2811cb9bfedac4b807a0166",
+          "public_key": "f4JTxmIt4mQmiQO7lpedWoAyCrZu6FPG+0LS2mKAVVQ=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591755,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_ac4e2f0849cd2322d3672139406ff371",
+          "public_key": "8yTGxZgP/uTZyAIQrZTReXBzBE/bzAVrsPRcffdsCig=",
+          "bound_at": 1795591755,
+          "superseded_at": 1795591756,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ccc48656347de510991843d8dda285d7",
+          "public_key": "QZbWo8WG+YRo+KKPY2/zAdcNotmcexNxFvnvmZ+224I=",
+          "bound_at": 1795591756,
+          "superseded_at": 1795591756,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_4e443b3e41763a75b738f8b5f06cc757",
+          "public_key": "UddScrGrG9OIgH1lhnSCrnIgLkDj3a+YoDmDN5MTa8Q=",
+          "bound_at": 1795591756,
+          "superseded_at": 1795591756,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3ff6fea4801a079c42160a575dd8b81c",
+          "public_key": "wzWl+LHN0tpaIU9YPlBJUVpBqmmdHsmPgWmk1NeUg2w=",
+          "bound_at": 1795591756,
+          "superseded_at": 1795591760,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_93536dc2b3a1d7fb9bd2861e4457ef6b",
+          "public_key": "JIE2Idg0YvqXfbR0eHiJQu2HTM/PfmdPWHhNtFlUAz0=",
+          "bound_at": 1795591760,
+          "superseded_at": 1795591760,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_189115a147e1963e27abf56477d0d112",
+          "public_key": "nUiya4git70yrNqnWV66vhii8IkzGJp17VQxvyiO6A0=",
+          "bound_at": 1795591760,
+          "superseded_at": 1795591760,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_84d0b7ff660a54ebfb3a6627af30a286",
+          "public_key": "mK2GQFCnI/66ihOEX9lprh7YvxfPUyUBYcQev7Mfk7A=",
+          "bound_at": 1795591760,
+          "superseded_at": 1795591760,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1d9f033d9660cb3e39cae7b9abeaca11",
+          "public_key": "anLi6HYPRw/omFlLLNtNxJKDlLQ0lEAAkHU/DgPntUc=",
+          "bound_at": 1795591760,
+          "superseded_at": 1795591761,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b7206bda476ff65859ec1f3299707b4d",
+          "public_key": "PKwMh/rE+lVqMVmUwfGco1uANg3lzGizU/g8GUe8gPU=",
+          "bound_at": 1795591761,
+          "superseded_at": 1795591761,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_55c0eefc87f6cb4ac15e5628e28ea86e",
+          "public_key": "MT/x2VPKNkjlZyA1p9Y59OFPzV0ah/LntzvugTlDcAU=",
+          "bound_at": 1795591761,
+          "superseded_at": 1795591761,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_b061e4df57a8ab4f2f4edcfad10c36b3",
+          "public_key": "Z4fKKEC3KtigUnL/IObQeoxCDmyhmitwaF7qhMVWdQk=",
+          "bound_at": 1795591761,
+          "superseded_at": 1795591761,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_e31a631f28f39e18752cc0f9796f5293",
+          "public_key": "+oyMwexL/H+gEO4rxdTb30navRpSGTp0CJoC+WzEkGg=",
+          "bound_at": 1795591761,
+          "superseded_at": 1795591762,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_f8b8ac8e8edb5db39638115edcc00f97",
+          "public_key": "X5JphBpMw3yvxr1KTTWXibLQT7A+0SvkTrqyNqDE7yo=",
+          "bound_at": 1795591762,
+          "superseded_at": 1795591762,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_878d3c82429b016ea855ab930a5ac2bc",
+          "public_key": "eE9wk9Xx9KXWwXxzBX8hBHqlvZXwPNn0PI32ZU7gruA=",
+          "bound_at": 1795591762,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_70c5ee114be4aba4456e1f39f27c2e00",
+          "public_key": "XxPVoJB/b7M5fFHt5c3gDhfPKvQGej3nmSOIEnRtB/8=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_9caa61be90d0baf5650a25b4c2f717b8",
+          "public_key": "Z5+wkev3kHZFHcnM/ssdk3b3Dbj3l0iaWdOxpHZFPxU=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_868fa087f08586ea6fb3bfa598b59880",
+          "public_key": "B8kPLTw4feHFQJWhkzTW2VJ5eIHSoKRshQ8B7uYyJYc=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1d918d5f2f3046bb4247ded61b1b9824",
+          "public_key": "PhwJITq4O34sKLamxMlgNvdSrWma+c5YczqHtK6AS68=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b1293f1454615284bab26f6903efb5c4",
+          "public_key": "Yl9ssfMe96tQvc7sUrkAziP7mldnQMJeBdyCa7xc4sA=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_e9d58f9a22b30fb95506c8222977ee53",
+          "public_key": "uSYfxcGKtZlrW+XQ6rMDoZSW72tIJ6uAq/BSezqS8rM=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_6c11d3d6d293bd2fd9163726035482f8",
+          "public_key": "65aCjuN8L49/+iwfFWiSTE5TEtz24SULIVPP7uAuQac=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3c113297e2df40d36f948ef7456da01a",
+          "public_key": "OvzlIbso+YZnWYawQj13LB27WRIJ/0Dw/CC70i8WwhM=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_e4598284155d333fb49eec3d1a310c26",
+          "public_key": "EnjkBVWK90PH7QfXBA3MDEH6korpz6KWycRqU4B8iiI=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795591767,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_10253213794f569460529104e2c17c0b",
+          "public_key": "ChXJVGhVETSFuubKTQtc5Kml17jtID7GdqgFrbXGz6I=",
+          "bound_at": 1795591767,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_12c851e12d05717086ce420be90556ef",
+          "public_key": "ynA7tfRekQLMp4R1szwUBq5vmry+Kz3nTCewgXKpif0=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3fa2d58a6d2cfbb113383695715bb17b",
+          "public_key": "t/exZlHSOkblHjeafMM3wEGGGdw2FurUARsSFX2AqRI=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_3edda900136de31a6bcef06800e9d53d",
+          "public_key": "dZrbVKkJ58qxrZGqJJrwU0joVLmguCW8+f3IZFF/Ek4=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_2310fe2e000bc25c1705461301d07a10",
+          "public_key": "UXg6UzEVOmxidzCV0LaPqwyQ+kPw95btDCaVqKVUOXU=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_1ee731296252fce9d9e79f9134343295",
+          "public_key": "OUE9WucDVsj+DJdP2/wSjSG8Cwg15Ers8/A19bokXxg=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_d9047c92022e58e7f1ea7d89b72174f3",
+          "public_key": "5o7EnBlwBRvlTdnpCrzFjVjee+khIAvzsyjuk7O2H0s=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592638,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_08693e8cf5e6d9b3136334389d5d038a",
+          "public_key": "jiojdNSbbQUzjOP0K5JIj44gqZ9qaoEw10ldNCZ6O4I=",
+          "bound_at": 1795592638,
+          "superseded_at": 1795592639,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ed6fb1a0da04632abf1edce210b272b5",
+          "public_key": "CzfWTum55uiUoVqjvcfbfIRY2R4y0Aj3D/lcCx3hf/k=",
+          "bound_at": 1795592639,
+          "superseded_at": 1795592639,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ce10b15170a7a707333b0cbfa93dcc8f",
+          "public_key": "zHDIg6q8fWaGiAcAacIGwvkFiZQc4SRzXjDduMF7RhY=",
+          "bound_at": 1795592639,
+          "superseded_at": 1795592664,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_355b680d4dc9e49565c4f4b0a0320775",
+          "public_key": "UUp2miiuFTlEjSlzivdhJWbH6gmH8UBW9ceNRcQt8Gs=",
+          "bound_at": 1795592664,
+          "superseded_at": 1795592664,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_ceb6ed8d81af6e862ed84903e3f6f074",
+          "public_key": "CbR5rMI5+O0ZovfFhC5gCdCsM/AP6qPtGstMx4nfYSg=",
+          "bound_at": 1795592664,
+          "superseded_at": 1795592664,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_73e74a5fd13cf68d5f41667c991b0c75",
+          "public_key": "qY9Zomr6m0/T7sCEA3O5T+1qH5oT4aIoeHtj/d59PGs=",
+          "bound_at": 1795592664,
+          "superseded_at": 1795592664,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_72842245bf118448aaf90d172ffae0d6",
+          "public_key": "/Mdu3k00J6B7iM3flgZnAPEguFjTaVxBEPfjc4cuqTE=",
+          "bound_at": 1795592664,
+          "superseded_at": 1795592664,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_e00ead41c8fa49c3503a0bd4bf4dd565",
+          "public_key": "ckAWuvzTTbYsOlU3uWaf9JHxGAjP8U8Os/mD9uY/lH4=",
+          "bound_at": 1795592664,
+          "superseded_at": 1795592665,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_8a54cb45f2b74e2b15866bb314abcaed",
+          "public_key": "8tKOp6KQTJhf3zIf/YLLj1qdnyLcfCB29retv57ygHI=",
+          "bound_at": 1795592665,
+          "superseded_at": 1795592665,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_bc88f8408491632588916a119cede0e9",
+          "public_key": "etR2ZdzEvbUYICJBNCbUMX05p+QpAoK+9NUx1onSkag=",
+          "bound_at": 1795592665,
+          "superseded_at": 1795592666,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_afaf3b1544f5035ded907ddf934c9c9a",
+          "public_key": "JuiQqTGu3OTu0VOKY0tfElylogpoGPzL1YFay1sMOYs=",
+          "bound_at": 1795592666,
+          "superseded_at": 1795592666,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_421e5593d232deb14c5b8b2b4ba754d3",
+          "public_key": "olqQphHRdnGvtevdpI4kAO/suFDXMPt19sYDlG8Hijg=",
+          "bound_at": 1795592666,
+          "superseded_at": 1795592667,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_091048225309e370ee2d417b263c917e",
+          "public_key": "cQ2/Ga4GwpRjFy/o9DSm4IATmPxFZ0j/6oUUj2PczLc=",
+          "bound_at": 1795592667,
+          "superseded_at": 1795592770,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_aec7d94c19b5d26ba9308ac03787003b",
+          "public_key": "TaOUFyNcFU8Sxn7YBD9Hyf+uptxMT7Z3CrCHwz0nNxk=",
+          "bound_at": 1795592770,
+          "superseded_at": 1795592770,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_897c90e39e3bb77a60fcc1c0d826fa06",
+          "public_key": "HYsKolXpHPd6k/tIYBqQiewRX4JNd4Qno3xV+9I/LtA=",
+          "bound_at": 1795592770,
+          "superseded_at": 1795592770,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_0c96773bf3e00a2260f691b52b7fa7e8",
+          "public_key": "O8c7zJgkbGFj+xTI9Ae0EvJLpPIhLlEUBOuzBzmD2E0=",
+          "bound_at": 1795592770,
+          "superseded_at": 1795592770,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_c66b1adef8e0fe3a9b0a581c05d4537a",
+          "public_key": "k48CEP3v1Plfi5FZ3hI0eBLxLAnCsUbLcFUdg3LDWmw=",
+          "bound_at": 1795592770,
+          "superseded_at": 1795592771,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b494fda3e61fb621dac54315e72e2723",
+          "public_key": "1RfUI/eep7qev+sF0d3vhdPDclEfBmi7qjnxQK8s/Vc=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592771,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_0a444b6754d8c2b115af0d7beba0bff6",
+          "public_key": "b+ldyWo0yQLaKrsdpDKWgAnmaSC3kcu/RSZFJlSaik0=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592771,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_51ad8a5029fb0660df3e4368e73709bd",
+          "public_key": "JURciDRxOiQrDYEQiZDSA3ZbgTh6455qB/ojx+UY1KA=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592771,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_9362f25228889fdae1b510dbd68c4714",
+          "public_key": "o8FhKit62bm+QDfgIHP9to5kQMmKcXmsyPjEPOczjfU=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592771,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_03437f0409644978678bd4411e19f416",
+          "public_key": "8pP05s5zjrKyc1KhBpEgEA9aQJEinjzfLLtgrQlV5LQ=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592771,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_81bb60289457894042822d5850edf26c",
+          "public_key": "BxYGPpB1cHx+skMo3xoVESRDon/kdYlWwpFt+oeXoto=",
+          "bound_at": 1795592771,
+          "superseded_at": 1795592858,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_044ba1f28a8a88635b366690f9db51ad",
+          "public_key": "Rr5DJscugtA//u2N+F3az4pBNpMQLblDNoHG3YMbzcE=",
+          "bound_at": 1795592858,
+          "superseded_at": 1795592859,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_cb44c7f19ba499aacb6230c78856033c",
+          "public_key": "UPwMmtP+9c8c4nMaqNBd57QOkNLHSClzn3tV6ir+05g=",
+          "bound_at": 1795592859,
+          "superseded_at": 1795592859,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_b467589609b8a0210becb28d5b9359c2",
+          "public_key": "u/gGsbcX8PC7s93PrWzvnj3Exjq5INxZv7xK+f+h8WM=",
+          "bound_at": 1795592859,
+          "superseded_at": 1795592859,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_4ed22fad35c0a0c81b43082cc5f7d0d5",
+          "public_key": "eQXJFArBMi9vaxVQRswkSZKwpEYLBO69CwYWaZC1YnM=",
+          "bound_at": 1795592859,
+          "superseded_at": 1795592860,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_f7911dc071e0584a582d73849b68104f",
+          "public_key": "JTToNDBTNFnsSNlDupRm9wx2Biud5Gi7y2J6th/KTS4=",
+          "bound_at": 1795592860,
+          "superseded_at": 1795592860,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_befd7df063682541c1efc7f826025cd3",
+          "public_key": "mtalklrRPmJb48x1sd7LbFmMelULpWHcxD2+9VBlAJc=",
+          "bound_at": 1795592860,
+          "superseded_at": 1795592860,
+          "status": "superseded",
+          "rotated_via": "rotation_statement"
+        },
+        {
+          "principal": "hivv_56923b11061357ddc08f87fccddc1c8a",
+          "public_key": "aYcoBBClO+3+ZNpLKa3k2E4ksP9Ji5Hd8c9L5dtyBBc=",
+          "bound_at": 1795592860,
+          "superseded_at": 1795592860,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_deb7aa19a09ad5953aa35c8bdfc8aa0e",
+          "public_key": "u2uQS2w76ayGkIRhNstxw1TI5+aCImxud9IY8/BUJNw=",
+          "bound_at": 1795592860,
+          "superseded_at": 1795592860,
+          "status": "superseded"
+        },
+        {
+          "principal": "hivv_823549625a2f4ea83bd9fcf910cb9ff7",
+          "public_key": "ksgbCzSgvrg+jyXUEA7XO7J3k1xfucjfPz5bL+T2YfA=",
+          "bound_at": 1795592860,
+          "superseded_at": 1795592860,
+          "status": "superseded"
+        }
+      ],
+      "last_ok_at": 1795592860,
+      "last_ok_kind": "node.register",
+      "last_fail": {
+        "reason": "revoked: principal is on the CRL (e2e revocation test)",
+        "at": 1795592860,
+        "kind": "node.register"
+      },
+      "rotated_via_legacy_proof": true,
+      "cap_seq": 1795592860,
+      "manifest": {
+        "seq": 1795592860,
+        "tools": [
+          "web_search",
+          "calculator"
+        ],
+        "tools_port": 8091,
+        "local_models": [
+          {
+            "name": "gemma",
+            "port": 8080
+          }
+        ],
+        "capabilities": [
+          "heartbeat"
+        ],
+        "volunteer": true,
+        "verified_at": 1795592860,
+        "principal": "hivv_f7911dc071e0584a582d73849b68104f"
+      },
+      "receipts": [
+        {
+          "receipt_id": "f29b1bb80a6a01283cb1da76417f12a6",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795590775,
+          "verified_at": 1795590775,
+          "job_id": "P_test",
+          "output_sha256": "78924b6265f7c89262c92f53130d71e3b5d08a86a370da157786ec3a76b87650"
+        },
+        {
+          "receipt_id": "1608b79f07dfb1030efced958049bce3",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795590775,
+          "verified_at": 1795590775,
+          "job_id": "P_test",
+          "output_sha256": "6b8f9a1046753723ce152dd25310d5221423cb4d55781a21e973f291d86731a9"
+        },
+        {
+          "receipt_id": "dcb66f7c5358e590ffde24610f44f9dd",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795591523,
+          "verified_at": 1795591523,
+          "job_id": "P_test",
+          "output_sha256": "b58c3e13302e23bdf602205e9518b955ef77a1e25e3efb2e7564e716c058f6c6"
+        },
+        {
+          "receipt_id": "a314dc87e148a99bf5a980f77a0ddd5b",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795591524,
+          "verified_at": 1795591524,
+          "job_id": "P_test",
+          "output_sha256": "6808cfa8d4167ac2dcab2200a47e1476dc714ad26919537492817e724472791b"
+        },
+        {
+          "receipt_id": "b6cbf20d00ad9ee5177801ccc89c3817",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795591756,
+          "verified_at": 1795591756,
+          "job_id": "P_test",
+          "output_sha256": "9a14bc7d9c7ad3ee9deec383d7aac45989e4aafc921078ab06f067b894316faa"
+        },
+        {
+          "receipt_id": "78a3e1b3e9f92b30b8cd648d5dace84f",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795591756,
+          "verified_at": 1795591756,
+          "job_id": "P_test",
+          "output_sha256": "0d8aa8e516eb75f7f0978dfd4928cc0357e4024b34826e1081d6b6063af04c93"
+        },
+        {
+          "receipt_id": "de7746879788779082aa596fd59b2331",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795591761,
+          "verified_at": 1795591761,
+          "job_id": "P_test",
+          "output_sha256": "cd824fba693d33ae8f8dd549f5c5d5dfdeac26237aee91771ce1b2d8fbef9a10"
+        },
+        {
+          "receipt_id": "e0e5d18de1806b074256f0f586920bac",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795591761,
+          "verified_at": 1795591761,
+          "job_id": "P_test",
+          "output_sha256": "ce74cde66056dd1e45d46a80223fd83e491c24cbe73d37ebab54c8d49121cd69"
+        },
+        {
+          "receipt_id": "cc345addcc4d658d172467a97d4919af",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795591767,
+          "verified_at": 1795591767,
+          "job_id": "P_test",
+          "output_sha256": "28c16f6c8f3de112b1fd7ec7170a469959fc536586eef23bf59a421840501e67"
+        },
+        {
+          "receipt_id": "4eb435de2e769be770b465aa1c43682c",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795591767,
+          "verified_at": 1795591767,
+          "job_id": "P_test",
+          "output_sha256": "a3e4d3e42b2a379eb6b43fbea77c13b8715cba815a915a1ed6fdcd5e4e58c77a"
+        },
+        {
+          "receipt_id": "4bc645ff1695a42b051a4d7cdff04ac4",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795592638,
+          "verified_at": 1795592638,
+          "job_id": "P_test",
+          "output_sha256": "faeec7b46cd38e316ee35544e6a438831857fd8df6d3fdec06304c0a62385782"
+        },
+        {
+          "receipt_id": "c0a2e1f4fa21d66bb48c0cac37f4ad94",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795592639,
+          "verified_at": 1795592639,
+          "job_id": "P_test",
+          "output_sha256": "7c1f9684c363b5b3a677710eee595c3ac0170b0b8760494c4c1ac43c4aed1197"
+        },
+        {
+          "receipt_id": "281c92677344235a7579980dbda2f9cc",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795592666,
+          "verified_at": 1795592666,
+          "job_id": "P_test",
+          "output_sha256": "2366b77ca88b9dbed493549c45c8a3e18ce2e09c4a424af0d9a1f50b2f337801"
+        },
+        {
+          "receipt_id": "eb2012612851bf711068407043ea60ce",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795592666,
+          "verified_at": 1795592666,
+          "job_id": "P_test",
+          "output_sha256": "780d33695237f79cebb958747346a6d594b65b58174e568c4a460f8bdd4e4cf5"
+        },
+        {
+          "receipt_id": "097bb840718e7ea7a7c359af0030a515",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795592771,
+          "verified_at": 1795592771,
+          "job_id": "P_test",
+          "output_sha256": "f3e0c9bcf1fd23452121428caee32945a9ad199eda10f80699e023a0ed99a75d"
+        },
+        {
+          "receipt_id": "4a15cd33f78b795b5fc080e363f57104",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795592771,
+          "verified_at": 1795592771,
+          "job_id": "P_test",
+          "output_sha256": "0270180b81a9a718414f61ec1fdf27c4c66d7e7a27991ab340fcf3fbf4360c31"
+        },
+        {
+          "receipt_id": "6ecf3fb724acf591f42ab883c605b8ac",
+          "op": "cli_update",
+          "result": "ok",
+          "ts": 1795592860,
+          "verified_at": 1795592860,
+          "job_id": "P_test",
+          "output_sha256": "3bc8bac9bf32c1a2444453af1147e74e5f8087850f9331084f84bb9837e9c49e"
+        },
+        {
+          "receipt_id": "cfae1295c15e27d47f8731dd12d9fd06",
+          "op": "agent_restart",
+          "result": "ok",
+          "ts": 1795592860,
+          "verified_at": 1795592860,
+          "job_id": "P_test",
+          "output_sha256": "bd68ef57352ee94e615970f034f52a52dbc2512793f452f8ee018337be13a2f1"
+        }
+      ]
+    },
+    "yalla": {
+      "node_id": "yalla",
+      "principal": "hivv_3b4ca498cf3fe64602a45185b3416b2c",
+      "public_key": "VxJKDh+l1e2DZ/5MwZabxrnwN+kl2tk1mUTE/edRWqY=",
+      "algorithm": "ed25519",
+      "status": "active",
+      "bound_at": 1795592475,
+      "bound_via": "heartbeat",
+      "history": [],
+      "last_ok_at": 1795592817,
+      "last_ok_kind": "capability.manifest",
+      "cap_seq": 16,
+      "manifest": {
+        "seq": 16,
+        "tools": [
+          "time",
+          "calculate",
+          "fetch",
+          "search",
+          "sysinfo",
+          "opencode"
+        ],
+        "tools_port": 18789,
+        "local_models": [
+          {
+            "provider": "llama.cpp:8080",
+            "model": "gemma-4-E2B-it-Q4_K_M.gguf",
+            "loaded": true,
+            "port": 8080
+          }
+        ],
+        "capabilities": [
+          "heartbeat",
+          "cli",
+          "metrics",
+          "signed-requests",
+          "long-poll",
+          "relay"
+        ],
+        "volunteer": true,
+        "verified_at": 1795592817,
+        "principal": "hivv_3b4ca498cf3fe64602a45185b3416b2c"
+      }
+    }
+  },
+  "revocations": {
+    "hivv_bf4f193ef791edad2b5e6f6aafba35d9": {
+      "principal": "hivv_bf4f193ef791edad2b5e6f6aafba35d9",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795591524
+    },
+    "hivv_eb629167a4b06c53c97dd396065f0d11": {
+      "principal": "hivv_eb629167a4b06c53c97dd396065f0d11",
+      "node_id": "__identity_e2e__",
+      "reason": "operator decision (e2e)",
+      "by": "operator",
+      "revoked_at": 1795591524
+    },
+    "hivv_4e443b3e41763a75b738f8b5f06cc757": {
+      "principal": "hivv_4e443b3e41763a75b738f8b5f06cc757",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795591756
+    },
+    "hivv_f8b8ac8e8edb5db39638115edcc00f97": {
+      "principal": "hivv_f8b8ac8e8edb5db39638115edcc00f97",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795591762
+    },
+    "hivv_e4598284155d333fb49eec3d1a310c26": {
+      "principal": "hivv_e4598284155d333fb49eec3d1a310c26",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795591767
+    },
+    "hivv_ed6fb1a0da04632abf1edce210b272b5": {
+      "principal": "hivv_ed6fb1a0da04632abf1edce210b272b5",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795592639
+    },
+    "hivv_421e5593d232deb14c5b8b2b4ba754d3": {
+      "principal": "hivv_421e5593d232deb14c5b8b2b4ba754d3",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795592666
+    },
+    "hivv_03437f0409644978678bd4411e19f416": {
+      "principal": "hivv_03437f0409644978678bd4411e19f416",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795592771
+    },
+    "hivv_823549625a2f4ea83bd9fcf910cb9ff7": {
+      "principal": "hivv_823549625a2f4ea83bd9fcf910cb9ff7",
+      "node_id": "__identity_e2e__",
+      "reason": "e2e revocation test",
+      "by": "self",
+      "revoked_at": 1795592860
+    }
+  },
+  "endorsements": [
+    {
+      "operator_principal": "hivv_20361a63bd6260acdec043b29e5adfab",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_eb629167a4b06c53c97dd396065f0d11",
+      "role": "owner",
+      "statement_ts": 1795591524,
+      "verified_at": 1795591524
+    },
+    {
+      "operator_principal": "hivv_bf9040fde82fa4a08be929497dbc1c1c",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_3ff6fea4801a079c42160a575dd8b81c",
+      "role": "owner",
+      "statement_ts": 1795591756,
+      "verified_at": 1795591756
+    },
+    {
+      "operator_principal": "hivv_873e1fe7b6b59f22078a759a02912aee",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_878d3c82429b016ea855ab930a5ac2bc",
+      "role": "owner",
+      "statement_ts": 1795591762,
+      "verified_at": 1795591762
+    },
+    {
+      "operator_principal": "hivv_29e97199b7cab0069af2642511408ce0",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_10253213794f569460529104e2c17c0b",
+      "role": "owner",
+      "statement_ts": 1795591767,
+      "verified_at": 1795591767
+    },
+    {
+      "operator_principal": "hivv_e12a87e8ee9acca7928934e0c725162e",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_ce10b15170a7a707333b0cbfa93dcc8f",
+      "role": "owner",
+      "statement_ts": 1795592639,
+      "verified_at": 1795592639
+    },
+    {
+      "operator_principal": "hivv_d73fe97dc8fcd7bd4e03fd529c130b4e",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_091048225309e370ee2d417b263c917e",
+      "role": "owner",
+      "statement_ts": 1795592667,
+      "verified_at": 1795592667
+    },
+    {
+      "operator_principal": "hivv_d296def1fdd01376560968e0176b1074",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_81bb60289457894042822d5850edf26c",
+      "role": "owner",
+      "statement_ts": 1795592771,
+      "verified_at": 1795592771
+    },
+    {
+      "operator_principal": "hivv_d1c5e64e5211729b8c0a32a861c7d8fb",
+      "node_id": "__identity_e2e__",
+      "node_principal": "hivv_efb0688a5e48f5a4941e46e959c549b3",
+      "role": "owner",
+      "statement_ts": 1795592860,
+      "verified_at": 1795592860
+    }
+  ]
+}

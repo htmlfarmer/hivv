@@ -1,7 +1,7 @@
 // api/lib/attest.js — signed attestation envelopes (Ed25519).
 //
 // HIVV's copy of the BLNQ attestation module. It MUST stay byte-identical to
-// /var/www/vhosts/blnq.org/public_html/api/lib/attest.js — blnq verifies the
+// blnq.org's own copy of this file (public_html/api/lib/attest.js) verifies the
 // signatures hivv produces here, and both sides canonicalize independently.
 // tests/test_attest_parity.js fails if the two copies ever drift.
 //

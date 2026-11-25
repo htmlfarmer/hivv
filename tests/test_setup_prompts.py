@@ -44,9 +44,14 @@ def drive(cmd: str, answers: list[str], timeout: int = 300):
     stderr and only the INDEX on stdout.
     """
     argv = [sys.executable, str(PTY_DRIVE), cmd, *answers]
+    # The pty makes stdin a TTY, which would otherwise unlock the
+    # interactive-sudo branch (d_can_prompt_sudo) — and the harness has
+    # nobody to type a password. Force the unattended behaviour.
+    env = dict(os.environ, HIVV_NO_SUDO_PROMPT="1")
     try:
         p = subprocess.run(
-            argv, capture_output=True, text=True, timeout=timeout, cwd=str(ROOT)
+            argv, capture_output=True, text=True, timeout=timeout, cwd=str(ROOT),
+            env=env,
         )
         raw = p.stdout + p.stderr
         out = _between(raw, "===STDOUT===", "===STDERR===")

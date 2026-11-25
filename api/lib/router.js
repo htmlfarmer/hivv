@@ -3,6 +3,10 @@ const CircuitBreaker = require('./circuit-breaker');
 
 const { PROVIDER_DEFAULTS } = require('./providers');
 const { looksDegenerate } = require('./degenerate');
+// The scoring vector: every candidate gets the same factors, a mode is a
+// weight table over them. See HIVV_ROUTING_PLAN.md §7.
+const routeFactors = require('./route-factors');
+const trustLib = require('./trust');
 
 // ── token budgeting ────────────────────────────────────────────────────────
 //
@@ -299,6 +303,10 @@ class AIRouter {
         this.caps = null;
         this._rankCache = { map: new Map(), at: 0 };
         this._priceMap = new Map();
+        // geoIP of THIS box (geography factor) — null until detectHubLocation
+        // lands, and null forever when routing.hub_location says 'off'.
+        this._hubGeo = null;
+        this._hubGeoAt = 0;
         this._routeCfg = {
             jitter: 8, unknown_tps: 8,
             quality_weights: { 'gpt-4': 10, 'o1': 10, 'o3': 10, claude: 10, gemini: 9, llama: 8, qwen: 8, gemma: 7, mistral: 7, phi: 5 },
@@ -346,6 +354,10 @@ class AIRouter {
         await this.loadProviders();
         await this.loadKeys();
         await this.loadConfig();
+        // Geography factor: where IS this hub. Fire-and-forget — a 4s geoIP
+        // timeout must never hold the boot, and the factor simply stays NEUTRAL
+        // until it lands (or forever, if the box is offline / 'off' is set).
+        this.detectHubLocation().catch(() => {});
         await this.discoverLocalEndpoints();
     }
 
@@ -446,19 +458,143 @@ class AIRouter {
     // Model families known to emit OpenAI tool_calls through /v1/chat/completions.
     static TOOL_CAPABLE_RE = /(gpt-|gpt-?oss|\bo[134]\b|claude|gemini|gemma|qwen|llama-?3|llama3|mistral|ministral|codestral|devstral|command-r|nemo|granite|codellama|starcoder|deepseek|phi-?[34]|glm|kimi|minicpm|aya)/i;
 
+    // ── target introspection (feeds the factor vector) ──────────────────────
+    // The registered node behind a target. Capacity, queue and geography all
+    // live on the heartbeat, not on the endpoint — so a scored candidate that
+    // has no node (hub-local discovery entry, cloud key) gets NEUTRAL for them.
+    _nodeForTarget(t) {
+        if (!this.orchestrator) return null;
+        if (t.nodeId) return this.orchestrator.nodes.get(t.nodeId) || null;
+        try { return this._nodeByHost(new URL(t.url).hostname); } catch (_e) { return null; }
+    }
+
+    // Address used to reach this candidate (for the LAN/public privacy split).
+    _addressOf(t, node) {
+        try {
+            if (!this._isLocalUrl(t.url)) return new URL(t.url).hostname;
+        } catch (_e) { /* fall through to the node's own address */ }
+        return node?.lan_ip || node?.ip || '';
+    }
+
+    // RFC1918 / loopback / link-local / ULA. Anything unparseable is NOT
+    // assumed private — an address we cannot read is an address we cannot
+    // vouch for, and privacy is the one factor where guessing wrong is costly.
+    _isPrivateAddress(addr) {
+        const a = String(addr || '').replace(/^\[|\]$/g, '').split('%')[0];
+        if (!a) return false;
+        if (a === 'localhost') return true;
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(a)) {
+            const [x, y] = a.split('.').map(Number);
+            if (x === 10 || x === 127 || x === 0) return true;
+            if (x === 172 && y >= 16 && y <= 31) return true;
+            if (x === 192 && y === 168) return true;
+            if (x === 169 && y === 254) return true;
+            return false;
+        }
+        if (a.includes(':')) return /^(f[cd]|fe[89ab])/i.test(a); // fc00::/7, fe80::/10
+        return false;
+    }
+
+    // What does THIS request need from a candidate? Tri-state: null = not
+    // applicable, so an ordinary chat message scores capability NEUTRAL rather
+    // than a meaningless 1.0. Tools stay a hard filter upstream too — this is
+    // the SOFT half, which only matters once several candidates already pass.
+    _taskRequirements(t, options = {}) {
+        let contextOk = null;
+        const promptEst = Number(options.promptEst) || 0;
+        if (promptEst > 0) {
+            const ctx = contextWindowFor(t.model || '', options.contextWindow);
+            // prompt + room to actually answer: a model that cannot hold it will
+            // 413 anyway, so prefer one that can instead of discovering it late.
+            contextOk = ctx >= promptEst + 512;
+        }
+        const toolsOk = (options.tools && options.tools.length) ? this._toolCapable(t) : null;
+        return { contextOk, toolsOk };
+    }
+
+    // Relay occupancy for a node — NULL when we cannot measure it (never 0,
+    // which would read as "idle" and reward the absence of data).
+    _relayActiveFor(node) {
+        if (!node || !this.relay?.activeForNode) return null;
+        try { return this.relay.activeForNode(node.node_id) || 0; } catch (_e) { return null; }
+    }
+
+    // Where is the HUB? The geography factor compares against this.
+    // gateway_config.routing.hub_location wins ('off' disables the factor);
+    // otherwise a cached geoIP lookup of this box's own address (the same call
+    // the agent makes). Never blocks a request: returns null until it lands and
+    // geography stays NEUTRAL — an unknown distance is not a far one.
+    _hubLocation() {
+        const cfgLoc = this._routeCfg.hub_location;
+        if (cfgLoc === 'off' || cfgLoc === false) return null;
+        if (cfgLoc && typeof cfgLoc === 'object') return cfgLoc;
+        return this._hubGeo || null;
+    }
+
+    async detectHubLocation() {
+        if (this._routeCfg.hub_location === 'off' || this._routeCfg.hub_location === false) return null;
+        const TTL = 3600000; // 1h — this box does not move
+        if (this._hubGeoAt && Date.now() - this._hubGeoAt < TTL) return this._hubGeo || null;
+        this._hubGeoAt = Date.now();
+        try {
+            const res = await fetch(
+                'http://ip-api.com/json/?fields=status,country,countryCode,regionName,city,lat,lon',
+                { signal: AbortSignal.timeout(4000) });
+            const j = await res.json();
+            if (j && j.status === 'success' && Number.isFinite(Number(j.lat))) {
+                this._hubGeo = { lat: Number(j.lat), lon: Number(j.lon),
+                                 country_code: j.countryCode || '', city: j.city || '' };
+            }
+        } catch (_e) { /* offline / blocked → geography stays neutral */ }
+        return this._hubGeo || null;
+    }
+
     // Score every candidate under the requested mode; returns sorted [{t, score, dbg}]
+    //
+    // FACTOR ROUTING (HIVV_ROUTING_PLAN.md §7). Every candidate is reduced to
+    // the SAME vector of factors in [0,1] (route-factors.js), and a mode is
+    // nothing but a weight table over that vector:
+    //
+    //     score = 100 · Σ(wᵢ·fᵢ) / Σ(wᵢ)          ∈ [0,100]
+    //
+    // The old switch(mode) with its five ad-hoc formulas is gone. What remains
+    // after the weighted sum are exactly two adjustments that are NOT
+    // preferences about which bee is better:
+    //   · bigPrompt — prompt-processing speed dominates (OpenCode ships a 5k
+    //     token system prompt on every turn), mode intent survives at 30%
+    //   · sticky    — a warm prompt cache beats any cold candidate
+    // plus one line of jitter, so unknown bees keep getting traffic.
     async _scoreTargets(targets, mode = 'balanced', options = {}) {
         let rank = null;
         try { rank = this.perf ? this.perf.ranking() : null; } catch (_e) {}
-        const tpsCache = new Map(); const latCache = new Map(); const okCache = new Map(); const ptpsCache = new Map();
+        // ONE map keyed node::model rather than five parallel caches. This is
+        // what makes "this pair exists but has never produced a TTFT"
+        // distinguishable from "no data for this pair" — with per-signal maps a
+        // model that had no TTFT of its own fell through to the host prefix and
+        // silently borrowed a SIBLING model's TTFT (seen live: three localhost
+        // endpoints all reporting the same 293ms because only one had answered).
+        const stats = new Map();
         if (rank) {
             for (const r of rank) {
                 if (r.via && r.via !== 'direct') continue; // relay tps includes queue+poll wait — never a direct-speed signal
-                if (!(r.ok > 0)) continue;                 // error-only rows carry NO speed signal — else a dead bee (0ms/0tps) wins fast mode
                 const k = `${r.node}::${r.model}`;
-                if (r.tps > 0) tpsCache.set(k, Math.max(tpsCache.get(k) || 0, r.tps));
-                if (r.prompt_tps > 0) ptpsCache.set(k, Math.max(ptpsCache.get(k) || 0, r.prompt_tps));
-                if (r.latency_ms > 0 && (!latCache.has(k) || r.latency_ms < latCache.get(k))) latCache.set(k, r.latency_ms);
+                let s = stats.get(k);
+                if (!s) { s = { tps: 0, ptps: 0, lat: 0, ttfb: 0, okRate: null }; stats.set(k, s); }
+                // Error-only rows (ok=0) are KEPT, deliberately. Skipping them
+                // made the exact pair absent, so the candidate fell back to the
+                // host prefix and inherited a HEALTHY sibling's tps/TTFT — a
+                // model that had failed 6/6 looked as fast as the one serving
+                // traffic. Their counters stay 0 (→ the unknown/pessimistic
+                // priors: no speed signal, the 5000ms latency prior), and their
+                // okRate is 0 → the reliability FLOOR of 0.25, which is exactly
+                // what that floor is for: reachable, never outranking a healthy bee.
+                if (r.tps > 0) s.tps = Math.max(s.tps, r.tps);
+                if (r.prompt_tps > 0) s.ptps = Math.max(s.ptps, r.prompt_tps);
+                if (r.latency_ms > 0) s.lat = s.lat > 0 ? Math.min(s.lat, r.latency_ms) : r.latency_ms;
+                // TTFT — the real "when did words start" number, written by the
+                // stream loop. Distinct from latency_ms (full completion), which
+                // only ever OVERSTATES how long a user waited for the first byte.
+                if (r.ttfb_ms > 0) s.ttfb = s.ttfb > 0 ? Math.min(s.ttfb, r.ttfb_ms) : r.ttfb_ms;
                 // Reliability: how often this model actually answered. A bee whose
                 // model errors on 1 request in 3 is NOT a fast bee, it is a broken
                 // one — without this the tps lottery kept handing long prompts to
@@ -466,51 +602,94 @@ class AIRouter {
                 const total = (r.ok || 0) + (r.err || 0);
                 if (total > 0) {
                     const rate = (r.ok || 0) / total;
-                    if (!okCache.has(k) || rate > okCache.get(k)) okCache.set(k, rate);
+                    if (s.okRate == null || rate > s.okRate) s.okRate = rate;
                 }
             }
         }
         const rankMap = mode === 'trusted' ? await this._ensureRanks() : new Map();
         const RANK_SCORE = { 'queen-bee': 6, 'royal-jelly': 5, scout: 4, forager: 3, worker: 2, larva: 1 };
         const cfg = this._routeCfg;
+        const weights = routeFactors.weightsFor(mode, cfg.weights);
         const stick = this._stickyGet(options);
         const bigPrompt = (options.promptEst || 0) > 1200; // ≈OpenCode's 5k-token system prompt
+        const hubLoc = this._hubLocation();
+        // Prefer the EXACT (node, model) pair: a bee serving two models must not
+        // hand both candidates the same tps/latency (the old label-only match
+        // aggregated across models, so on masjid the Qwen and the gemma were
+        // scored identically). Fall back to the HOST only when we have never
+        // seen this pair — an endpoint whose model name we have not measured yet
+        // still gets the host's numbers. Because `stats` is keyed by the pair,
+        // "seen but TTFT-less" correctly stays null instead of borrowing.
+        const statsFor = (label, exactKey) => {
+            const exact = stats.get(exactKey);
+            if (exact) return exact;
+            let out = null;
+            const pfx = `${label}::`;
+            for (const [k, s] of stats) {
+                if (!k.startsWith(pfx)) continue;
+                if (!out) { out = { ...s }; continue; }
+                out.tps = Math.max(out.tps, s.tps);
+                out.ptps = Math.max(out.ptps, s.ptps);
+                if (s.lat > 0) out.lat = out.lat > 0 ? Math.min(out.lat, s.lat) : s.lat;
+                if (s.ttfb > 0) out.ttfb = out.ttfb > 0 ? Math.min(out.ttfb, s.ttfb) : s.ttfb;
+                if (s.okRate != null && (out.okRate == null || s.okRate > out.okRate)) out.okRate = s.okRate;
+            }
+            return out;
+        };
         const scored = targets.map(t => {
             const label = this._routeLabel(t);
-            const knownTps = [...tpsCache.entries()].filter(([k]) => k.startsWith(`${label}::`)).map(([, v]) => v);
-            const knownPtps = [...ptpsCache.entries()].filter(([k]) => k.startsWith(`${label}::`)).map(([, v]) => v);
-            const knownLat = [...latCache.entries()].filter(([k]) => k.startsWith(`${label}::`)).map(([, v]) => v);
-            const knownOk = [...okCache.entries()].filter(([k]) => k.startsWith(`${label}::`)).map(([, v]) => v);
-            const tps = knownTps.length ? Math.max(...knownTps) : cfg.unknown_tps;
+            const st = statsFor(label, `${label}::${AIRouter._prettyModel(t.model || 'local')}`);
+            const tps = st && st.tps > 0 ? st.tps : cfg.unknown_tps;
             // prompt-processing speed: unknown bees get a modest 300 t/s prior so
             // measured-fast prompt caches beat them, but unknown isn't zero
-            const ptps = knownPtps.length ? Math.max(...knownPtps) : 300;
-            const lat = knownLat.length ? Math.min(...knownLat) : 5000;
+            const ptps = st && st.ptps > 0 ? st.ptps : 300;
+            // 5000ms is the PESSIMISTIC prior for an unmeasured bee (the old fast
+            // mode's default) — not 'no data'. An unknown latency must not read
+            // as 'probably fast'.
+            const lat = st && st.lat > 0 ? st.lat : 5000;
+            const ttfb = st && st.ttfb > 0 ? st.ttfb : null;
             // rel ∈ [0.25, 1] — a flaky model keeps a floor (so it is still
             // reachable when it is the only bee left) but never outranks a
             // healthy one. 0.25 + 0.75 * successRate²
-            const rel = knownOk.length ? 0.25 + 0.75 * Math.pow(Math.max(...knownOk), 2) : 1;
+            const rel = st && st.okRate != null ? 0.25 + 0.75 * Math.pow(st.okRate, 2) : 1;
+            const okRate = st ? st.okRate : null;
             const bee = rankMap.get(label);
-            const trust = RANK_SCORE[bee?.bee_rank] || 0;
-            const free = this._isLocalUrl(t.url) || t.nodeId ? 100 : 0;
-            let score;
-            switch (mode) {
-            case 'quality': score = this._qualityOf(t.model) * 12 + tps * 0.15 * rel + Math.random() * 4; break;
-            case 'fast':    score = (20000 / Math.max(lat, 50)) * rel + Math.random() * 4; break;
-            case 'cost':    score = free + tps * 0.1 * rel + Math.random() * 4; break;
-            case 'trusted': score = trust * 20 + tps * 0.1 * rel + Math.random() * 4; break;
-            case 'private':
-            case 'balanced':
-            default:        score = tps * rel + Math.random() * cfg.jitter;
-            }
+            const honeyRankScore = RANK_SCORE[bee?.bee_rank] || 0;
+            const isLocal = this._isLocalUrl(t.url);
+            const isPeer = !!t.nodeId;
+            const node = this._nodeForTarget(t);
+            // MEASURED trust (Phase 5): identity binding + reliability +
+            // signed receipts, blended with honey rank — falls back to the
+            // legacy honey-only score when there is no data to measure.
+            const trust = trustLib.routerTrustScore(node, honeyRankScore);
+            const reqs = this._taskRequirements(t, options);
+            const price = this._priceMap.get(t.provider) || this._priceMap.get(t.name);
+            const priceUsd = price ? (price.in * 256 + price.out * 512) / 1e6 : null;
+            const built = routeFactors.computeFactors({
+                ttfbMs: ttfb, latMs: lat, tps, unknownTps: cfg.unknown_tps,
+                gpus: node?.gpus || node?.metrics?.gpus || null,
+                memPct: node?.metrics?.mem_pct ?? null,
+                maxJobs: node ? (node.max_concurrent_jobs ?? null) : null,
+                activeTasks: node ? (node.active_tasks ?? 0) : null,
+                relayActive: node ? (this._relayActiveFor(node) ?? 0) : null,
+                okRate,
+                qualityScore: this._qualityOf(t.model),
+                free: isLocal || isPeer,
+                priceUsd,
+                isLocal, isPeer,
+                isPublicPeer: isPeer && !this._isPrivateAddress(this._addressOf(t, node)),
+                hubLoc, nodeLoc: node?.location || null,
+                contextOk: reqs.contextOk, toolsOk: reqs.toolsOk,
+                trustScore: trust,
+            });
+            const f = built.factors;
+            let score = routeFactors.scoreWith(weights, f);
             // BIG PROMPT (≈OpenCode): a cold 5k-token prompt costs 15-45s on a
             // slow bee — prompt-processing speed becomes the dominant term;
             // hub-local gets a bonus (no LAN hop, most likely warm cache).
             // The mode's intent survives at reduced weight.
             if (bigPrompt) {
-                score = ptps * 0.05 * rel + score * 0.3
-                      + (this._isLocalUrl(t.url) ? 30 : 0)
-                      + Math.random() * cfg.jitter;
+                score = ptps * 0.05 * rel + score * 0.3 + (isLocal ? 30 : 0);
             }
             // WARM STICKY: a principal returning within 3 min keeps their bee —
             // the warm prompt cache beats any cold candidate (skip if unhealthy).
@@ -518,7 +697,12 @@ class AIRouter {
                 `${label}::${AIRouter._prettyModel(t.model || 'local')}` === stick) {
                 score += 45;
             }
-            return { t, score, dbg: { node: label, model: AIRouter._prettyModel(t.model || 'local'), tps: Math.round(tps), prompt_tps: Math.round(ptps), latency_ms: Math.round(lat), quality: this._qualityOf(t.model), trust, free: free > 0, reliability: Number(rel.toFixed(3)) } };
+            // ONE line of jitter (epsilon-greedy): unknown bees stay warm without
+            // ever being able to outrank a measured one on the factors alone.
+            score += Math.random() * cfg.jitter;
+            const roundF = {};
+            for (const k of routeFactors.FACTORS) roundF[k] = Number(f[k].toFixed(3));
+            return { t, score, dbg: { node: label, model: AIRouter._prettyModel(t.model || 'local'), tps: Math.round(tps), prompt_tps: Math.round(ptps), latency_ms: Math.round(lat), ttfb_ms: ttfb == null ? null : Math.round(ttfb), quality: this._qualityOf(t.model), trust, free: isLocal || isPeer, reliability: Number(rel.toFixed(3)), factors: roundF } };
         });
         scored.sort((a, b) => b.score - a.score);
         return scored;
@@ -566,9 +750,40 @@ class AIRouter {
                 cloud.push({ provider: p.name, cost_per_512_out_est_usd: +(price.out / 1e6 * 512).toFixed(4) });
             }
         }
+        // Explain the decision: the weight table that produced these scores,
+        // plus which factors each candidate actually had DATA for. A dry-run
+        // that only prints a number is a number nobody can argue with.
+        const weights = routeFactors.weightsFor(mode, this._routeCfg.weights);
+        const hubLoc = this._hubLocation();
+        // gateway_config.routing.weights has TWO shapes in the wild. Per-mode
+        // (weights.<mode>.<factor>) is the contract and IS applied. A FLAT map
+        // (weights.<factor>) predates this feature and was never read by the old
+        // switch(mode) — applying it now would silently rewrite modes nobody
+        // asked to change (e.g. {latency: 0.4} would drop fast mode's 2.0 to
+        // 0.4 and stop it caring about latency). So: report it, never guess it.
+        const wCfg = this._routeCfg.weights && typeof this._routeCfg.weights === 'object'
+            ? this._routeCfg.weights : {};
+        const appliedModes = Object.keys(wCfg).filter(k => wCfg[k] && typeof wCfg[k] === 'object');
+        const flatWeights = Object.fromEntries(
+            Object.entries(wCfg).filter(([, v]) => typeof v === 'number' && Number.isFinite(v)));
         return {
             capability, mode, privacy,
             policy: gate,
+            routing: {
+                score: '100 · Σ(weight × factor) / Σ(weight)',
+                weights,
+                weight_total: +routeFactors.weightTotal(weights).toFixed(2),
+                factors: routeFactors.FACTORS,
+                // 'unknown' → the geography factor is NEUTRAL for everyone right now
+                hub_location: hubLoc ? (hubLoc.city || hubLoc.country_code || 'set') : 'unknown',
+                // modes whose weight table was merged over the defaults
+                overrides: appliedModes,
+                // a flat weights map is reported, not applied (see above)
+                unapplied_weights: Object.keys(flatWeights).length ? flatWeights : null,
+                unapplied_note: Object.keys(flatWeights).length
+                    ? 'flat gateway_config.routing.weights is NOT applied — rekey it as routing.weights.<mode>.<factor>'
+                    : null,
+            },
             transports: {
                 direct: scored.slice(0, 10).map(s => ({ ...s.dbg, score: +s.score.toFixed(1) })),
                 relay,
@@ -703,7 +918,18 @@ class AIRouter {
                                 const latency = Date.now() - startTime;
                                 // < 400ms = IDLE (Spare time available!)
                                 // > 1000ms = BUSY (Owner is using it, protect that time!)
-                                this.spareTimeTracker.set(ep.url, { idle: latency < 400, latency: latency, ts: Date.now() });
+                                //
+                                // A DELEGATED endpoint is not a local model: it forwards
+                                // the request to remote compute (a KwaaiNet node resolves
+                                // a block chain through the libp2p hivemind DHT, so one
+                                // answer crosses several machines). Its latency measures
+                                // that chain, not local contention on this box, so the
+                                // 400ms idle threshold would read every healthy
+                                // distributed endpoint as "the owner is using it" and
+                                // skip it forever. Delegated endpoints get their own
+                                // threshold; a direct local model keeps the strict one.
+                                const idleThreshold = ep.delegated ? 3000 : 400;
+                                this.spareTimeTracker.set(ep.url, { idle: latency < idleThreshold, latency: latency, ts: Date.now() });
                             } else {
                                 this.spareTimeTracker.delete(ep.url);
                             }
@@ -739,10 +965,25 @@ class AIRouter {
         const envEndpoints = process.env.HIVV_LOCAL_ENDPOINTS || process.env.LOCAL_AI_ENDPOINTS || '';
         if (envEndpoints) {
             for (const url of envEndpoints.split(',').map(s => s.trim()).filter(Boolean)) {
-                const probeUrl = url.includes('/chat/completions') ? url.replace('/chat/completions', '/models') : url;
+                const probeUrl = url.split('?')[0].includes('/chat/completions')
+                    ? url.split('?')[0].replace('/chat/completions', '/models')
+                    : url.split('?')[0];
                 const existing = discoveryEndpoints.find(e => e.url === url || e.probeUrl === probeUrl);
                 if (!existing) {
-                    discoveryEndpoints.push({ probeUrl, url: url.includes('/models') ? url.replace('/models', '/chat/completions') : url, name: `remote-${new URL(url).hostname}`, provider: 'ollama' });
+                    // A '?delegated=1' suffix marks an endpoint that forwards to
+                    // remote compute rather than serving a local model. It rides
+                    // on the URL because HIVV_LOCAL_ENDPOINTS is a plain comma
+                    // list of URLs and we do not want to invent a second
+                    // configuration file for one flag.
+                    const delegated = new URL(url).searchParams.get('delegated') === '1';
+                    const clean = url.split('?')[0];
+                    discoveryEndpoints.push({
+                        probeUrl,
+                        url: clean.includes('/models') ? clean.replace('/models', '/chat/completions') : clean,
+                        name: `remote-${new URL(clean).hostname}`,
+                        provider: 'ollama',
+                        delegated
+                    });
                 }
             }
         }
@@ -1183,6 +1424,10 @@ class AIRouter {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let totalTokens = 0;
+                // TTFT: the instant the FIRST word reaches the client. Distinct
+                // from startTime→done (which is the whole reply) — this is the
+                // number the routing latency factor ranks on.
+                let firstTokenAt = 0;
                 // Bounded sample of the actual answer text — the quality gate at
                 // stream end must never become a memory problem for long outputs.
                 let qualityBuf = '';
@@ -1223,6 +1468,7 @@ class AIRouter {
                             // Count tokens after sanitization
                             if (parsed.choices?.[0]?.delta?.content) {
                                 totalTokens++;
+                                if (!firstTokenAt) firstTokenAt = Date.now();
                                 if (qualityBuf.length < 4000) qualityBuf += parsed.choices[0].delta.content;
                             }
                             if (parsed.timings) {
@@ -1260,11 +1506,26 @@ class AIRouter {
                             const parsed = JSON.parse(line);
                             if (parsed.choices?.[0]?.delta?.content) {
                                 totalTokens++;
+                                if (!firstTokenAt) firstTokenAt = Date.now();
                                 if (qualityBuf.length < 4000) qualityBuf += parsed.choices[0].delta.content;
+                            } else if (parsed.choices?.[0]?.message?.content) {
+                                // NON-STREAMING answer: one JSON body, no deltas.
+                                // Without this branch the reply counted ZERO tokens
+                                // (so it contributed no speed signal at all) and
+                                // never set a TTFT. For a non-streaming reply the
+                                // body arriving IS the first visible token — that
+                                // is the honest TTFT for this transport.
+                                const txt = parsed.choices[0].message.content;
+                                if (txt) {
+                                    totalTokens += Math.max(1, Math.round(String(txt).length / 4));
+                                    if (!firstTokenAt) firstTokenAt = Date.now();
+                                    if (qualityBuf.length < 4000) qualityBuf += String(txt);
+                                }
                             }
                             if (parsed.timings) backendTps = parsed.timings.predicted_per_second || 0;
                             // Preserve tool_calls — wrap as SSE frame so parseSSE() can extract them
                             if (parsed.choices?.[0]?.message?.tool_calls) {
+                                if (!firstTokenAt) firstTokenAt = Date.now();
                                 outputLine = 'data: ' + JSON.stringify(parsed);
                             }
                         } catch {}
@@ -1293,7 +1554,38 @@ class AIRouter {
                 // ok:false on a degenerate answer: the EWMA reliability factor then
                 // punishes this bee's score, so a fast garbage model gets routed
                 // LESS traffic instead of winning the speed lottery (network guard).
-                this.perf?.record({ node: routeNode, model: routeModel, tps: tokensPerSec, latencyMs: Math.round(elapsed * 1000), ok: !looksDegenerate(qualityBuf), promptTps });
+                // ttfbMs = request sent → first word: the latency FACTOR reads this,
+                // latencyMs (whole reply) is kept for the duration picture.
+                this.perf?.record({
+                    node: routeNode, model: routeModel, tps: tokensPerSec,
+                    latencyMs: Math.round(elapsed * 1000),
+                    ttfbMs: firstTokenAt ? firstTokenAt - startTime : 0,
+                    ok: !looksDegenerate(qualityBuf), promptTps,
+                });
+
+                // DEEPER TELEMETRY — the bee-level span. This is the second
+                // hop of the waterfall: the request span above says "the hive
+                // answered"; THIS says which machine answered, how fast, and
+                // whether the answer was worth listening to.
+                try {
+                    const telemetry = require('./telemetry');
+                    const parent = options.trace || null;
+                    const child = parent ? telemetry.childContext(parent) : telemetry.startContext(null);
+                    telemetry.span(child, {
+                        name: 'bee.completion',
+                        kind: 'server',
+                        status: looksDegenerate(qualityBuf) ? 'error' : 'ok',
+                        error_class: looksDegenerate(qualityBuf) ? 'empty_completion' : null,
+                        attributes: {
+                            node: routeNode,
+                            model: routeModel,
+                            transport: 'direct',
+                        },
+                    });
+                    telemetry.histogram('bee_completion_ms', { node: routeNode, model: routeModel }, Math.round(elapsed * 1000));
+                    telemetry.histogram('bee_tokens_per_sec', { node: routeNode, model: routeModel }, tokensPerSec);
+                    telemetry.counter('bee_completions_total', { node: routeNode, model: routeModel, status: looksDegenerate(qualityBuf) ? 'degenerate' : 'ok' });
+                } catch (_e) { /* telemetry must never break a completion */ }
                 // warm-cache stickiness: same principal back within 3 min → same bee
                 this._stickySet(options, `${routeNode}::${AIRouter._prettyModel(local.model || 'local')}`);
 
@@ -1561,6 +1853,22 @@ class AIRouter {
                         console.log(`[RELAY] stream write failed: ${e.message}`);
                     }
                     this.perf?.record({ node: nodeName, model, tps, latencyMs: elapsedMs, ok: true, via: 'relay' });
+                    // DEEPER TELEMETRY — the relay hop of the waterfall. The
+                    // bee is behind NAT here: the hub could not reach it
+                    // directly, it went through the inbox. Saying so is the
+                    // difference between "slow model" and "slow network".
+                    try {
+                        const telemetry = require('./telemetry');
+                        const parent = options.trace || null;
+                        const child = parent ? telemetry.childContext(parent) : telemetry.startContext(null);
+                        telemetry.span(child, {
+                            name: 'bee.completion',
+                            kind: 'server',
+                            attributes: { node: nodeName, model, transport: 'relay' },
+                        });
+                        telemetry.histogram('bee_completion_ms', { node: nodeName, model }, elapsedMs);
+                        telemetry.counter('bee_completions_total', { node: nodeName, model, status: 'ok' });
+                    } catch (_e) { /* telemetry must never break a completion */ }
                     options.onRoute?.({ node: nodeName, model, via: 'relay' });
                     return { ok: true, provider: route, tokensPerSec: tps, totalTokens: approxTokens, servedModel: model, answeredBy: route };
                 }
@@ -1647,6 +1955,9 @@ class AIRouter {
                 privacy: options.privacy,
                 policyReceipt: options.policyReceipt,
                 gen: options.gen,
+                // The trace context travels down so the bee-level span is a
+                // CHILD of the request span, not a separate story.
+                trace: options.trace,
             });
             if (localRes.ok) {return localRes;}
 
@@ -1724,8 +2035,23 @@ class AIRouter {
     async chatCompletion(messages, options = {}) {
         const { model, stream = true, provider, userId, apiUrl, api_url, tools, toolChoice } = options;
 
+        // ── DEEPER TELEMETRY: one trace per request ──────────────────────
+        // Every chat path on the hive funnels through here — /api/chat,
+        // /v1/chat/completions, MCP, A2A and the hive-to-hive bridge — so
+        // this is the ONE place where a request becomes a span.
+        //
+        // An inbound W3C `traceparent` is INHERITED, so a request that
+        // arrives from a peer hive keeps its trace_id across the crossing
+        // and the waterfall reads as one story, not two.
+        const telemetry = require('./telemetry');
+        const traceCtx = telemetry.startContext(
+            options.traceparent ? telemetry.parseTraceparent(options.traceparent) : null
+        );
+        const traceStarted = Date.now();
+
         const capture = new StreamCapture();
         const rOpts = {
+            trace: traceCtx,
             preferredProvider: provider,
             preferredModel: model,
             userId,
@@ -1750,11 +2076,61 @@ class AIRouter {
         };
         const res = await this.routeWithFailover(messages, rOpts);
 
-        if (!res.ok) {return res;}
+        if (!res.ok) {
+            // A failure is still a measurement: WHICH class it was is the
+            // whole point of the taxonomy. countError() normalises it.
+            telemetry.countError(res.error || new Error('route failed'), { status: res.status });
+            telemetry.counter('requests_total', {
+                endpoint: options.endpoint || 'chat',
+                transport: 'failed',
+                status: 'error',
+            });
+            telemetry.histogram('request_duration_ms', {
+                transport: 'failed',
+                endpoint: options.endpoint || 'chat',
+            }, Date.now() - traceStarted);
+            telemetry.span(traceCtx, {
+                name: 'hive.chat',
+                kind: 'server',
+                status: 'error',
+                error_class: telemetry.classifyError(res.error || new Error('route failed'), { status: res.status }),
+                attributes: { endpoint: options.endpoint || 'chat', transport: 'failed' },
+            });
+            return res;
+        }
 
         // routeWithFailover stamps rOpts.policyReceipt (the gate's ALLOW rule) —
         // surface it so the non-streaming path can set X-Hivv-Policy too.
         const policyReceipt = rOpts.policyReceipt || null;
+
+        // The request-level measurement: ONE counter, ONE histogram sample,
+        // ONE root span. The transport is read from the receipt the router
+        // already stamps ("node/model (direct)" or "(relay)").
+        const answeredBy = res.answeredBy || '';
+        const transport = /\(relay\)/.test(answeredBy) ? 'relay'
+            : /\(direct\)/.test(answeredBy) ? 'direct'
+            : 'cloud';
+        const servedModel = res.servedModel || res.provider || 'unknown';
+        telemetry.counter('requests_total', {
+            endpoint: options.endpoint || 'chat',
+            transport,
+            status: 'success',
+        });
+        telemetry.histogram('request_duration_ms', {
+            transport,
+            endpoint: options.endpoint || 'chat',
+            model: servedModel,
+        }, Date.now() - traceStarted);
+        telemetry.span(traceCtx, {
+            name: 'hive.chat',
+            kind: 'server',
+            attributes: {
+                endpoint: options.endpoint || 'chat',
+                transport,
+                model: servedModel,
+                answered_by: answeredBy,
+            },
+        });
 
         if (!stream) {
             const parsed = capture.parseSSE();

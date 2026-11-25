@@ -4,7 +4,18 @@
    "tests/test_direct_messaging.py"
   ],
   "api": [
+   "tests/test_telemetry_tasks_a2a.py",
    "tests/test_toolkit.py"
+  ],
+  "api/ecosystem.config.js": [
+   "tests/test_location_independence.py"
+  ],
+  "api/lib/a2a-client.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/lib/attest.js": [
+   "api/tests/identity.test.js",
+   "tests/test_identity_cli.py"
   ],
   "api/lib/brainboard.js": [
    "api/tests/brainboard.test.js"
@@ -28,15 +39,53 @@
    "api/tests/fast-scan.test.js",
    "tests/test_fast_scan_parity.py"
   ],
+  "api/lib/hive-clients.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/lib/identity.js": [
+   "api/tests/identity.test.js",
+   "tests/test_identity_cli.py"
+  ],
   "api/lib/local-mode.js": [
    "api/tests/local-mode.test.js"
   ],
   "api/lib/locked-llm.js": [
    "api/tests/locked-llm.test.js"
   ],
+  "api/lib/mcp-client.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/lib/orchestrator.js": [
+   "api/tests/quarantine-recovery.test.js",
+   "tests/test_resume_not_reregister.py"
+  ],
+  "api/lib/polite.js": [
+   "api/tests/polite.test.js"
+  ],
   "api/lib/request-provenance.js": [
    "api/tests/provenance-schema.test.js",
    "api/tests/request-provenance.test.js"
+  ],
+  "api/lib/route-factors.js": [
+   "api/tests/route-factors.test.js"
+  ],
+  "api/lib/router.js": [
+   "api/tests/route-factors.test.js"
+  ],
+  "api/lib/ssrf.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/lib/task-queue.js": [
+   "api/tests/task-queue.test.js"
+  ],
+  "api/lib/telemetry.js": [
+   "api/tests/telemetry.test.js"
+  ],
+  "api/lib/toolkit.js": [
+   "api/tests/polite.test.js"
+  ],
+  "api/lib/version-date.js": [
+   "api/tests/version-date.test.js"
   ],
   "api/migrations/020_feedback_grants.sql": [
    "tests/test_upgrade_review.py"
@@ -44,10 +93,17 @@
   "api/migrations/021_upgrade_diagnostics.sql": [
    "tests/test_failure_diagnostics.py"
   ],
+  "api/routes/a2a-routes.js": [
+   "api/tests/interop.test.js"
+  ],
+  "api/routes/control-routes.js": [
+   "tests/test_llm_build_tools.py"
+  ],
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
   ],
   "api/server.js": [
+   "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
    "tests/test_scan_secrets.py"
   ],
@@ -60,7 +116,8 @@
   "public_html": [
    "tests/test_bridge.py",
    "tests/test_cli_install.py",
-   "tests/test_cli_link.py"
+   "tests/test_cli_link.py",
+   "tests/test_telemetry_tasks_a2a.py"
   ],
   "public_html/chat/app.js": [
    "tests/test_personas.py",
@@ -81,15 +138,20 @@
    "tests/test_cli_link.py",
    "tests/test_cli_parser.py",
    "tests/test_contributors.py",
+   "tests/test_dial_setup.py",
    "tests/test_direct_messaging.py",
    "tests/test_direct_tool_loop.py",
+   "tests/test_eval_harness.py",
    "tests/test_failure_diagnostics.py",
    "tests/test_fast_scan_parity.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
+   "tests/test_identity_cli.py",
    "tests/test_llm_build_tools.py",
+   "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
    "tests/test_nodes_table.py",
+   "tests/test_resume_not_reregister.py",
    "tests/test_rollback.py",
    "tests/test_speeds_view.py",
    "tests/test_sync_review.py",
@@ -113,10 +175,20 @@
   "public_html/rescue": [
    "tests/test_rescue.py"
   ],
+  "scripts/audit.py": [
+   "tests/test_location_independence.py"
+  ],
+  "scripts/bridge-bench.sh": [
+   "tests/test_location_independence.py"
+  ],
+  "scripts/bridge-canary.py": [
+   "tests/test_location_independence.py"
+  ],
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
   ],
   "scripts/health-watchdog.sh": [
+   "tests/test_location_independence.py",
    "tests/test_nodes_offline.py"
   ],
   "scripts/lib/deps.sh": [
@@ -128,7 +200,11 @@
    "tests/test_testmap.py"
   ],
   "scripts/scan_secrets.py": [
+   "tests/test_location_independence.py",
    "tests/test_scan_secrets.py"
+  ],
+  "scripts/secretz-hivv.sh": [
+   "tests/test_location_independence.py"
   ],
   "scripts/setup-local.ps1": [
    "tests/test_cli_install.py",
@@ -165,7 +241,18 @@
   "api/tests/fast-scan.test.js": [
    "api/lib/fast-scan.js"
   ],
+  "api/tests/identity.test.js": [
+   "api/lib/attest.js",
+   "api/lib/identity.js"
+  ],
   "api/tests/integration.test.js": [],
+  "api/tests/interop.test.js": [
+   "api/lib/a2a-client.js",
+   "api/lib/hive-clients.js",
+   "api/lib/mcp-client.js",
+   "api/lib/ssrf.js",
+   "api/routes/a2a-routes.js"
+  ],
   "api/tests/local-mode.test.js": [
    "api/lib/local-mode.js"
   ],
@@ -173,11 +260,31 @@
    "api/lib/locked-llm.js"
   ],
   "api/tests/node-auth.test.js": [],
+  "api/tests/polite.test.js": [
+   "api/lib/polite.js",
+   "api/lib/toolkit.js"
+  ],
   "api/tests/provenance-schema.test.js": [
    "api/lib/request-provenance.js"
   ],
+  "api/tests/quarantine-recovery.test.js": [
+   "api/lib/orchestrator.js"
+  ],
   "api/tests/request-provenance.test.js": [
    "api/lib/request-provenance.js"
+  ],
+  "api/tests/route-factors.test.js": [
+   "api/lib/route-factors.js",
+   "api/lib/router.js"
+  ],
+  "api/tests/task-queue.test.js": [
+   "api/lib/task-queue.js"
+  ],
+  "api/tests/telemetry.test.js": [
+   "api/lib/telemetry.js"
+  ],
+  "api/tests/version-date.test.js": [
+   "api/lib/version-date.js"
   ],
   "tests/test_ask_flags.py": [
    "public_html/hivv-cli.py"
@@ -218,11 +325,17 @@
   "tests/test_cross_network.py": [
    "docs/INTEGRATION-CONTRACT.md"
   ],
+  "tests/test_dial_setup.py": [
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_direct_messaging.py": [
    "AGENTS.md",
    "public_html/hivv-cli.py"
   ],
   "tests/test_direct_tool_loop.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_eval_harness.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_failure_diagnostics.py": [
@@ -242,10 +355,27 @@
    "public_html/hivv-cli.py",
    "public_html/hivv-gui-setup.py"
   ],
+  "tests/test_identity_cli.py": [
+   "api/lib/attest.js",
+   "api/lib/identity.js",
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_llm_build_tools.py": [
+   "api/routes/control-routes.js",
    "public_html/hivv-cli.py",
    "public_html/install-hivv.sh",
    "scripts/lib/deps.sh"
+  ],
+  "tests/test_location_independence.py": [
+   "api/ecosystem.config.js",
+   "api/server.js",
+   "public_html/hivv-cli.py",
+   "scripts/audit.py",
+   "scripts/bridge-bench.sh",
+   "scripts/bridge-canary.py",
+   "scripts/health-watchdog.sh",
+   "scripts/scan_secrets.py",
+   "scripts/secretz-hivv.sh"
   ],
   "tests/test_nodes_offline.py": [
    "api/server.js",
@@ -265,6 +395,10 @@
   "tests/test_rescue.py": [
    "public_html/install-hivv.sh",
    "public_html/rescue"
+  ],
+  "tests/test_resume_not_reregister.py": [
+   "api/lib/orchestrator.js",
+   "public_html/hivv-cli.py"
   ],
   "tests/test_rollback.py": [
    "public_html/hivv-cli.py"
@@ -290,6 +424,10 @@
   ],
   "tests/test_sync_review.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_telemetry_tasks_a2a.py": [
+   "api",
+   "public_html"
   ],
   "tests/test_testmap.py": [
    "public_html/chat/app.js",

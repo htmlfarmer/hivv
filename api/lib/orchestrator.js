@@ -5,7 +5,25 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const NODES_FILE = path.join(__dirname, '..', 'data', 'nodes.json');
+// HIVV_NODES_FILE lets a TEST point the orchestrator at a temp file.
+// Without it, a unit test loads the PRODUCTION roster and writes its fake
+// bees (y-y, newbee) into the live hive — a test becoming a member of the
+// network is a bug, not a test fixture.
+const NODES_FILE = process.env.HIVV_NODES_FILE
+    || path.join(__dirname, '..', 'data', 'nodes.json');
+
+// How many CONSECUTIVE healthy heartbeats a quarantined bee must send
+// before its auto-flap quarantine is lifted.
+//
+// ONE heartbeat is not proof of recovery — a bee mid-crash-loop heartbeats
+// once and dies again. Two proves it is stable enough to re-join the hive;
+// if it starts flapping again the detector re-arms and catches it on the
+// next window (the remote retest loop).
+//
+// 2026-11-22 (yalla): the quarantine froze the heartbeat, the heartbeat was
+// what would have cleared the flap counter, and the counter was what held the
+// quarantine — a deadlock with no exit except a human.
+const RECOVERY_HB_STREAK = 2;
 
 class Orchestrator {
   constructor() {
@@ -106,7 +124,17 @@ class Orchestrator {
     this.healthHistory = new Map();   // nodeId -> [{ timestamp, cpu, mem, disk, latency, errors }]
     this.maxHistoryPoints = 1440;      // 24h at 1-min intervals
 
-    // Start background tasks
+    // Start background tasks.
+    //
+    // unref: a background timer must NEVER be the only thing keeping a
+    // process alive. In the gateway that is harmless (pm2 holds it), but a
+    // unit test that constructs an Orchestrator would hang forever waiting
+    // for the event loop to drain — `node --test` timed the file out and
+    // reported "Promise resolution is still pending" for a suite whose
+    // assertions had all passed.
+    //
+    // They still fire in the gateway: pm2 keeps the process alive on its
+    // own; unref only means "do not keep the process alive FOR me".
     this.startHeartbeatMonitor();
     this.startCleanup();
     this.startAlertChecks();
@@ -159,6 +187,12 @@ class Orchestrator {
       this._saveTimer = null;
       this._saveNodes();
     }, 10000); // save at most once per 10s
+    // unref: a pending save must never hold the process open. In the gateway
+    // that is harmless (pm2 keeps it alive), but in a TEST it made
+    // `node --test` wait 10s for every orchestrator that saved once.
+    if (this._saveTimer && typeof this._saveTimer.unref === 'function') {
+      this._saveTimer.unref();
+    }
   }
 
   // ---- Usage Tracking ----
@@ -261,9 +295,26 @@ class Orchestrator {
       exam_summary: existing?.exam_summary || null,
       human_ratings: Array.isArray(existing?.human_ratings) ? existing.human_ratings : [],
       flap_events: flapEvents,
+      // A re-registration means the agent RESTARTED — it breaks the
+      // recovery streak (the streak counts CONSECUTIVE heartbeats from one
+      // live process). A bee that flaps must earn its way back with a
+      // clean run of heartbeats after the last restart.
+      recovery_hb: 0,
       quarantined: existing?.quarantined || null,
       registered_at: existing?.registered_at || now,
-      last_heartbeat: now,
+      // A RE-REGISTRATION is not a heartbeat.
+      //
+      // THE BUG (yalla, 2026-11-22): this used to be `now`, which made a
+      // crash-looping bee look PERMANENTLY alive — it re-registered every
+      // ~100s, each time refreshing `last_heartbeat`, so `hivv nodes` showed
+      // a fresh heartbeat age for a bee that had been dying for hours. The
+      // only visible symptom was the quarantine, which fired 2.5 hours later.
+      //
+      // Keep the OLD heartbeat age: a bee that only re-registers and never
+      // heartbeats is DEAD, and the roster must say so. `existing` keeps its
+      // last real heartbeat (possibly minutes/hours old) — which is the
+      // truth — and a brand-new node starts now (it has just joined).
+      last_heartbeat: existing?.last_heartbeat || now,
       volunteer: nodeData.volunteer ?? existing?.volunteer ?? false,
       cum: existing?.cum || null,
       last_result_type: null,
@@ -319,15 +370,71 @@ class Orchestrator {
   updateHeartbeat(nodeId, data, opts = {}) {
     const node = this.nodes.get(nodeId);
     if (!node) return null;
+    // A HEARTBEAT is proof of life — it must clear the flap counter.
+    //
+    // THE BUG (yalla, 2026-11-22): `flap_events` was written ONLY in
+    // registerNode and NEVER cleared. A bee that re-registered 5+ times in
+    // 10 minutes was quarantined FOREVER, even after it went perfectly
+    // healthy — the quarantine froze its heartbeat, the heartbeat is what
+    // would have cleared the counter, and the counter is what held the
+    // quarantine. A deadlock with no exit except a human.
+    //
+    // Worse: registerNode sets `last_heartbeat: now`, so a crash-looping
+    // bee looked PERMANENTLY alive (fresh heartbeat age) while re-registering
+    // every ~100s — and `hivv nodes` showed it as healthy right up to the
+    // quarantine. The heartbeat is the truth; let it clear the accusation.
+    if (Array.isArray(node.flap_events) && node.flap_events.length) {
+      // A heartbeat is proof of life, but ONE heartbeat after a crash-loop
+      // is not proof of RECOVERY — a bee mid-crash-loop heartbeats once and
+      // dies again. Require SUSTAINED recovery (RECOVERY_HB_STREAK healthy
+      // heartbeats in a row) before the accusation is dropped.
+      node.recovery_hb = (Number(node.recovery_hb) || 0) + 1;
+      if (node.recovery_hb >= RECOVERY_HB_STREAK) {
+        node.flap_events = [];
+        node.recovery_hb = 0;
+        // The bee proved it is alive — auto-lift the quarantine so the hive
+        // gets the compute back. The detector re-arms, so a bee that truly
+        // keeps flapping is caught again on the next window (the remote
+        // retest loop).
+        if (node.quarantined && node.quarantined.by === 'auto-flap') {
+          console.log(`[ORCH] ${nodeId} recovered — auto-flap quarantine lifted ` +
+            `(${RECOVERY_HB_STREAK} healthy heartbeats; detector re-armed)`);
+          node.quarantined = null;
+          node.status = 'online';
+        }
+      }
+    }
     // Quarantined = network-side STOP: freeze everything (last_heartbeat too —
     // a frozen age keeps it visibly quarantined instead of flapping online).
     // Only a human release re-opens the gates.
+    //
+    // BUT the recovery check above runs FIRST: a quarantined bee whose
+    // heartbeats resume has PROVEN it recovered, and the quarantine is
+    // auto-flap's accusation (not an operator's decision) — so it lifts.
+    // An OPERATOR quarantine is never auto-lifted: only a human releases it.
     if (node.quarantined) return node;
 
     node.last_heartbeat = Date.now();
     if (opts.public_ip) node.public_ip = opts.public_ip;
     if (data.version) node.version = data.version;
     if (data.volunteer !== undefined) node.volunteer = data.volunteer;
+    // The MODEL LIST is re-announced every heartbeat, exactly like tools.
+    //
+    // WHY (yalla, 2026-11-22): the CLI stopped re-registering on every agent
+    // restart (a re-register per restart made the hive's crash-loop
+    // detector quarantine a perfectly healthy bee), so `local_models` was
+    // only ever set in registerNode — a bee that installed a model after
+    // its last register would advertise the OLD list FOREVER, and the roster
+    // would show "no local models" for a box serving gemma on :8080.
+    if (Array.isArray(data.local_models)) {
+      node.local_models = data.local_models;
+    }
+    // Capabilities and identity are stable, but a bee that re-registers
+    // with a different set must not keep the old one forever.
+    if (Array.isArray(data.capabilities) && data.capabilities.length) {
+      node.capabilities = data.capabilities;
+    }
+    if (data.hostname) node.hostname = data.hostname;
     // tools sharing is re-announced every heartbeat — survives restarts (F7).
     // An empty array means "server down / not sharing" and un-shares cleanly.
     if (Array.isArray(data.tools)) {
@@ -1015,7 +1122,7 @@ class Orchestrator {
   // ---- Background Tasks ----
 
   startHeartbeatMonitor() {
-    setInterval(() => {
+    const t = setInterval(() => {
       const now = Date.now();
       for (const [, node] of this.nodes) {
         if (node.status !== 'offline' && now - node.last_heartbeat > this.config.staleThresholdMs) {
@@ -1028,10 +1135,11 @@ class Orchestrator {
         }
       }
     }, 30000); // Check every 30s
+    if (t && typeof t.unref === 'function') t.unref();
   }
 
   startCleanup() {
-    setInterval(() => {
+    const t = setInterval(() => {
       const now = Date.now();
       // Remove expired tasks
       for (const [id, task] of this.tasks) {
@@ -1053,10 +1161,11 @@ class Orchestrator {
         }
       }
     }, 60000); // Every minute
+    if (t && typeof t.unref === 'function') t.unref();
   }
 
   startAlertChecks() {
-    setInterval(() => {
+    const t = setInterval(() => {
       for (const [, node] of this.nodes) {
         if (node.status === 'offline') continue;
 
@@ -1084,10 +1193,11 @@ class Orchestrator {
         this.triggerAlert('queue_depth_warning', { count: queued });
       }
     }, 60000); // Every minute
+    if (t && typeof t.unref === 'function') t.unref();
   }
 
   startHistoryRecorder() {
-    setInterval(() => {
+    const t = setInterval(() => {
       const now = Date.now();
       for (const [, node] of this.nodes) {
         if (node.status === 'offline') continue;
@@ -1104,6 +1214,7 @@ class Orchestrator {
         this.healthHistory.set(node.node_id, hist);
       }
     }, 60000); // Record every minute
+    if (t && typeof t.unref === 'function') t.unref();
   }
 
   getHealthHistory(nodeId, hours = 24) {
