@@ -4,7 +4,8 @@
 # the public surface + ops scripts, (3) raw runtime stores (logs/backups/nohup).
 # Exit 0 = clean, 1 = findings. Safe to cron.
 set -uo pipefail
-VHOST=/var/www/vhosts/hivv.org
+# The repo's own location, wherever it was cloned.
+VHOST="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAIL=0
 
 echo "=== [1/3] repo code + git history (scan_secrets.py) ==="

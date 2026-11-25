@@ -8,7 +8,9 @@
 set -uo pipefail
 N="${1:-6}"
 [ "$N" -gt 20 ] && N=20
-OUT=/var/www/vhosts/hivv.org/logs/bridge-bench.jsonl
+# The repo's own location, wherever it was cloned.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="${HIVV_LOG_DIR:-$ROOT/logs}/bridge-bench.jsonl"
 declare -a MS
 echo "bridge-bench: $N serial calls, >=10s apart"
 for i in $(seq 1 "$N"); do

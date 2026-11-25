@@ -15,7 +15,7 @@
 # VISIBLE to this probe instead of invisible-hang.
 #
 # Cron (every minute):
-#   * * * * * /var/www/vhosts/hivv.org/scripts/health-watchdog.sh
+#   * * * * * <wherever the repo lives>/scripts/health-watchdog.sh
 #
 # State file keeps the consecutive-failure count so one blip never restarts
 # anything; only 2 in a row (~2 min down) triggers remediation. Cooldown of
@@ -39,7 +39,9 @@ if [ -z "${PM2_BIN:-}" ]; then
     PM2_BIN="$HOME/.local/bin/pm2"
     [ -x "$PM2_BIN" ] || PM2_BIN="$(command -v pm2 || true)"
 fi
-STATE_DIR="${HIVV_WATCHDOG_STATE:-/var/www/vhosts/hivv.org/logs}"
+# The repo's own location, wherever it was cloned.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STATE_DIR="${HIVV_WATCHDOG_STATE:-$ROOT/logs}"
 LOG="$STATE_DIR/health-watchdog.log"
 COUNT_FILE="$STATE_DIR/.health-watchdog-fails"
 LAST_RESTART_FILE="$STATE_DIR/.health-watchdog-last-restart"

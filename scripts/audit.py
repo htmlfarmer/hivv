@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -37,7 +38,25 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BLNQ = Path("/var/www/vhosts/blnq.org/public_html")
+# The sibling hive's checkout. Found by SIBLINGSHIP first (the usual layout:
+# two vhosts next to each other), then by the historical path, then by the
+# operator's override. HIVV_BLNQ_ROOT always wins.
+def _find_blnq():
+    here = Path(__file__).resolve().parent.parent
+    candidates = []
+    if os.environ.get("HIVV_BLNQ_ROOT"):
+        candidates.append(Path(os.environ["HIVV_BLNQ_ROOT"]))
+    candidates += [
+        here.parent / "blnq.org" / "public_html",
+        here.parent / "blnq" / "public_html",
+    ]
+    for c in candidates:
+        if (c / "api" / "lib" / "attest.js").exists():
+            return c
+    return candidates[-1]
+
+
+BLNQ = _find_blnq()
 
 # ── severity ──────────────────────────────────────────────────────────────
 P0, P1, P2, P3 = "P0", "P1", "P2", "P3"

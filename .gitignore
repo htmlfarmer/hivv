@@ -20,6 +20,7 @@ api/.control-token
 api/.session-secret
 api/.encryption-key
 api/.lyrz-api-key
+api/.db-password
 api/.p2p.json
 api/data/nodes.json
 api/data/inbox.json

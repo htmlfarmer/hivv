@@ -14,7 +14,8 @@ Exit: 0 healthy, 1 unhealthy (cron-friendly).
 """
 import json, os, time, urllib.request, datetime, statistics
 
-VHOST = "/var/www/vhosts/hivv.org"
+# The repo's own location, wherever it was cloned.
+VHOST = os.environ.get("HIVV_VHOST") or str(Path(__file__).resolve().parent.parent)
 HIST = os.path.join(VHOST, "logs", "bridge-canary.jsonl")
 PUB = os.path.join(VHOST, "public_html", "bridge-status.json")
 PEERS_LOCAL = "http://127.0.0.1:3011/api/bridge/peers"

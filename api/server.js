@@ -2300,6 +2300,10 @@ app.post('/v1/chat/completions', async (req, res) => {
                     tools: effectiveTools,
                     toolChoice: tool_choice ?? null,
                     ...osOpts,
+                    // DEEPER TELEMETRY: the caller's trace travels with the
+                    // request, so a trace that started at a peer hive stays
+                    // ONE story across the crossing.
+                    traceparent: req.headers.traceparent || null,
                     timeout: max_tokens ? Math.min(max_tokens * 100, 120000) : 120000
                 });
                 if (!data.ok) break;
@@ -2799,7 +2803,8 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
-                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools: effectiveTools, ...osOpts
+                    model, provider, userId, apiUrl: targetApiUrl, stream: false, tools: effectiveTools, ...osOpts,
+                    traceparent: req.headers.traceparent || null
                 });
                 if (!data.ok) {
                     if (data.denied) return res.status(403).json({ verdict: 'NO', policy: data.policy, error: data.error });
@@ -3726,12 +3731,87 @@ const McpRoutes = require('./routes/mcp-routes');
 McpRoutes.inject(orch, router);
 app.use('/mcp', McpRoutes);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// DEEPER TELEMETRY — spans, histograms, error taxonomy, SLOs, live series.
+//
+// The hive already had a health endpoint, a request ledger, a per-model EWMA
+// and a live roster. This adds the layer that answers the questions those
+// cannot: p99 latency, WHICH error class is growing, how deep the queues
+// are, and whether we are burning the error budget.
+//
+// LOCAL-FIRST: with no database attached it still answers everything from
+// memory. The database is a mirror, never a dependency.
+const telemetryLib = require('./lib/telemetry');
+const TelemetryRoutes = require('./routes/telemetry-routes');
+TelemetryRoutes.inject(orch);
+app.use('/api/telemetry', TelemetryRoutes);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE TASK FOUNDATION — one queue for every kind of distributed work.
+//
+// The relay (inference jobs to NAT'd bees), the coder bees, the hive-to-hive
+// bridge and A2A all need the same nine things: a pollable state machine,
+// idempotency, priority, a TTL, LEASES so a dead worker loses nothing,
+// retries, a budget, cancellation, and a receipt.
+//
+// One implementation, four skins. In-memory by default; Postgres mirrors it
+// so a restart does not lose submitted work.
+const taskQueueLib = require('./lib/task-queue');
+taskQueueLib.start(pool);
+telemetryLib.start(pool);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A2A (Agent2Agent v1.0) — HIVV as an A2A SERVER.
+//
+// MCP says "here are my tools"; A2A says "here is my agent, give it a task".
+// We now answer both directions of both protocols: /mcp is the MCP server,
+// /api/a2a is the A2A server, and lib/mcp-client.js + lib/a2a-client.js are
+// the OUTBOUND halves (call another MCP server, give another agent a task).
+//
+// The policy gate is NOT bypassed: a denied action is TASK_STATE_REJECTED
+// and an approval-needed action is TASK_STATE_AUTH_REQUIRED — never a
+// silent failure.
+const A2ARoutes = require('./routes/a2a-routes');
+A2ARoutes.inject(orch, router, process.env.HIVV_PUBLIC_URL || 'https://hivv.org');
+app.use('/api/a2a', A2ARoutes);
+
+// The agent card. A2A v1.0 says /.well-known/agent-card.json (v0.2 said
+// /.well-known/agent.json — a card is a card, so we serve both). Caddy
+// serves the static copy at the well-known path; these routes serve the LIVE
+// card for clients that ask the gateway directly.
+const a2aCardHandler = (req, res) => {
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(A2ARoutes.agentCard());
+};
+app.get('/agent-card.json', a2aCardHandler);
+app.get('/.well-known/agent-card.json', a2aCardHandler);
+app.get('/.well-known/agent.json', a2aCardHandler);
+
 // ---- HIVV_OPENCODE_PLAN: dial — connect once, then direct to the bee ----
 // `hivv dial` (localhost shim) dials for candidates, forwards each request
 // straight to the bee, and reports back async — the hot path skips the hub.
 const DialRoutes = require('./routes/dial-routes');
 DialRoutes.inject(orch, router, perfLib);
 app.use('/api/route', DialRoutes);
+
+// ---- Cryptographic identity: Ed25519 bee bindings (lib/identity.js) ----
+// Public read surface: which principal is bound to which bee, and a pure-crypto
+// verify for third parties. The verification itself happens at register /
+// heartbeat (dual-mode: legacy CLIs without an identity block are untouched).
+const IdentityRoutes = require('./routes/identity-routes');
+// GUARDED MOUNT: a route module that is half-written (a file being edited
+// while the gateway restarts) must not take the whole hive offline. The
+// nodes keep heartbeating into a gateway that is not listening — that is a
+// terrible failure mode for a distributed network. If the module does not
+// export what the wiring needs, the gateway says so LOUDLY and boots
+// without that surface; everything else keeps working.
+if (typeof IdentityRoutes.inject === 'function') {
+    IdentityRoutes.inject(orch, pool);   // node records + optional trust persistence
+    app.use('/api/identity', IdentityRoutes);
+} else {
+    console.warn('[identity] routes/identity-routes.js does not export inject() — ' +
+                 '/api/identity is NOT mounted (the module is incomplete).');
+}
 
 // ---- HIVV_OPENCODE_PLAN §4: coder bees — dispatch jobs to nodes running OpenCode ----
 // `hivv code "task" --repo <url>` → policy gate → coding_job into a volunteer's
@@ -3877,9 +3957,96 @@ app.post('/api/nodes/register', async (req, res) => {
     if (node.secret !== regSecretBefore || node.secret_seen !== regSeenBefore) {
       try { orch._saveNodes(); } catch (_e) {}
     }
+
+    // -- Ed25519 identity (dual-mode) ---------------------------------
+    // No identity block -> untouched (legacy CLIs). A PRESENT block must
+    // verify: this is the moment a node_id gets bound to a key, so a forged
+    // or replayed claim is refused here (403 IDENTITY_INVALID). Clock skew
+    // alone is advisory (recorded, not fatal) -- a bad clock is a health
+    // problem, not an attack. Legacy proof (secret/hw_id) allows the key to
+    // be REPLACED (recovery + rotation anchor).
+    let idv = null;
+    if (body.identity) {
+      const identity = require('./lib/identity');
+      idv = identity.verifyIncoming({
+        nodeId: beeId,
+        identity: body.identity,
+        kind: 'node.register',
+        legacyProof: !!(proof.secret || proof.hwId),
+      });
+      if (!idv.ok) {
+        // A revoked key presenting itself is an EVENT worth an incident
+        // (deduped to one active row per node).
+        if (idv.problems.some((p) => p.startsWith('revoked:'))) {
+          const revProblem = idv.problems.find((p) => p.startsWith('revoked:'));
+          pool.query(`
+            INSERT INTO hivv_incidents (incident_type, severity, state, node_id, title, description)
+            SELECT 'identity_revoked', 'high', 'active', $1, $2, $3
+            WHERE NOT EXISTS (
+              SELECT 1 FROM hivv_incidents
+              WHERE node_id = $1 AND incident_type = 'identity_revoked' AND state = 'active')`,
+            [beeId, 'identity revoked: ' + beeId, revProblem])
+            .catch((err) => console.error('[IDENTITY] incident error: ' + err.message));
+        }
+        return res.status(403).json({
+          error: 'identity verification failed',
+          code: 'IDENTITY_INVALID',
+          problems: idv.problems,
+          hint: idv.problems.some((p) => p.startsWith('revoked:'))
+            ? 'this key is on the CRL — rotate to a fresh key (hivv identity rotate) and rebind with legacy proof'
+            : "the presented Ed25519 statement did not verify - check the bee's clock, key files (hivv identity status), and that the statement covers THIS node_id",
+        });
+      }
+      // The signed statement must cover the hw_id this request presents —
+      // otherwise a captured identity block could be replayed with a
+      // DIFFERENT machine id while still carrying a valid signature.
+      const stmtHw = body.identity.statement && body.identity.statement.hw_id_sha256;
+      if (stmtHw && proof.hwId) {
+        const hwHash = require('crypto').createHash('sha256')
+          .update(String(proof.hwId)).digest('hex');
+        if (hwHash !== stmtHw) {
+          return res.status(403).json({
+            error: 'identity verification failed',
+            code: 'IDENTITY_INVALID',
+            problems: ['hw_id presented in the body is not covered by the signature (hw_id_sha256 mismatch)'],
+            hint: 'the statement must hash the same hw_id the request presents',
+          });
+        }
+      }
+      if (idv.advisory && idv.advisory.length) {
+        console.log('[IDENTITY] ' + beeId + ': register accepted with advisory: ' + idv.advisory.join('; '));
+      }
+    }
+    const idSummary = body.identity
+      ? require('./lib/identity').publicSummary(beeId, idv) : null;
+
+    // -- Signed capability manifest (Phase 2): same contract at register --
+    let mf = null;
+    if (body.capability_manifest) {
+      const identity = require('./lib/identity');
+      mf = identity.verifyManifest({ nodeId: beeId, manifest: body.capability_manifest });
+      if (mf.ok) {
+        node.tools = mf.applied.tools;
+        node.tools_port = mf.applied.tools.length ? (mf.applied.tools_port || 0) : 0;
+        node.local_models = mf.applied.local_models;
+        if (mf.applied.capabilities.length) node.capabilities = mf.applied.capabilities;
+        node.volunteer = mf.applied.volunteer;
+      } else {
+        console.log('[IDENTITY] ' + beeId + ': register manifest refused: ' + (mf.problems || []).join('; '));
+      }
+    }
+    const mfSummary = body.capability_manifest
+      ? Object.assign(
+          { status: (mf && mf.ok) ? 'verified' : 'failed',
+            seq: (mf && mf.ok) ? mf.statement.seq : null },
+          (mf && !mf.ok) ? { reason: (mf.problems || [])[0] } : {})
+      : null;
+
     res.json({ node_id: node.node_id, bee_id: node.node_id,
                role: node.name, ip: node.ip, registered: true,
-               ...(issue ? { node_secret: issue } : {}) });
+               ...(issue ? { node_secret: issue } : {}),
+               ...(idSummary ? { identity: idSummary } : {}),
+               ...(mfSummary ? { manifest: mfSummary } : {}) });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
@@ -3971,6 +4138,65 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
       note: 'quarantined — ignored by the hive until a human releases it' });
   }
 
+  // -- Ed25519 identity (ADVISORY at heartbeat) ------------------------
+  // Existing bees resume without re-registering, so the first
+  // identity-bearing heartbeat is the BINDING moment for the fleet. A
+  // failing signature is recorded and echoed back (status 'failed'/'mismatch'
+  // so the bee can rebind) but NEVER rejects the heartbeat: a broken signer
+  // must not knock its own bee offline. Quarantined bees stay inert (above).
+  let hbIdv = null;
+  if (req.body && req.body.identity) {
+    const identity = require('./lib/identity');
+    hbIdv = identity.verifyIncoming({
+      nodeId: beeId,
+      identity: req.body.identity,
+      kind: 'node.heartbeat',
+    });
+    if (!hbIdv.ok) {
+      console.log('[IDENTITY] ' + beeId + ': heartbeat identity recorded (not rejected): ' + (hbIdv.problems || []).join('; '));
+      if (hbIdv.problems.some((p) => p.startsWith('revoked:'))) {
+        const revProblem = hbIdv.problems.find((p) => p.startsWith('revoked:'));
+        pool.query(`
+          INSERT INTO hivv_incidents (incident_type, severity, state, node_id, title, description)
+          SELECT 'identity_revoked', 'high', 'active', $1, $2, $3
+          WHERE NOT EXISTS (
+            SELECT 1 FROM hivv_incidents
+            WHERE node_id = $1 AND incident_type = 'identity_revoked' AND state = 'active')`,
+          [beeId, 'identity revoked: ' + beeId, revProblem])
+          .catch((err) => console.error('[IDENTITY] incident error: ' + err.message));
+      }
+    }
+  }
+  const hbIdSummary = (req.body && req.body.identity)
+    ? require('./lib/identity').publicSummary(beeId, hbIdv) : null;
+
+  // -- Signed capability manifest (Phase 2) ------------------------------
+  // tools/local_models/capabilities were SELF-REPORTED with zero
+  // verification. A manifest signed by the BOUND key makes the advertisement
+  // attributable, and the SIGNED values overwrite the unsigned body fields.
+  // Advisory like everything at heartbeat: a failing manifest is recorded
+  // and echoed (status 'failed') but never grounds to reject the bee.
+  let mf = null;
+  if (req.body && req.body.capability_manifest) {
+    const identity = require('./lib/identity');
+    mf = identity.verifyManifest({ nodeId: beeId, manifest: req.body.capability_manifest });
+    if (mf.ok) {
+      node.tools = mf.applied.tools;
+      node.tools_port = mf.applied.tools.length ? (mf.applied.tools_port || 0) : 0;
+      node.local_models = mf.applied.local_models;
+      if (mf.applied.capabilities.length) node.capabilities = mf.applied.capabilities;
+      node.volunteer = mf.applied.volunteer;
+    } else {
+      console.log('[IDENTITY] ' + beeId + ': manifest refused: ' + (mf.problems || []).join('; '));
+    }
+  }
+  const mfSummary = (req.body && req.body.capability_manifest)
+    ? Object.assign(
+        { status: (mf && mf.ok) ? 'verified' : 'failed',
+          seq: (mf && mf.ok) ? mf.statement.seq : null },
+        (mf && !mf.ok) ? { reason: (mf.problems || [])[0] } : {})
+    : null;
+
   // Auto-resolve stale/offline incidents when node comes back
   pool.query(`
       UPDATE hivv_incidents
@@ -3981,10 +4207,27 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
         AND incident_type IN ('node_offline', 'node_stale', 'node_restart_loop')
   `, [req.params.id]).catch(err => console.error('[INCIDENT] Auto-resolve error:', err.message));
 
-  // Repair plan outcome echoed back on the heartbeat (see bee: _apply_repair)
+  // Repair plan outcome echoed back on the heartbeat (see bee: _apply_repair).
+  // Phase 3: the report may carry a SIGNED execution receipt — the bee's own
+  // testimony, verified against its bound key, kept in the receipt ring.
   if (req.body && req.body.repair_report) {
-    node.last_repair = req.body.repair_report;
-    console.log(`[REPAIR] ${req.params.id} report: ${JSON.stringify(req.body.repair_report)}`);
+    const rr = { ...req.body.repair_report };
+    if (rr.receipt) {
+      const identity = require('./lib/identity');
+      const rc = identity.verifyReceipt({ nodeId: beeId, receipt: rr.receipt });
+      rr.receipt_verified = rc.ok;
+      if (rc.ok) {
+        rr.receipt_id = rc.receipt.receipt_id;
+        console.log('[RECEIPT] ' + beeId + ': ' + rc.receipt.op + ' → ' + rc.receipt.result +
+                    ' (' + rc.receipt.receipt_id.slice(0, 8) + '…)');
+      } else {
+        rr.receipt_error = (rc.problems || [])[0];
+        console.log('[IDENTITY] ' + beeId + ': repair receipt refused: ' + (rc.problems || []).join('; '));
+      }
+      delete rr.receipt;   // the verified record lives in the ring, not here
+    }
+    node.last_repair = rr;
+    console.log(`[REPAIR] ${req.params.id} report: ${JSON.stringify(rr)}`);
   }
 
   // Check for queued tasks assigned to this node
@@ -3995,7 +4238,9 @@ app.post('/api/nodes/:id/heartbeat', (req, res) => {
   // never be able to enrol. Once `secret_seen` it stops appearing here, and
   // from that point inbox access requires presenting it.
   res.json({ accepted: true, status: updated.status, queued_tasks: queued.slice(0,10),
-             ...((hbAuth.issue || (node.secret && !node.secret_seen)) ? { node_secret: node.secret } : {}) });
+             ...((hbAuth.issue || (node.secret && !node.secret_seen)) ? { node_secret: node.secret } : {}),
+             ...(hbIdSummary ? { identity: hbIdSummary } : {}),
+             ...(mfSummary ? { manifest: mfSummary } : {}) });
 });
 
 // ---- Work Status Update (what is this node working on?) ----
@@ -4377,7 +4622,8 @@ app.use((err, req, res, next) => {
 
     // Plain file log, kept for operators who tail it.
     const fs = require('fs');
-    const logFile = '/var/www/vhosts/hivv.org/logs/error.log';
+    // The log lands NEXT TO THE REPO, wherever it is deployed.
+    const logFile = require('path').join(__dirname, '..', 'logs', 'error.log');
     fs.appendFile(logFile, msg + '\n', () => {});
 
     if (isTooLarge) {
@@ -4397,13 +4643,13 @@ process.on('uncaughtException', (err) => {
     const ts = new Date().toISOString();
     console.error(`[${ts}] UNCAUGHT: ${err.message}`);
     const fs = require('fs');
-    fs.appendFile('/var/www/vhosts/hivv.org/logs/error.log', `[${ts}] UNCAUGHT: ${err.stack}\n`, () => {});
+    fs.appendFile(require('path').join(__dirname, '..', 'logs', 'error.log'), `[${ts}] UNCAUGHT: ${err.stack}\n`, () => {});
 });
 process.on('unhandledRejection', (reason) => {
     const ts = new Date().toISOString();
     console.error(`[${ts}] UNHANDLED REJECTION: ${reason}`);
     const fs = require('fs');
-    fs.appendFile('/var/www/vhosts/hivv.org/logs/error.log', `[${ts}] UNHANDLED: ${reason}\n`, () => {});
+    fs.appendFile(require('path').join(__dirname, '..', 'logs', 'error.log'), `[${ts}] UNHANDLED: ${reason}\n`, () => {});
 });
 
 // HIVV_PORT is the local-install spelling; PORT is the classic one.
