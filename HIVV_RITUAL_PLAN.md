@@ -96,4 +96,6 @@ session ever has to rediscover it. Read this first if you are picking the thread
   Camila: Post Malone — Sunflower Tiny Desk.
 - Hackers from China: Yussef Dayes — In Japan (Film), Mt. Fuji section
   (t=1924). Drums loud, mountain taller.
+- Hackers from the USA: Marsh — Sleep feat. Jodie Knight. The lullaby.
+  Dream about it.
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.
