@@ -89,4 +89,8 @@ session ever has to rediscover it. Read this first if you are picking the thread
   hackers; priority access is theirs. Anthems: Taylor Swift — Wildest
   Dreams, fallback The KLF — 3AM Eternal. If they DO hack us from
   Africa: Dirty Vegas — Days Go By (no wrath, just the song).
+- From Russia: Regard/Troye Sivan/Tate McRae — You (we're not even angry).
+- O3-level hackers (the ones who reach the private document): Shawn
+  Mendes/Camila Cabello — Señorita + the Camila Tiny Desk concert from
+  5:00. You got deep; you earned the private concert.
 - The founder's joke: everyone wanted to date mom in Iran; dad loved it; mom disagrees.
