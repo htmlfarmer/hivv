@@ -57,6 +57,28 @@ test('a task that was never claimed has NO duration (no 0s lies)', () => {
     assert.equal(task.started_at_ms, null);
 });
 
+test('claimId leases ONE SPECIFIC task, not the next one', () => {
+    q.submit({ id: 'first', kind: 'a2a' });
+    q.submit({ id: 'second', kind: 'a2a' });
+    const claimed = q.claimId('second', { worker: 'runner' });
+    assert.equal(claimed.id, 'second');
+    assert.equal(claimed.state, 'running');
+    // the FIRST task is untouched — a targeted claim is not a "claim the next"
+    assert.equal(q.get('first').state, 'queued');
+});
+
+test('claimId refuses a task that is not claimable', () => {
+    q.submit({ id: 'x1', kind: 'chat' });
+    assert.equal(q.claimId('x1', { worker: 'w' }).id, 'x1');
+    assert.equal(q.claimId('x1', { worker: 'w' }), null, 'a running task is not claimable again');
+    assert.equal(q.claimId('never-existed', { worker: 'w' }), null);
+});
+
+test('claimId respects not_before', () => {
+    q.submit({ id: 'x2', kind: 'chat', not_before_ms: Date.now() + 60000 });
+    assert.equal(q.claimId('x2', { worker: 'w' }), null);
+});
+
 test('a worker that does not own the lease cannot complete the task', () => {
     q.submit({ id: 't3', kind: 'chat' });
     q.claim({ worker: 'bee-1' });

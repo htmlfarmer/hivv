@@ -711,12 +711,10 @@ async function drainBridgeQueue() {
     }
     let drained = 0;
     for (const pub of due) {
-        const claimed = taskQueue.claim({ worker: 'bridge-reader', kind: 'bridge' });
-        if (!claimed) break;
-        if (claimed.id !== pub.id) {
-            taskQueue.fail(claimed.id, { worker: 'bridge-reader', error: 'released', retryable: true });
-            continue;
-        }
+        // Claim THIS task, not "the next bridge task" — the reader is not the
+        // only thing that might claim it, and a race here drops work.
+        const claimed = taskQueue.claimId(pub.id, { worker: 'bridge-reader' });
+        if (!claimed) continue;
         const outcome = await runBridgeTask(claimed);
         if (outcome.ok) {
             taskQueue.complete(claimed.id, { worker: 'bridge-reader', result: outcome.result });

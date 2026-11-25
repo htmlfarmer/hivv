@@ -285,6 +285,37 @@ function claim(opts = {}) {
     return null;
 }
 
+/**
+ * Lease ONE SPECIFIC task by id.
+ *
+ * claim() hands the NEXT runnable task to whoever asks. That is right for a
+ * worker that wants work, and WRONG for a runner that was handed a task id
+ * and must run THAT one — claiming the next task and then releasing it is a
+ * race with every other runner.
+ *
+ * @param {string} id
+ * @param {object} opts {worker, lease_s}
+ * @returns {object|null} the claimed task, or null if it was not claimable
+ */
+function claimId(id, opts = {}) {
+    const t = tasks.get(String(id || ''));
+    if (!t) return null;
+    if (t.state !== 'queued') return null;
+    const now = _now();
+    if (t.not_before_ms > now) return null;
+    if (t.expires_at_ms <= now) return null;
+    t.state = 'running';
+    t.attempts += 1;
+    t.started_at_ms = t.started_at_ms || now;
+    t.updated_at_ms = now;
+    t.lease = {
+        worker: String(opts.worker || 'anonymous').slice(0, 120),
+        expires_at_ms: now + _clampInt(opts.lease_s !== undefined ? opts.lease_s * 1000 : CFG.defaultLeaseMs, 1000, CFG.maxLeaseMs, CFG.defaultLeaseMs),
+    };
+    _persist(t);
+    return _public(t);
+}
+
 /** Extend a lease. Returns the new expiry, or null if the lease was lost. */
 function extendLease(id, opts = {}) {
     const t = tasks.get(String(id || ''));
@@ -637,6 +668,7 @@ module.exports = {
     list,
     due,
     claim,
+    claimId,
     extendLease,
     complete,
     fail,

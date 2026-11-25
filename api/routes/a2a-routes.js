@@ -393,14 +393,10 @@ function _stringify(value) {
  * wait until the task reaches a terminal or interrupted state.
  */
 async function runTask(taskId) {
-    const claimed = taskQueue.claim({ worker: 'a2a-runner', kind: 'a2a' });
-    // The claim may have picked a different task; if our task is the one
-    // claimed, run it; otherwise release by failing it back.
+    // Claim THIS task, not "the next a2a task" — claiming the next one and
+    // releasing it is a race with every other runner.
+    const claimed = taskQueue.claimId(taskId, { worker: 'a2a-runner' });
     if (!claimed) return taskQueue.get(taskId);
-    if (claimed.id !== taskId) {
-        taskQueue.fail(claimed.id, { worker: 'a2a-runner', error: 'released', retryable: true });
-        return taskQueue.get(taskId);
-    }
     const outcome = await executeTask(claimed);
     if (outcome.ok) {
         taskQueue.complete(taskId, { worker: 'a2a-runner', result: outcome.result });

@@ -154,6 +154,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/lib/orchestrator.js`
 - `api/lib/perf.js`
 - `api/lib/policy.js`
+- `api/lib/polite.js`
 - `api/lib/providers.js`
 - `api/lib/rate-limiter.js`
 - `api/lib/redis-test.js`
