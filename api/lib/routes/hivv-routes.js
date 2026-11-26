@@ -150,6 +150,49 @@ function inMemoryStore() {
 
 const store = inMemoryStore();
 
+// ── REAL counts (2026-11-26) ────────────────────────────────────────────────
+// This file used to answer with FABRICATED numbers: `+ 12845` agents,
+// `+ 894520` actions, `+ 340` online nodes. They were demo-scale offsets
+// left in a scaffold and never removed — and the site rendered them as live
+// truth ("12,847 agents · 341 nodes online · 894,525 actions" against a hive
+// of six bees and a few dozen requests).
+//
+// A number that claims to describe NOW must be MEASURED. These helpers read
+// the real orchestrator roster and the real action log; nothing is invented.
+// null means "no data" — never a zero standing in for a missing measurement.
+async function realHiveCounts() {
+    const out = { nodes_total: null, nodes_online: null, agents_registered: null, actions_today: null };
+    try {
+        const orch = serverModule().orchestrator;
+        if (orch && orch.nodes) {
+            const all = Array.from(orch.nodes.values());
+            out.nodes_total = all.length;
+            out.nodes_online = all.filter((n) =>
+                typeof orch.isLive === 'function' ? orch.isLive(n) : n.status !== 'offline').length;
+        }
+    } catch (_e) { /* the roster is optional */ }
+    try {
+        // Demo seeds are scaffolding, not registrations.
+        let agents = 0;
+        for (const [, a] of store.agents) if (!String(a.id || '').endsWith('_demo')) agents++;
+        out.agents_registered = agents;
+    } catch (_e) { /* ignore */ }
+    try {
+        // Today's real actions: every request the hive served (usage ledger)
+        // plus every gated decision it made (audit chain).
+        const db = pool();
+        if (db) {
+            const r = await db.query(
+                "SELECT (SELECT COUNT(*) FROM usage_logs WHERE created_at > CURRENT_DATE)"
+                + " + (SELECT COUNT(*) FROM hivv_audit WHERE ts > CURRENT_DATE) AS n");
+            out.actions_today = Number(r.rows[0]?.n ?? 0);
+        } else {
+            out.actions_today = store.events.size;
+        }
+    } catch (_e) { /* no database */ }
+    return out;
+}
+
 async function authRequired(req, res, next) {
     const session = getSession ? await getSession(req) : null;
     if (!session) {
@@ -170,7 +213,8 @@ async function optionalAuth(req, res, next) {
 // All state-changing routes require auth; read routes use optionalAuth
 router.use(optionalAuth);
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+    const real = await realHiveCounts();
     res.json({
         name: 'HIVV Protocol API',
         version: '1.0.0',
@@ -191,9 +235,13 @@ router.get('/', (req, res) => {
             nodes: '/api/hivv/nodes'
         },
         stats: {
-            agents_registered: store.agents.size + 12845,
-            actions_today: store.events.size + 894520,
-            nodes_online: store.nodes.size + 340
+            // MEASURED, never invented. These used to carry demo offsets
+            // (+12845 agents, +894520 actions, +340 nodes) and the site
+            // published them as if they were the live hive.
+            agents_registered: real.agents_registered,
+            actions_today: real.actions_today,
+            nodes_online: real.nodes_online,
+            nodes_total: real.nodes_total
         }
     });
 });
@@ -1414,19 +1462,24 @@ router.get('/visualize', authRequired, (req, res) => {
     });
 });
 
-router.get('/network', authRequired, (req, res) => {
+router.get('/network', authRequired, async (req, res) => {
     const userId = req.user.id;
     const userNodes = Array.from(store.nodes.values()).filter(n => n.user_id === userId);
+    const real = await realHiveCounts();
     
     res.json({
         name: 'HIVV Network',
         
         stats: {
-            total_agents: store.agents.size + 12845,
-            active_now: Math.floor(store.agents.size * 0.7) + 3400,
-            total_nodes: store.nodes.size + userNodes.length + 340,
-            nodes_online: userNodes.filter(n => n.status === 'online').length + 298,
-            actions_today: store.events.size + 894520
+            // MEASURED — the old values carried +12845 / +3400 / +340 / +298 /
+            // +894520 demo offsets and rendered as a 12k-agent, 341-node fleet.
+            total_agents: real.agents_registered,
+            active_now: store.agents.size
+                ? Array.from(store.agents.values()).filter(a => a.status === 'online' && !String(a.id || '').endsWith('_demo')).length
+                : 0,
+            total_nodes: real.nodes_total,
+            nodes_online: real.nodes_online,
+            actions_today: real.actions_today
         },
         
         user_nodes: userNodes.map(n => ({
@@ -1538,7 +1591,8 @@ router.post('/nodes/heartbeat', authRequired, (req, res) => {
     res.json({ received: true, timestamp: new Date().toISOString() });
 });
 
-router.get('/protocol', (req, res) => {
+router.get('/protocol', async (req, res) => {
+    const real = await realHiveCounts();
     res.json({
         name: 'HIVV',
         version: '1.0.0',
@@ -1566,8 +1620,12 @@ router.get('/protocol', (req, res) => {
         },
         
         stats: {
-            nodes_count: store.nodes.size + 342,
-            proposals_active: store.proposals.size + 2
+            // MEASURED — was `store.nodes.size + 342` and
+            // `store.proposals.size + 2`: 343 phantom nodes and 2 phantom
+            // proposals, rendered on /system as if the hive had them.
+            nodes_count: real.nodes_total,
+            nodes_online: real.nodes_online,
+            proposals_active: store.proposals.size
         },
         
         _links: {

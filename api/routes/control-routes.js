@@ -148,7 +148,10 @@ router.get('/nodes', async (req, res) => {
 
   const payload = {
     total: all.length,
-    online: all.filter(n => n.status !== 'offline').length,
+    // The heartbeat is the truth. A rehydrated roster still labels a week-old
+    // bee 'stale', and 'status !== offline' counted it as alive — the site
+    // then published "6 online" when three could answer.
+    online: all.filter(n => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline')).length,
     nodes: all.map(n => ({
       id: n.node_id, name: n.name, ip: n.ip, lan_ip: n.lan_ip,
       public_ip: n.public_ip || null, version: n.version,

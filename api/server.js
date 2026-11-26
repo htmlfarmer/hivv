@@ -1120,6 +1120,20 @@ app.get('/api/public/status', async (req, res) => {
                 local_backends: localEndpoints,
                 ts: Date.now()
             },
+            // Where THIS hive actually is. The maps used to bake a coordinate
+            // pair into the page ("Moscow, Idaho") — true until the box moved,
+            // then a lie forever. The router already resolves the hub's own
+            // location; publish it instead of guessing.
+            hub: (() => {
+                try {
+                    const loc = typeof router._hubLocation === 'function' ? router._hubLocation() : null;
+                    if (!loc || !Number.isFinite(Number(loc.lat))) return null;
+                    return {
+                        lat: Number(loc.lat), lon: Number(loc.lon),
+                        city: loc.city || null, country_code: loc.country_code || null,
+                    };
+                } catch (_e) { return null; }
+            })(),
             totals,
             today: {
                 requests: parseInt(todayActivity.rows[0].requests),
@@ -1220,8 +1234,8 @@ app.get('/api/public/dashboard-stats', async (req, res) => {
         ] = await Promise.all([
             Promise.resolve({
                 total: orch.nodes.size,
-                online: Array.from(orch.nodes.values()).filter(n => n.status !== 'offline').length,
-                stressed: Array.from(orch.nodes.values()).filter(n => n.status === 'stressed').length
+                online: Array.from(orch.nodes.values()).filter(n => orch.isLive(n)).length,
+                stressed: Array.from(orch.nodes.values()).filter(n => orch.isLive(n) && n.status === 'stressed').length
             }),
             pool.query(`
                 SELECT
@@ -1258,7 +1272,7 @@ app.get('/api/public/dashboard-stats', async (req, res) => {
             `)
         ]);
 
-        const onlineNodes = Array.from(orch.nodes.values()).filter(n => n.status !== 'offline');
+        const onlineNodes = Array.from(orch.nodes.values()).filter(n => orch.isLive(n));
         let totalCapacity = 0;
         let totalWorkers = 0;
         let activeJobs = 0;
@@ -1893,16 +1907,43 @@ app.get('/api/providers', async (req, res) => {
     }
 });
 
+// The visitor's own IP + a coarse location. Cached, and it FALLS BACK to
+// the hub's own resolved location (the router already knows where this box
+// is) instead of 502-ing when the external service is rate-limited.
+let _ipInfoCache = { at: 0, value: null };
 app.get('/api/ip-info', async (req, res) => {
+    res.set('Cache-Control', 'public, max-age=60');
+    if (_ipInfoCache.value && Date.now() - _ipInfoCache.at < 60000) {
+        return res.json(_ipInfoCache.value);
+    }
     try {
-        const response = await fetch('https://ipapi.co/json/');
+        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(4000) });
         if (response.ok) {
             const data = await response.json();
+            _ipInfoCache = { at: Date.now(), value: data };
             return res.json(data);
         }
-        res.status(502).json({ error: 'Failed to fetch IP info' });
+    } catch (err) { /* fall through to the hub's own location */ }
+
+    // Fallback: this box's own resolved location, and the request's address.
+    // Better than a 502 with nothing in it - and never a guess.
+    try {
+        const hubLoc = typeof router._hubLocation === 'function' ? router._hubLocation() : null;
+        const data = {
+            ip: req.ip || null,
+            city: hubLoc?.city || null,
+            region: hubLoc?.region || null,
+            country: hubLoc?.country_code || null,
+            country_code: hubLoc?.country_code || null,
+            latitude: hubLoc?.lat ?? null,
+            longitude: hubLoc?.lon ?? null,
+            source: 'hub',
+            note: "external ip lookup unavailable - this is the HIVE location, not necessarily yours",
+        };
+        _ipInfoCache = { at: Date.now(), value: data };
+        return res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(502).json({ error: 'Failed to fetch IP info', detail: String(err.message).slice(0, 160) });
     }
 });
 
@@ -3830,6 +3871,11 @@ const PurposeRoutes = require('./routes/purpose-routes');
 PurposeRoutes.inject(pool);
 app.use('/api/purpose', PurposeRoutes);
 
+// GITHUB, SERVER-SIDE — the CSP forbids a browser talking to api.github.com
+// (connect-src 'self') and forbids github avatars (img-src 'self' data:).
+// The hub has no CSP, so the hub is the door.
+app.use('/api/github', require('./routes/github-routes'));
+
 // PUBLIC PARTNER SURFACE — the stable, versioned integration API for any
 // website, agent, or tool that wants to use HIVV (not just OpenCode).
 const PartnerRoutes = require('./routes/partner-routes');
@@ -4788,7 +4834,11 @@ const finalExports = {
     getSession, getVisitorId, createSession, pool,
     SESSION_TTL, ANONYMOUS_TTL, sessions: sessionCache,
     anonymousSessions, csrfValidate, requireAuth,
-    orchestrator: orch
+    orchestrator: orch,
+    // The AI router instance — routes that need the hub's own resolved
+    // location (the maps) read it from here instead of baking a coordinate
+    // pair into a page.
+    router
 };
 module.exports = finalExports;
 

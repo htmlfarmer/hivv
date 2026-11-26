@@ -112,6 +112,217 @@ router.get('/goal', async (req, res) => {
   }
 });
 
+
+// ── THE canonical live numbers (2026-11-26) ────────────────────────────────
+// GET /api/hive/stats  (and /api/hivv/stats — the brand door)
+//
+// WHY: the website used to bake its numbers into the HTML ("3 bees",
+// "64 TOK/S", "108 GB RAM"). Those were true on the day they were typed and
+// a lie the next morning. Every page now binds to THIS one endpoint, so the
+// site and the hive can never disagree.
+//
+// HOUSE RULES (from AGENTS.md, obeyed here):
+//   · null = NO DATA, never 0. A measurement that was never taken is not a
+//     measurement of zero, and rendering it as 0 is how a dashboard lies.
+//   · one endpoint, many surfaces — the browser, the CLI, a peer hive and a
+//     third-party integrator all read the same numbers.
+//   · never throws: a stats endpoint that 500s takes the whole page down.
+//     Every section degrades independently.
+const _statsCache = { data: null, ts: 0 };
+const STATS_CACHE_MS = 10000;
+
+function _num(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function _buildStats() {
+  const out = {
+    ok: true,
+    ts: Date.now(),
+    bees: {
+      registered: null, online: null, offline: null, stressed: null,
+      volunteers: null, countries: null, cities: null,
+      country_list: [], city_list: [], online_list: [],
+    },
+    models: { total: null, distinct: null, providers_active: null, names: [] },
+    capacity: {
+      total_cpus: null, total_memory_gb: null, free_memory_gb: null,
+      total_workers: null, active_jobs: null, available_capacity: null,
+      utilization_percent: null,
+    },
+    performance: {
+      requests_today: null, tokens_today: null, top_tps: null,
+      avg_ttfb_ms: null, total_jobs: null, success_rate: null,
+      cost_today: null,
+    },
+    honey: { total: null, leader: null, leader_honey: null, leader_rank: null, bees: null },
+    bridge: { peers: null, allowance_percent: null, allowance_mode: null },
+    gateway: { version: null, uptime_seconds: null, providers_active: null, database: null, status: null },
+  };
+
+  // ── bees + capacity (the orchestrator is the truth about the roster) ────
+  let roster = [];
+  try {
+    if (orchestrator && orchestrator.nodes) {
+      roster = Array.from(orchestrator.nodes.values());
+      // heartbeat-fresh, not "not marked offline" — a rehydrated roster
+      // labels week-old bees 'stale' and they are NOT alive.
+      const isLive = (n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline');
+      const online = roster.filter(isLive);
+      const offline = roster.filter((n) => !isLive(n));
+      const stressed = roster.filter((n) => isLive(n) && n.status === 'stressed');
+      out.bees.registered = roster.length;
+      out.bees.online = online.length;
+      out.bees.offline = offline.length;
+      out.bees.stressed = stressed.length;
+      out.bees.volunteers = online.filter((n) => n.volunteer === true || n.volunteer?.on === true).length;
+
+      const countries = new Map();
+      const cities = new Map();
+      for (const n of online) {
+        const cc = n.location?.country_code || null;
+        const city = n.location?.city || null;
+        if (cc) countries.set(cc, (countries.get(cc) || 0) + 1);
+        if (city) cities.set(city, (cities.get(city) || 0) + 1);
+      }
+      out.bees.countries = countries.size || null;
+      out.bees.cities = cities.size || null;
+      out.bees.country_list = Array.from(countries.keys()).sort();
+      out.bees.city_list = Array.from(cities.keys()).sort();
+      out.bees.online_list = online.map((n) => n.node_id);
+
+      // capacity — only ONLINE bees contribute (an offline box holds nothing)
+      const cpus = online.reduce((s, n) => s + (n.metrics?.cpu_count || n.system?.cpus || 0), 0);
+      const memGB = online.reduce((s, n) => s + ((n.metrics?.mem_total_mb || 0) / 1024), 0);
+      const freeGB = online.reduce((s, n) => s + ((n.metrics?.mem_avail_mb || 0) / 1024), 0);
+      const workers = online.reduce((s, n) => s + (n.max_concurrent_jobs || 0), 0);
+      const active = online.reduce((s, n) => s + (n.active_tasks || 0), 0);
+      const modelNames = new Set();
+      let modelCount = 0;
+      for (const n of online) {
+        const ms = n.local_models || [];
+        modelCount += ms.length;
+        for (const m of ms) { const nm = m?.model || m?.name; if (nm) modelNames.add(nm); }
+      }
+      out.models.total = modelCount || null;
+      out.models.distinct = modelNames.size || null;
+      out.models.names = Array.from(modelNames).sort();
+      out.capacity.total_cpus = cpus || null;
+      out.capacity.total_memory_gb = memGB > 0 ? Number(memGB.toFixed(1)) : null;
+      out.capacity.free_memory_gb = freeGB > 0 ? Number(freeGB.toFixed(1)) : null;
+      out.capacity.total_workers = workers || null;
+      out.capacity.active_jobs = active;
+      out.capacity.available_capacity = workers > 0 ? workers - active : null;
+      out.capacity.utilization_percent = workers > 0 ? Number(((active / workers) * 100).toFixed(1)) : null;
+    }
+  } catch (e) { console.warn('[STATS] roster failed:', e.message); }
+
+  // ── gateway ─────────────────────────────────────────────────────────────
+  try {
+    const { pool } = require('../server');
+    out.gateway.database = pool ? 'connected' : 'disabled';
+    out.gateway.uptime_seconds = Math.round(process.uptime());
+    // Where this hive actually is — the maps bind to this instead of baking
+    // a coordinate pair into the page.
+    try {
+      const srv = require('../server');
+      const inst = srv && srv.router;
+      const loc = inst && typeof inst._hubLocation === 'function' ? inst._hubLocation() : null;
+      if (loc && Number.isFinite(Number(loc.lat))) {
+        out.gateway.hub = { lat: Number(loc.lat), lon: Number(loc.lon),
+          city: loc.city || null, country_code: loc.country_code || null };
+      }
+    } catch (_e) { /* router shape differs — leave null */ }
+    if (pool) {
+      const [pv, cv] = await Promise.all([
+        pool.query('SELECT COUNT(*)::int AS n FROM ai_providers WHERE is_active = TRUE'),
+        pool.query("SELECT value FROM gateway_config WHERE key = 'api_version' LIMIT 1"),
+      ]);
+      out.gateway.providers_active = _num(pv.rows[0]?.n);
+      out.gateway.version = cv.rows[0]?.value || null;
+      out.models.providers_active = _num(pv.rows[0]?.n);
+    }
+  } catch (e) { console.warn('[STATS] gateway probe failed:', e.message); }
+
+  // ── honey + hive goal ───────────────────────────────────────────────────
+  try {
+    const g = await honey.hiveGoal();
+    out.honey.bees = _num(g?.bees);
+    out.performance.total_jobs = _num(g?.total_jobs);
+  } catch (e) { /* no database */ }
+  try {
+    const board = await honey.leaderboard({ window: 'all', limit: 50 });
+    if (Array.isArray(board) && board.length) {
+      out.honey.leader = board[0].node_id;
+      out.honey.leader_honey = _num(board[0].honey);
+      out.honey.leader_rank = board[0].bee_rank || null;
+      out.honey.total = board.reduce((s, b) => s + (_num(b.honey) || 0), 0) || null;
+    }
+  } catch (e) { /* no database */ }
+
+  // ── measured throughput (the perf EWMA is the only REAL speed number) ───
+  try {
+    const samples = await perf.snapshot(50);
+    const withTps = (samples || []).filter((s) => _num(s.ewma_tps) > 0);
+    if (withTps.length) out.performance.top_tps = Number(Math.max(...withTps.map((s) => Number(s.ewma_tps))).toFixed(1));
+    const ttfb = (samples || []).map((s) => _num(s.ewma_ttfb_ms)).filter((v) => v !== null && v > 0);
+    if (ttfb.length) out.performance.avg_ttfb_ms = Math.round(ttfb.reduce((a, b) => a + b, 0) / ttfb.length);
+  } catch (e) { /* no database */ }
+
+  // ── today's traffic (hub-level counters) ───────────────────────────────
+  try {
+    const { pool } = require('../server');
+    if (pool) {
+      const r = await pool.query(
+        "SELECT COUNT(*)::int AS requests," +
+        " COALESCE(SUM(total_tokens),0)::bigint AS tokens," +
+        " COALESCE(SUM(cost),0)::numeric AS cost," +
+        " COUNT(*) FILTER (WHERE status = 'success')::int AS ok" +
+        " FROM usage_logs WHERE created_at > CURRENT_DATE"
+      );
+      const row = r.rows[0] || {};
+      out.performance.requests_today = _num(row.requests) ?? 0;
+      out.performance.tokens_today = _num(row.tokens) ?? 0;
+      out.performance.cost_today = row.cost !== undefined && row.cost !== null ? Number(row.cost) : null;
+      if (row.requests > 0) out.performance.success_rate = Number(((row.ok / row.requests) * 100).toFixed(1));
+    }
+  } catch (e) { console.warn('[STATS] usage query failed:', e.message); }
+
+  // ── the hive-to-hive bridge (peers + the CURRENT allowance) ───────────
+  try {
+    const bridge = require('./bridge-routes');
+    if (typeof bridge.currentAllowance === 'function') {
+      const a = await bridge.currentAllowance('anonymous');
+      out.bridge.allowance_percent = _num(a?.percent);
+      out.bridge.allowance_mode = a?.mode || null;
+    }
+    if (typeof bridge.peerCount === 'function') out.bridge.peers = _num(await bridge.peerCount());
+  } catch (e) { /* bridge not mounted here */ }
+
+  return out;
+}
+
+router.get('/stats', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=10');
+    if (_statsCache.data && Date.now() - _statsCache.ts < STATS_CACHE_MS) {
+      return res.json(_statsCache.data);
+    }
+    const data = await _buildStats();
+    _statsCache.data = data;
+    _statsCache.ts = Date.now();
+    res.json(data);
+  } catch (e) {
+    // A stats endpoint that 500s takes the whole page down with it. Serve
+    // what we have (nulls, not zeros) instead.
+    console.warn('[STATS] build failed:', e.message);
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: false, ts: Date.now(), error: 'stats unavailable', detail: e.message });
+  }
+});
+
 // GET /api/hive/perf?model=gemma — measured speeds per node+model
 router.get('/perf', async (req, res) => {
   try {

@@ -305,7 +305,8 @@ async function _toolNodes() {
   });
   return _json({
     total: nodes.length,
-    online: nodes.filter((n) => n.status !== 'offline').length,
+    // heartbeat-fresh, not "not marked offline" — see orchestrator.isLive
+    online: nodes.filter((n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline')).length,
     nodes
   });
 }
@@ -316,7 +317,8 @@ async function _toolNodes() {
 async function _invokeNodeTool(tool, q) {
   if (!orchestrator || !orchestrator.nodes) return null;
   const all = Array.from(orchestrator.nodes.values())
-    .filter((n) => n.status !== 'offline' && (n.tools || []).includes(tool) && n.tools_port > 0);
+    .filter((n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline')
+      && (n.tools || []).includes(tool) && n.tools_port > 0);
   if (!all.length) return null;
   const node = all.sort((a, b) => (a.total_cpu_percent || 0) - (b.total_cpu_percent || 0))[0];
   const qs = new URLSearchParams({ q });

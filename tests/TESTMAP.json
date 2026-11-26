@@ -307,6 +307,7 @@
   "api/tests/licenses.test.js": [
    "api/lib/licenses.js"
   ],
+  "api/tests/live-numbers.test.js": [],
   "api/tests/local-mode.test.js": [
    "api/lib/local-mode.js"
   ],

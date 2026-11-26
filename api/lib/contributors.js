@@ -62,7 +62,13 @@ function _normContributor(c) {
   return {
     login: c.login || '?',
     name: c.name || null,
-    avatar_url: c.avatar_url || null,
+    // The avatar goes through the HUB, not straight to github: the CSP is
+    // img-src 'self' data:, so a browser can never load an avatar from
+    // avatars.githubusercontent.com. Handing out the proxy URL keeps the raw
+    // github URL out of the page entirely - the page escapes it as before.
+    avatar_url: c.avatar_url
+      ? '/api/github/avatar?u=' + encodeURIComponent(c.avatar_url)
+      : null,
     html_url: c.html_url || `https://github.com/${c.login}`,
     contributions: Number(c.contributions) || 0,
     type: c.type || 'User',

@@ -126,7 +126,7 @@ router.get('/catalog', async (req, res) => {
 router.get('/', (req, res) => {
     const tool = req.query.tool;
     const all = orchestrator
-        ? Array.from(orchestrator.nodes.values()).filter((n) => n.status !== 'offline')
+        ? Array.from(orchestrator.nodes.values()).filter((n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline'))
         : [];
     const withTools = all
         .filter((n) => n.tools && n.tools.length > 0)
@@ -155,7 +155,8 @@ router.get('/', (req, res) => {
 async function invokeOnNode(tool, args, timeoutMs) {
     if (!orchestrator) return { ok: false, error: 'the node registry is not ready' };
     const all = Array.from(orchestrator.nodes.values())
-        .filter((n) => n.status !== 'offline' && (n.tools || []).includes(tool) && n.tools_port > 0);
+        .filter((n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status !== 'offline')
+          && (n.tools || []).includes(tool) && n.tools_port > 0);
     if (!all.length) return { ok: false, error: `no bee on the hive is sharing '${tool}'` };
     const node = all.sort((a, b) => (a.total_cpu_percent || 0) - (b.total_cpu_percent || 0))[0];
     const hosts = [];

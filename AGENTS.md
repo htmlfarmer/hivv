@@ -422,6 +422,67 @@ The public, versioned integration API for other websites — everything under
 | `POST /api/partner/verify` | Verify a signed attestation |
 | `GET /api/partner/attestation/key` | This instance's verification public key |
 
+### The live numbers — one endpoint, one binding, no lies (2026-11-26)
+
+The website used to bake its numbers into the HTML: `"3 bees"`, `"64 TOK/S"`,
+`"~27 KB"`, `"23 providers"`, `"85% allowance"`, a throughput chart
+drawn with `Math.random()`, and **nine invented map markers** in San Francisco /
+New York / London / Paris. The API was worse: it answered `+12845 agents`,
+`+894520 actions`, `+340 nodes online` — so a page that fetched the truth
+still rendered a lie.
+
+**The law now:**
+
+1. Every number that claims to describe NOW is **MEASURED**.
+2. **One endpoint is the source of truth**: `GET /api/hivv/stats`
+   (the legacy door `/api/hive/stats` serves the identical payload).
+3. Pages **declare** their numbers instead of typing them:
+   `<span data-hivv-stat="bees.online">`.
+4. `null` means **no data**, never `0`.
+
+**`/api/hivv/stats`** — grouped, cached 10 s, never throws (a stats endpoint
+that 500s takes the page down with it):
+
+| Block | What it carries |
+|---|---|
+| `bees` | `registered` `online` `offline` `stressed` `volunteers` `countries` `cities` + the lists |
+| `models` | `total` `distinct` `providers_active` + the model names |
+| `capacity` | `total_cpus` `total_memory_gb` `free_memory_gb` `total_workers` `available_capacity` |
+| `performance` | `requests_today` `tokens_today` `top_tps` `avg_ttfb_ms` `total_jobs` `success_rate` `cost_today` |
+| `honey` | `total` `leader` `leader_honey` `leader_rank` `bees` |
+| `bridge` | `peers` `allowance_percent` `allowance_mode` |
+| `gateway` | `version` `uptime_seconds` `providers_active` `database` `hub` (the hub's REAL lat/lon) |
+
+**`public_html/js/hivv-live.js`** — the ONE binding. Drop
+`<script src="/js/hivv-live.js"></script>` + `HIVVLive.start()` into a page
+and every `[data-hivv-stat]` element fills itself. Attributes:
+`data-hivv-stat` (dotted path), `data-hivv-format`
+(`int|dec1|compact|pct|tps|ms|bytes|duration|plain`), `data-hivv-default`,
+`data-hivv-prefix`, `data-hivv-append`, `data-hivv-title`.
+The nav bee pill uses `data-hivv-pill` + `data-hivv-pill-count` +
+`data-hivv-pill-dot` (the dot recolours: green all up, amber partial, red none,
+grey unknown). A failed fetch shows an em dash — it never leaves a stale
+number frozen on screen pretending to be current.
+
+**`orchestrator.isLive(node)`** — the one truth for "is this bee alive".
+The `status` LABEL is not enough: a gateway restart rehydrates the roster from
+disk and labels a week-old bee `stale`, so counting `status !== 'offline'`
+counted three dead boxes as LIVE and the site published "6 online" when three
+could answer. A bee is alive when it has **heartbeated within the stale
+threshold** (3 min). Every counting site asks the heartbeat now
+(`control-routes` `honey-routes` `mcp-routes` `partner-routes`
+`tool-routes` `telemetry-routes` `capabilities` `honey.js`).
+
+**The CDN libs were dead too.** The CSP is `script-src 'self' 'unsafe-inline'`
+— no CDN script may load, so d3, Chart.js, marked, DOMPurify, highlight.js
+and Swagger UI were all blocked and the charts rendered nothing. They now live
+on our own box under `public_html/lib/` (the same call the Leaflet/tile work
+already made).
+
+**Tests**: `api/tests/live-numbers.test.js` (15) — the endpoint, the brand
+doors, `isLive` in every counter, no fabricated offsets, the nav pill, the
+charts, the map, the script tags.
+
 ### Deterministic fast scan (`lib/fast-scan.js`)
 
 Free, reproducible, **no AI**. Reports size, entropy, imports, command/API

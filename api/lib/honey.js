@@ -101,7 +101,13 @@ async function _flushOnce(orchestrator) {
       const row = cur.rows[0] || {};
       const cumJobs = node.cum?.tasks_completed ?? (node.stats?.tasks_completed || node.tasks_completed || 0);
       const cumTokens = node.cum?.tokens_processed ?? (node.stats?.total_tokens_processed || node.total_tokens_processed || 0);
-      const online = node.status !== 'offline';
+      // A bee earns an online-minute only while it is REALLY online. The
+      // roster keeps dead bees as 'stale' (restored from disk), and 'stale'
+      // used to earn honey every sweep — the leaderboard inflated itself
+      // with minutes from boxes that had not spoken in a week.
+      const online = typeof orchestrator.isLive === 'function'
+        ? orchestrator.isLive(node)
+        : node.status !== 'offline';
 
       const jobDelta = Math.max(0, cumJobs - (row.seen_jobs ?? 0));
       const tokDelta = Math.max(0, cumTokens - (row.seen_tokens ?? 0));

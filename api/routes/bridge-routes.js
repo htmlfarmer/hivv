@@ -122,9 +122,11 @@ router.get('/load', async (req, res) => {
 // The authoritative number a guest obeys. Tiered on the 5-minute window;
 // falls back to "calm ceiling" only when we genuinely cannot measure (a
 // guest then stays within the conservative ceiling either way).
-router.get('/allowance', async (req, res) => {
-    res.set('Cache-Control', 'public, max-age=10');
-    const peer = String((req.query && req.query.peer) || 'anonymous').slice(0, 64);
+// The allowance maths, factored out so the SAME number can be served by
+// /api/bridge/allowance and read by /api/hivv/stats (the website's one
+// source of truth). One computation, two doors - never two answers.
+async function currentAllowance(peerName) {
+    const peer = String(peerName || 'anonymous').slice(0, 64);
     const ceiling = CEILING[PEER_ALLOWANCE_MODE];
     const win = await latencyWindow();
 
@@ -145,16 +147,16 @@ router.get('/allowance', async (req, res) => {
         percent = Math.round(ceiling * 100);
         reason = `calm: latency ${win.avg_ms}ms, success ${win.ok_pct}%`;
     }
+    return { hive: 'hivv.org', peer, percent, reason, mode: PEER_ALLOWANCE_MODE, latency_5m: win };
+}
 
+router.get('/allowance', async (req, res) => {
+    res.set('Cache-Control', 'public, max-age=10');
+    const a = await currentAllowance((req.query && req.query.peer) || 'anonymous');
     res.json(meta({
-        hive: 'hivv.org',
-        peer,
-        percent,
-        reason,
-        mode: PEER_ALLOWANCE_MODE,
-        retry_after_s: percent === 0 ? 60 : 0,
+        ...a,
+        retry_after_s: a.percent === 0 ? 60 : 0,
         receipts_required: true,
-        latency_5m: win,
     }));
 });
 
@@ -961,3 +963,14 @@ router.get('/receipts', async (req, res) => {
 });
 
 module.exports = router;
+// The allowance maths, shared with /api/hivv/stats (one computation, two
+// doors) and the peer count for the same reason.
+module.exports.currentAllowance = currentAllowance;
+module.exports.peerCount = async function peerCount() {
+    if (!pool) return null;
+    try {
+        const { rows } = await pool.query(
+            "SELECT COUNT(*)::int AS n FROM hivv_bridges WHERE scope='hive' AND status='verified'");
+        return rows[0]?.n ?? null;
+    } catch (_e) { return null; }
+};

@@ -183,6 +183,10 @@ router.get('/manifest', async (req, res) => {
                 a2a_task: '/api/a2a/tasks/{id}',
                 telemetry_overview: '/api/telemetry/overview',
                 telemetry_metrics: '/api/telemetry/metrics',
+                // THE canonical live numbers - one endpoint, every figure the
+                // website shows. null means NO DATA, never 0.
+                stats: '/api/hivv/stats',
+                stats_legacy: '/api/hive/stats',
                 bridge_load: '/api/bridge/load',
                 bridge_allowance: '/api/bridge/allowance',
                 bridge_peers: '/api/bridge/peers',
@@ -360,7 +364,7 @@ router.get('/network', async (req, res) => {
     res.json({
         data: {
             nodes: nodes.length,
-            online: nodes.filter((n) => n.status === 'online').length,
+            online: nodes.filter((n) => (typeof orchestrator.isLive === 'function' ? orchestrator.isLive(n) : n.status === 'online')).length,
             roster: nodes,
         },
         meta: meta(),

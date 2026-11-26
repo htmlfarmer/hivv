@@ -515,10 +515,30 @@ class Orchestrator {
     return 'online';
   }
 
+  /**
+   * Is this bee ACTUALLY alive right now?
+   *
+   * The 'status' label alone is not enough. A gateway restart rehydrates the
+   * roster from disk and labels every bee 'online' or 'stale' by the age of
+   * its LAST HEARTBEAT — a heartbeat that may be days old. Counting
+   * 'status !== offline' then counted three week-old boxes as LIVE, and the
+   * website published "6 bees online" when only three could answer.
+   *
+   * The truth is the heartbeat: a bee is alive when it has spoken within the
+   * stale threshold (3 min). Everything that counts "online" must use this.
+   */
+  isLive(node, now = Date.now()) {
+    if (!node) return false;
+    if (node.status === 'offline') return false;
+    if (!node.last_heartbeat) return false;
+    return (now - node.last_heartbeat) <= this.config.staleThresholdMs;
+  }
+
   getOnlineNodes(options = {}) {
     const { role, capability, excludeStressed = false } = options;
+    const now = Date.now();
     return Array.from(this.nodes.values()).filter(n => {
-      if (n.status === 'offline') return false;
+      if (!this.isLive(n, now)) return false;
       if (excludeStressed && n.status === 'stressed') return false;
       if (role && !n.capabilities.includes(role)) return false;
       if (capability && !n.capabilities.includes(capability)) return false;
@@ -528,9 +548,13 @@ class Orchestrator {
 
   getGlobalStats() {
     const all = Array.from(this.nodes.values());
-    const online = all.filter(n => n.status !== 'offline');
-    const stressed = all.filter(n => n.status === 'stressed');
-    const offline = all.filter(n => n.status === 'offline');
+    const now = Date.now();
+    const online = all.filter(n => this.isLive(n, now));
+    const stressed = all.filter(n => this.isLive(n, now) && n.status === 'stressed');
+    // A bee that stopped answering is OFFLINE whether the label says so yet
+    // or not — the heartbeat monitor flips the label every 30s, the heartbeat
+    // itself is never late.
+    const offline = all.filter(n => !this.isLive(n, now));
 
     const totalCpus = online.reduce((s, n) => s + (n.metrics?.cpu_count || n.system?.cpus || 0), 0);
     const totalMemGB = online.reduce((s, n) => s + ((n.metrics?.mem_total_mb || 0) / 1024), 0);

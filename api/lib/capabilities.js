@@ -164,7 +164,9 @@ async function hiveSummary(orchestrator) {
     for (const c of caps) {
       const e = ensure(c);
       e.bees++;
-      if (node.status !== 'offline') { e.online++; e.nodes.push(node.name || node.node_id); }
+      // heartbeat-fresh — a rehydrated 'stale' bee is not online
+      const live = typeof orchestrator.isLive === 'function' ? orchestrator.isLive(node) : node.status !== 'offline';
+      if (live) { e.online++; e.nodes.push(node.name || node.node_id); }
     }
   }
   // hub services count as always-online capacity

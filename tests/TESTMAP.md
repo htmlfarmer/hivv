@@ -96,6 +96,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/integration.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/interop.test.js` | `api/lib/a2a-client.js`, `api/lib/hive-clients.js`, `api/lib/mcp-client.js`, `api/lib/ssrf.js`, `api/routes/a2a-routes.js` |
 | `api/tests/licenses.test.js` | `api/lib/licenses.js` |
+| `api/tests/live-numbers.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/local-mode.test.js` | `api/lib/local-mode.js` |
 | `api/tests/locked-llm.test.js` | `api/lib/locked-llm.js` |
 | `api/tests/node-auth.test.js` | *(no static source reference — part of the full suite)* |
@@ -205,6 +206,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/dog-routes.js`
 - `api/routes/earth-routes.js`
 - `api/routes/files-routes.js`
+- `api/routes/github-routes.js`
 - `api/routes/identity-routes.js`
 - `api/routes/inbox-routes.js`
 - `api/routes/lyrz-routes.js`
@@ -236,8 +238,10 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `public_html/hivv_worker.py`
 - `public_html/install-hivv.ps1`
 - `public_html/js/hivv-dashboard.js`
+- `public_html/js/hivv-live.js`
 - `public_html/js/shared.js`
 - `public_html/lib/leaflet/leaflet.js`
+- `public_html/lib/swaggerui/swagger-ui-bundle.js`
 - `public_html/tests/test_llm_tiers.py`
 - `public_html/tests/test_update_rollback.py`
 - `restart.sh`

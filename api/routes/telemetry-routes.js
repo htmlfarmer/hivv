@@ -130,7 +130,7 @@ router.get('/overview', async (req, res) => {
         for (const n of orch.nodes.values()) {
             nodes.total++;
             if (n.quarantined) nodes.quarantined++;
-            else if (n.status === 'online') nodes.online++;
+            else if (typeof orch.isLive === 'function' ? orch.isLive(n) : n.status === 'online') nodes.online++;
         }
     }
 
