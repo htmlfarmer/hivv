@@ -50,6 +50,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/routes/a2a-routes.js` | `api/tests/interop.test.js` |
 | `api/routes/control-routes.js` | `tests/test_llm_build_tools.py` |
 | `api/routes/honey-routes.js` | `tests/test_failure_diagnostics.py` |
+| `api/routes/tile-routes.js` | `api/tests/tile.test.js` |
 | `api/server.js` | `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_repo_scripts.py`, `tests/test_scan_secrets.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
@@ -107,6 +108,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/salah.test.js` | `api/lib/attendance.js`, `api/lib/salah.js` |
 | `api/tests/task-queue.test.js` | `api/lib/task-queue.js` |
 | `api/tests/telemetry.test.js` | `api/lib/telemetry.js` |
+| `api/tests/tile.test.js` | `api/routes/tile-routes.js` |
 | `api/tests/tool-profiles.test.js` | `api/lib/toolkit.js` |
 | `api/tests/trust.test.js` | `api/lib/attest.js`, `api/lib/identity.js`, `api/lib/trust.js` |
 | `api/tests/version-date.test.js` | `api/lib/version-date.js` |
@@ -235,6 +237,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `public_html/install-hivv.ps1`
 - `public_html/js/hivv-dashboard.js`
 - `public_html/js/shared.js`
+- `public_html/lib/leaflet/leaflet.js`
 - `public_html/tests/test_llm_tiers.py`
 - `public_html/tests/test_update_rollback.py`
 - `restart.sh`

@@ -639,6 +639,27 @@ app.use(cors({
     credentials: true
 }));
 
+// THE MAP TILES — keyless, open, cached.
+//
+// The basemap CDN we used to borrow (CARTO) now stamps "API KEY
+// REQUIRED" into every tile it serves, so the map became a wall of
+// watermarks. These come from OpenStreetMap (ODbL), with Esri's keyless
+// dark Canvas as the fallback — proxied so ONE cached fetch serves every
+// visitor instead of one fetch per visitor. See routes/tile-routes.js.
+//
+// Mounted BEFORE the general API limiter on purpose: a map page pulls
+// dozens of tiles in one visit, and tiles are cheap, cached, and public
+// data. The general budget belongs to the endpoints that cost money.
+const tileLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 1200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip || 'unknown'
+});
+app.use('/api/tile', tileLimiter);
+app.use('/api', require('./routes/tile-routes'));
+
 const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 300,

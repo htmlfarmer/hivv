@@ -131,6 +131,9 @@
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
   ],
+  "api/routes/tile-routes.js": [
+   "api/tests/tile.test.js"
+  ],
   "api/server.js": [
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
@@ -342,6 +345,9 @@
   ],
   "api/tests/telemetry.test.js": [
    "api/lib/telemetry.js"
+  ],
+  "api/tests/tile.test.js": [
+   "api/routes/tile-routes.js"
   ],
   "api/tests/tool-profiles.test.js": [
    "api/lib/toolkit.js"
