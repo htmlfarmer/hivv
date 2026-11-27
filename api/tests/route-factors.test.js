@@ -278,6 +278,46 @@ test('quality mode: the better model wins when speed is equal', async () => {
   assert.strictEqual(names(scored)[0], 'bee-a');
 });
 
+test('the quality tier is SIZE-aware: a 0.5B model is not a 72B model', () => {
+  const r = makeRouter();
+  // The tier table is per FAMILY, so "qwen" handed a 0.5B model the tier of
+  // the family's flagship -- and quality carries the heaviest weight in
+  // quality mode (6 of 11.3). A 0.5B outranked a 4.6B gemma in EVERY mode
+  // (yalla 2026-11-27: OpenCode was served by the 0.5B while a gemma-4-E2B
+  // sat idle on the same LAN).
+  assert.strictEqual(r._qualityOf('Qwen2.5-0.5B-Instruct-GGUF'), 4);
+  assert.ok(r._qualityOf('Qwen2.5-0.5B-Instruct-GGUF')
+          < r._qualityOf('gemma-4-E2B-it-Q4_K_M.gguf'),
+    'a 0.5B model must not outrank a 2B-effective gemma');
+});
+
+test('the size cap never RAISES a tier, and never touches an unstated size', () => {
+  const r = makeRouter();
+  // A model whose size is not in its name keeps its family tier.
+  assert.strictEqual(r._qualityOf('gpt-4o'), 10);
+  assert.strictEqual(r._qualityOf('claude-3-5-sonnet'), 10);
+  // A big model of a low-tier family is not promoted.
+  assert.strictEqual(r._qualityOf('codestral-22b'), 5);
+  // A big model of a high-tier family keeps its tier.
+  assert.strictEqual(r._qualityOf('Qwen2.5-72B-Instruct'), 8);
+});
+
+test('a MoE model is judged by its ACTIVE parameters', () => {
+  const r = makeRouter();
+  // "235b-a22b" runs 22B per token, so it is a tier-8 model.
+  assert.strictEqual(r._qualityOf('Qwen3-235B-A22B'), 8);
+});
+
+test('quality mode: the bigger model wins when speed is equal', async () => {
+  const r = makeRouter({
+    perfRows: [row('bee-a', 'Qwen2.5-0.5B-Instruct'), row('bee-b', 'gemma-4-E2B')],
+  });
+  const scored = await rank(r, [target('bee-a', 'Qwen2.5-0.5B-Instruct'),
+                                target('bee-b', 'gemma-4-E2B')], 'quality');
+  assert.strictEqual(names(scored)[0], 'bee-b',
+    'the 0.5B model must not win quality mode on a name match alone');
+});
+
 test('cost mode: donated compute beats a priced endpoint by a wide margin', async () => {
   const r = makeRouter({
     perfRows: [row('localhost', 'gemma-4-E2B'), row('api.openai.com', 'gpt-4o-mini')],
