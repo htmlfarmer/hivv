@@ -555,6 +555,37 @@ class AIRouter {
         return false;
     }
 
+    // The window a BEE can really hold, as published in its heartbeat.
+    //
+    // A model NAME is not a context window. llama.cpp divides its context
+    // across parallel slots, so "-c 4096 -np 4" is FOUR 1024-token slots
+    // behind a model name the table below calls 32768. The hub guessed
+    // (CONTEXT_WINDOWS) and routed a 5k-token OpenCode prompt into a
+    // 1024-token slot, which answered HTTP 400 "request (4702 tokens)
+    // exceeds the available context size (1024 tokens)" -- and the router
+    // reported every candidate as fine (yalla 2026-11-27).
+    //
+    // The bee knows the real number (llama-server /props); it is published
+    // as local_models[].ctx_slot. Use it whenever it is there.
+    _publishedCtxSlot(t) {
+        const node = this._nodeForTarget(t);
+        const models = Array.isArray(node?.local_models) ? node.local_models : [];
+        if (!models.length) return 0;
+        const want = AIRouter._prettyModel(t.model || '').toLowerCase();
+        let only = 0;
+        for (const m of models) {
+            const ctx = Number(m?.ctx_slot) || 0;
+            if (!(ctx > 0)) continue;
+            const name = String(m?.model || '').toLowerCase();
+            if (want && name && (name === want || name.includes(want) || want.includes(name))) {
+                return ctx;
+            }
+            if (!only) only = ctx;
+        }
+        // ONE model on the bee: its window is the only one that matters.
+        return models.length === 1 ? only : 0;
+    }
+
     // What does THIS request need from a candidate? Tri-state: null = not
     // applicable, so an ordinary chat message scores capability NEUTRAL rather
     // than a meaningless 1.0. Tools stay a hard filter upstream too — this is
@@ -563,7 +594,10 @@ class AIRouter {
         let contextOk = null;
         const promptEst = Number(options.promptEst) || 0;
         if (promptEst > 0) {
-            const ctx = contextWindowFor(t.model || '', options.contextWindow);
+            // The bee's PUBLISHED window beats a guess from the model name:
+            // the name is identical on every box, the window is not.
+            const published = this._publishedCtxSlot(t);
+            const ctx = published || contextWindowFor(t.model || '', options.contextWindow);
             // prompt + room to actually answer: a model that cannot hold it will
             // 413 anyway, so prefer one that can instead of discovering it late.
             contextOk = ctx >= promptEst + 512;
