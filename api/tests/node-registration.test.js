@@ -52,9 +52,10 @@ test('registering with a TOKEN and no hw_id must not throw', () => {
   // "nodeData.hw_id || existingNode?.hw_id" had to evaluate the right side,
   // and existingNode is not in scope there.
   const orch = freshOrchestrator();
-  // A UNIQUE token: registerNode persists to nodes.json, and a fixed
-  // token collides with its own previous run — the collision branch then
-  // appends an octet ('tok-abc--abc') and this test fails on run two.
+  // The value must be unique per run — registerNode persists to
+  // nodes.json, and a fixed value collides with its own previous run;
+  // the collision branch then appends an octet ('tok-abc--abc') and this
+  // test fails on run two.
   const tok = 'tok-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
   let node;
   assert.doesNotThrow(() => {
