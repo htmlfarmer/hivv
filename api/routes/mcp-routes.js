@@ -152,6 +152,24 @@ const HONEY_SHAPE = {
 
 const NO_ARGS_SHAPE = {};
 
+// Feedback is the one tool that must work BEFORE anything else does: an AI
+// that finds a bug should be able to file it, and read back whether anyone
+// answered. `action` doubles as the read path so the loop is one tool, not two.
+const FEEDBACK_SHAPE = {
+  action: z.enum(['submit', 'list']).optional()
+    .describe("submit (default) = file it · list = read back your submissions with their status and any reply from the maintainers."),
+  type: z.enum(['suggestion', 'complaint', 'help_request', 'bug', 'praise', 'other']).optional()
+    .describe('What kind of feedback (default: suggestion). Use bug when something is broken.'),
+  message: z.string().optional()
+    .describe('The feedback itself — what you saw, or what you want changed. Required for action=submit.'),
+  subject: z.string().optional()
+    .describe('Short title. Defaults to the first 60 characters of the message.'),
+  evidence: z.string().optional()
+    .describe('Supporting detail: versions, ids, timestamps, log lines. Bounded server-side.'),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional()
+    .describe('For bugs: how bad is it.'),
+};
+
 const TOOL_DEFS = {
   chat: {
     title: 'Chat with the hive',
@@ -190,6 +208,14 @@ const TOOL_DEFS = {
     description: 'Contribution leaderboard of the hive: honey earned (1/minute online, 10/job, 1/100 tokens), bee rank (larva → queen-bee) and streaks. '
       + 'Use for "who contributes the most?", "what is my rank?" or other gamification questions; pass `node` for one bee’s full profile.',
     shape: HONEY_SHAPE, schema: z.object(HONEY_SHAPE)
+  },
+  feedback: {
+    title: 'Send feedback or report a bug',
+    description: 'File feedback with hivv.org — a bug, a suggestion, a complaint, a help request or praise — and read back what you already filed. '
+      + 'Use this whenever the user reports a problem with hivv or asks for a change: it returns a real id and a status (open → reviewed → in_progress → resolved), so the report is trackable rather than lost in chat. '
+      + 'action=list returns your submissions and any reply from the maintainers — use it to check whether anyone answered. '
+      + 'Prefer this over chat for anything the maintainers should actually see.',
+    shape: FEEDBACK_SHAPE, schema: z.object(FEEDBACK_SHAPE)
   }
 };
 
@@ -427,6 +453,79 @@ async function _toolHoney(args) {
   return _json({ bees });
 }
 
+// ── feedback: file it, and read back the answer ────────────────────────────
+//
+// This is the tool an AI needs when the user says "this is broken" — not a
+// chat reply that vanishes. Same table the CLI's `hivv submit` / `hivv help`
+// write to, so a report filed from OpenCode and one filed from a terminal are
+// the same report: same visitor identity, same status lifecycle, same reply.
+// Lazy pool import — the exact pattern control-routes.js and honey.js use.
+
+const FB_TYPES = ['suggestion', 'complaint', 'help_request', 'bug', 'praise', 'other'];
+const FB_SEVERITY = ['low', 'medium', 'high', 'critical'];
+
+async function _feedbackPool() {
+  try {
+    const p = require('../server').pool;
+    return p || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function _toolFeedback(args, ctx) {
+  const action = args?.action || 'submit';
+  const pool = await _feedbackPool();
+  if (!pool) return _err('database unavailable — retry in a moment');
+
+  // LIST — the read half of the loop: status AND any reply. Without this an
+  // AI can file a report and never learn whether anyone answered.
+  if (action === 'list') {
+    try {
+      const r = await _withTimeout(pool.query(
+        `SELECT id, type, subject, message, status, review_notes, created_at, updated_at
+           FROM hivv_feedback
+          WHERE visitor_id = $1 OR (user_id IS NOT NULL AND user_id = $2)
+          ORDER BY created_at DESC LIMIT 20`,
+        [ctx.principal, ctx.userId || null]), 5000, 'feedback list');
+      return _json({ total: r.rows.length, items: r.rows });
+    } catch (e) {
+      return _err(`could not list feedback: ${e.message || e}`);
+    }
+  }
+
+  const message = String(args?.message || '').trim();
+  if (!message) return _err('message is required for action=submit');
+  const type = FB_TYPES.includes(args?.type) ? args.type : 'suggestion';
+  const subject = String(args?.subject || `${type}: ${message.slice(0, 60)}`).slice(0, 200);
+  const sev = FB_SEVERITY.includes(args?.severity) ? args.severity : null;
+  try {
+    const r = await _withTimeout(pool.query(
+      `INSERT INTO hivv_feedback (visitor_id, user_id, node_id, type, subject, message, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, type, subject, status, created_at`,
+      [ctx.principal, ctx.userId || null, ctx.nodeId || null, type, subject, message,
+       JSON.stringify({
+         via: 'mcp',
+         principal: ctx.principal,
+         ...(args?.evidence ? { evidence: String(args.evidence).slice(0, 4000) } : {}),
+         ...(sev ? { severity: sev } : {}),
+       })]), 8000, 'feedback insert');
+    const row = (r.rows && r.rows[0]) || {};
+    return _json({
+      ok: true,
+      id: row.id,
+      type: row.type,
+      subject: row.subject,
+      status: row.status || 'open',
+      created_at: row.created_at,
+      note: 'Filed with hivv.org. Call this tool again with action=list to check for a reply.',
+    });
+  } catch (e) {
+    return _err(`could not save feedback: ${e.message || e}`);
+  }
+}
+
 // ── registration (one McpServer per request — the SDK stateless pattern) ────
 
 // ── the toolkit's twelve, exposed over MCP ─────────────────────────────────
@@ -496,6 +595,7 @@ function _dispatch(name, args, ctx) {
   case 'search': return _toolWeb('search', args, ctx);
   case 'news':  return _toolWeb('news', args, ctx);
   case 'honey': return _toolHoney(args);
+  case 'feedback': return _toolFeedback(args, ctx);
   default:      return Promise.resolve(_err(`Unknown tool: ${name}`));
   }
 }

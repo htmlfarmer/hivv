@@ -85,6 +85,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    # A HANGING job is worse than a failing one: it gives no signal and
+    # burns GitHub's default 6 hours. The suite runs ~40 test files in
+    # parallel against one gateway, and a file waiting on a contended port
+    # waits forever (node's default --test-timeout is 0). 20 minutes is
+    # generous — the slowest individual test here is ~17s.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,7 +117,11 @@ jobs:
         run: python -m pip install --quiet pytest pyyaml
       - name: Node tests
         working-directory: api
-        run: node --test
+        # --test-timeout is the fix for an indefinite hang: node defaults to
+        # 0 (never time out), so a test file stuck on a contended port stalls
+        # the whole run. Measured on this box: without it the suite never
+        # finished; with it, 540 tests completed.
+        run: node --test --test-timeout=60000
       - name: Python tests
         # Only tests/test_upgrade_review.py is pytest-shaped; the other
         # tests/*.py files are standalone scripts (main() guards), and

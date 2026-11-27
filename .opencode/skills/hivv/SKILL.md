@@ -66,6 +66,29 @@ Notes:
 - `smart` is an alias for `quality`, `cheap` for `cost`; `hivv route --mode=…` previews the
   same modes without sending anything.
 
+## Reporting a problem or proposing a change
+
+Three doors, one destination — pick by how much the change is worth:
+
+| Door | Use it for |
+|---|---|
+| `hivv submit "what you saw"` | a bug — something is broken |
+| `hivv request "what you want"` | a suggestion (alias: `hivv suggest`) |
+| `hivv flag <target> "what they're doing"` | a node / user / content that misbehaved |
+| `hivv propose "<idea>"` | a real change — the hub **signs, screens and files it** as a GitHub issue |
+| `hivv feedback` | list your submissions **and any reply** from the maintainers (alias: `hivv help list`) |
+
+From an MCP client connected to `https://hivv.org/mcp`, the **`feedback`** tool does the same
+thing: `action=submit` files it, `action=list` reads it back with the status and any reply.
+
+```bash
+hivv submit "tool server dies on restart" --json
+hivv feedback                 # …and see whether anyone answered
+```
+
+**If hivv.org is unreachable** — or you suspect it is compromised — the GitHub issue tracker
+is the fallback, and `hivv fallback` prints the address with no network at all.
+
 ## Receipts
 
 Every answer says which bee served it:

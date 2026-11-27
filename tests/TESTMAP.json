@@ -137,6 +137,9 @@
   "api/lib/version-date.js": [
    "api/tests/version-date.test.js"
   ],
+  "api/migrations/005_hivv_feedback.sql": [
+   "tests/test_submission.py"
+  ],
   "api/migrations/020_feedback_grants.sql": [
    "tests/test_upgrade_review.py"
   ],
@@ -151,6 +154,9 @@
   ],
   "api/routes/honey-routes.js": [
    "tests/test_failure_diagnostics.py"
+  ],
+  "api/routes/mcp-routes.js": [
+   "tests/test_submission.py"
   ],
   "api/routes/tile-routes.js": [
    "api/tests/tile.test.js"
@@ -175,6 +181,9 @@
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
    "tests/test_telemetry_tasks_a2a.py"
+  ],
+  "public_html/.well-known/skills/hivv/SKILL.md": [
+   "tests/test_submission.py"
   ],
   "public_html/chat/app.js": [
    "tests/test_personas.py",
@@ -217,6 +226,7 @@
    "tests/test_rollback.py",
    "tests/test_salah_cli.py",
    "tests/test_speeds_view.py",
+   "tests/test_submission.py",
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
    "tests/test_tools_test_cmd.py",
@@ -589,6 +599,13 @@
    "setup.sh"
   ],
   "tests/test_speeds_view.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_submission.py": [
+   "api/migrations/005_hivv_feedback.sql",
+   "api/routes/mcp-routes.js",
+   "opencode/skills/hivv/SKILL.md",
+   "public_html/.well-known/skills/hivv/SKILL.md",
    "public_html/hivv-cli.py"
   ],
   "tests/test_sync_review.py": [
