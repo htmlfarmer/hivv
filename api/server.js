@@ -3853,6 +3853,11 @@ ToolRoutes.inject(orch, router);
 app.use('/api/capabilities', CapabilityRoutes);
 app.use('/api/policy', PolicyRoutes);
 app.use('/api/database', DatabaseRoutes);
+// The suggestions door — ONE engine, its own endpoint, never inside the
+// chat stream (the tool contract must stay consistent).
+const SuggestionRoutes = require('./routes/suggestion-routes');
+SuggestionRoutes.inject(orch, router);
+app.use('/api/suggestions', SuggestionRoutes);
 // The tool surface: the catalog + invocation. The old inline handlers in
 // this file were removed — api/routes/tool-routes.js owns them now, and it
 // runs the ONE implementation in api/lib/toolkit.js.

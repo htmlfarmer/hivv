@@ -142,6 +142,9 @@
    "tests/test_repo_scripts.py",
    "tests/test_scan_secrets.py"
   ],
+  "docs/HELP.md": [
+   "tests/test_fallback.py"
+  ],
   "docs/INTEGRATION-CONTRACT.md": [
    "tests/test_cross_network.py"
   ],
@@ -162,7 +165,8 @@
    "tests/test_personas.py"
   ],
   "public_html/hivv": [
-   "tests/test_cli_install.py"
+   "tests/test_cli_install.py",
+   "tests/test_fallback.py"
   ],
   "public_html/hivv-cli.py": [
    "tests/test_ask_flags.py",
@@ -179,6 +183,7 @@
    "tests/test_direct_tool_loop.py",
    "tests/test_eval_harness.py",
    "tests/test_failure_diagnostics.py",
+   "tests/test_fallback.py",
    "tests/test_fast_scan_parity.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
@@ -208,6 +213,7 @@
    "tests/test_repo_scripts.py"
   ],
   "public_html/install-hivv.sh": [
+   "tests/test_fallback.py",
    "tests/test_llm_build_tools.py",
    "tests/test_rescue.py"
   ],
@@ -215,6 +221,7 @@
    "tests/test_panel_update.py"
   ],
   "public_html/rescue": [
+   "tests/test_fallback.py",
    "tests/test_rescue.py"
   ],
   "scripts": [
@@ -433,6 +440,13 @@
    "api/migrations/021_upgrade_diagnostics.sql",
    "api/routes/honey-routes.js",
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_fallback.py": [
+   "docs/HELP.md",
+   "public_html/hivv",
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "public_html/rescue"
   ],
   "tests/test_fast_scan_parity.py": [
    "api/lib/fast-scan.js",
