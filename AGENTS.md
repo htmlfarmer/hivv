@@ -307,6 +307,92 @@ Shipped 2026-09-27 — plan: [`HIVV_CAPABILITY_POLICY_PLAN.md`](HIVV_CAPABILITY_
   survive agent restarts (were lost on re-register). `toolToCap` no longer defaults unknown
   tools to allow-tier `local.computation` (→ `tool.<name>` → MAYBE).
 
+### The proposal pipeline — the source changes itself (2026-11-26)
+
+Plan: `HIVV_SELF_MODIFICATION_PLAN.md` — the invariants, the threat model, and
+the 4-month / 1-year build plan.
+
+HIVV can already write code (`hivv code`) and already gates every action
+(`lib/policy.js`). What it did NOT have is the thing that makes a
+self-modifying project safe: **a change travelling from "a diff someone made"
+to "a merge that landed", with the evidence attached to every step.**
+
+**One unit of work — the PROPOSAL — and one law:**
+
+> A gate may be marked `passed` only when every earlier gate is `passed`.
+
+There is no `skip`, no `force`. A proposal that tries to merge without a
+green test run is refused BY THE MACHINE (`api/lib/proposal.js`), not by a
+reviewer remembering to check.
+
+| Gate | Question | Enforced by |
+|---|---|---|
+| **G1 study** | what does this change DO? | deterministic (fast-scan · secrets · injection) + model votes |
+| **G2 authorize** | may it happen at all? | the EXISTING policy gate, capability `source.modify` (side-effect, default **ask**) |
+| **G3 test** | does it work? | the **BASELINE** suite from `base_sha` — never the suite the change ships |
+| **G4 approve** | do enough independent parties say yes? | quorum + distinct model families + no self-approval + a human for protected paths |
+| **G5 merge** | land it, signed, undoable? | Ed25519 receipt + a rollback artifact outside the changed tree |
+
+**The five invariants** (§1 of the plan) are what all of that protects:
+**I1** no change lands without evidence · **I2** the reviewer is never the
+reviewed · **I3** the verifier is not the verified · **I4** the rollback never
+depends on the change · **I5** a diff is DATA, never an instruction.
+
+**The two rules the first implementation taught us** — both pinned by tests:
+
+1. **Scan what the change INTRODUCES, not the whole file.** A diff review is
+   about the added lines. Re-scanning the base flagged every `subprocess.run`
+   the codebase already had: 32 findings instead of 8, and the real signal
+   drowned in the noise of the existing tree.
+2. **A low-confidence signal routes to a HUMAN; it does not block.** An
+   injection finding (the phrases appear in this project's own docs about
+   injection) and a RISKY model vote (a 0.5B called a two-line function
+   "undocumented and unused") both set `needs_human`, which the approve gate
+   demands a signature for. Only the deterministic findings — `hard_danger` and
+   `secrets` — block. Blocking on a model's opinion would make the project
+   unmergeable by its own reviewers.
+
+**Files:** `api/lib/proposal.js` (the state machine) ·
+`api/routes/proposal-routes.js` (`POST /api/proposals` +
+`/:id/{study,authorize,test,approve,merge,reject}` + `/:id/verify`) ·
+`api/migrations/033_hivv_proposals.sql` · `identity.proposalReceipt()` ·
+capability `source.modify`.
+
+**THE WRITE PATH IS CREDENTIAL-FREE BY DEFAULT.** An agent hands back
+`git format-patch`; a machine with write access runs the gates. Zero secrets
+are shared with an agent, so there is nothing to leak and nothing to revoke.
+A human who already has a repo-scoped PAT can use `hivv propose --push` and
+open the PR directly — the same path, just shorter.
+
+**CLI**: `hivv propose [--staged|--file F|--patch FILE|--stdin] [--votes N]
+[--no-review] [--dry-run] [--patch-out FILE] [--push] [--no-tests]` (the
+study chain, blocked by default, and a push only on authorization) ·
+`hivv contribute [--install] [--clone DIR]` (git/gh/clone/gh-auth report +
+the whole loop, for someone who already installed).
+
+**Machine-discoverability** (an AI that lands on hivv.org must be able to start
+helping without being told): `/ai.txt` carries a `contribute` block (repo,
+clone URL, raw doc URLs, the branch-per-task rule, the test commands, the
+publish chain, and the write-path policy) · `CONTRIBUTING.md` says yes to
+machine PRs in writing and names the protected paths · the homepage footer
+links the repo.
+
+**Bugs found and fixed on the way:**
+- **`rm -rf` was invisible to the scanner** — in BOTH implementations
+  (`fast-scan.js` and the CLI), `-[rf]` matched ONE character and the
+  trailing `\b` then failed on the second letter. The most destructive command
+  in the shell slipped through. Fixed as `rm\s+-[a-z]*[rf][a-z]*`, parity-pinned
+  by `tests/test_fast_scan_parity.py`.
+- **The stale-tools-server bug the hive reported was already fixed** in
+  `0321868` (the watchdog session) — `hivv tools on` now checks the
+  catalog's SHAPE plus a real tool call and replaces a stale server. The report
+  came from a pre-fix copy.
+
+**Tests**: `api/tests/proposal.test.js` (31 — the no-skipping law, the five
+invariants, the receipt chain + tamper detection) · `tests/test_propose_cli.py`
+(12) · `tests/test_dev_tools.py` (24 — the git/gh provisioning) ·
+`tests/test_fast_scan_parity.py` (+3 `rm -rf` cases).
+
 ### Bee Identity (`honey.js`)
 - Hub-side sweep every 60s mints honey from heartbeat-truth only (never node self-reported):
   1/minute online · 10/job · 1 per 100 tokens served
@@ -989,6 +1075,8 @@ pm2 logs hivv-ai-gateway --lines 20 | grep -i "discover\|register"
 - `hivv volunteer [on|off|status]` — opt in/out of contributing compute
 - `hivv setup [--write [PATH]] [--global] [--json]` — detect local LLM + opencode/VS Code, print (or merge-write with backup) the OpenCode provider config, VS Code extension steps, and hive verify commands
 - `hivv code "<task>" --repo <git-url> [--ref BR] [--timeout S] [--wait] [--json]` — dispatch a coding job to a coder bee (node runs OpenCode headless in a temp worktree, returns patch + summary)
+- `hivv propose [--staged|--file F|--patch FILE|--stdin] [--votes N] [--no-review] [--dry-run] [--patch-out FILE] [--push] [--no-tests]` — raise a change to the SOURCE with the evidence: scan (deterministic) → review (the hive) → authorize (policy) → test (the BASELINE suite). Blocked by default; nothing is pushed without authorization. The default path needs NO credential — the patch is handed back
+- `hivv contribute [--install] [--clone DIR] [--json]` — the on-ramp for someone who already installed: reports git / gh / clone / gh auth, installs what is missing when asked, and prints the loop. Nothing here needs a credential
 
 ### One-Shot Hub Queries
 - `hivv health` — GET /api/health

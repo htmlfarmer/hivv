@@ -412,6 +412,42 @@ function routeReceiptHeader(opts) {
   }
 }
 
+// Build + sign a PROPOSAL GATE receipt — the hub's statement that one gate
+// of one change was decided, bound to the exact patch bytes.
+//
+// This is a different statement KIND from a route receipt (it says nothing
+// about who answered a chat), but it reuses the same key, the same
+// canonical-JSON rules and the same verification path — so a third party
+// checks a proposal receipt and a route receipt the same way.
+function proposalReceipt({ proposalId, gate, outcome, patchSha256,
+                            evidenceSha256 = null, now = _nowS() }) {
+  const k = hubSigningKey();
+  if (!k) return null;
+  const GATES = ['study', 'authorize', 'test', 'approve', 'merge'];
+  const OUTCOMES = ['passed', 'failed', 'asked', 'rejected', 'expired'];
+  const statement = {
+    v: 1,
+    kind: 'proposal.gate',
+    ts: now,
+    nonce: crypto.randomBytes(8).toString('hex'),
+    proposal_id: String(proposalId || '').slice(0, 128),
+    gate: GATES.includes(String(gate)) ? String(gate) : 'study',
+    outcome: OUTCOMES.includes(String(outcome)) ? String(outcome) : 'failed',
+    patch_sha256: String(patchSha256 || '').slice(0, 64),
+  };
+  if (evidenceSha256 && /^[0-9a-f]{64}$/.test(String(evidenceSha256))) {
+    statement.evidence_sha256 = String(evidenceSha256);
+  }
+  try {
+    const signature = crypto.sign(
+      null, Buffer.from(attest.canonicalize(statement), 'utf8'), k.privateKey
+    ).toString('base64');
+    return { statement, signature, public_key: k.rawPublicKey.toString('base64') };
+  } catch (e) {
+    console.error('[IDENTITY] proposal receipt sign failed: ' + e.message);
+    return null;
+  }
+}
 // ── nonce cache (shared) ────────────────────────────────────────────────────
 // Keyed WITH the statement kind: an identity nonce and a manifest nonce are
 // different statements and must not collide into a false replay.
@@ -1002,6 +1038,7 @@ module.exports = {
   hubKeyInfo,
   routeReceipt,
   routeReceiptHeader,
+  proposalReceipt,
   enforcementRequired,
   publicSummary,
   getRecord,
