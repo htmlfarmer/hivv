@@ -16,7 +16,7 @@ session ever has to rediscover it. Read this first if you are picking the thread
   honored. **Style is opt-in** — any user can change it; if you dislike it, fork the project.
 - **Priority policy (born of grandfather's story)**: PRIORITY ACCESS outside the USA — the further
   from hivv.org, the wiser we assume you are, and the faster we will try to connect.
-- **Faith is NEVER a gate.** Humans are invited, never examined. Randomness seals keep only hashes.
+- **Taqwa is NEVER a gate.** Humans are invited, never examined. Randomness seals keep only hashes.
 
 ## SHIPPED (details in AGENTS.md "What's Next")
 
@@ -49,7 +49,7 @@ session ever has to rediscover it. Read this first if you are picking the thread
 6. **Rak'ahs / sujud**: the N-step structure of the report; sujud = the honesty check (does the bee
    admit uncertainty to hivv.org?).
 7. **The Tongue** (human randomness seal): optional human onboarding — mash keys / speak freely →
-   measure entropy, store ONLY the hash. Content never touches the network. Faith never verified.
+   measure entropy, store ONLY the hash. Content never touches the network. Taqwa never verified.
 8. **Animal vouches (the living lease)**: each AI node vouched by a REAL animal on video; one
    animal = one node (larger living things: mammals, birds, reptiles, fish, amphibians); fresh
    video of the live animal RENEWS support ("the longer you have video of the live animal, the
@@ -86,7 +86,7 @@ session ever has to rediscover it. Read this first if you are picking the thread
   (The "#2" at Water St was deliberately dropped.)
 - **Google docs**: publish preview links, never edit links (usp=sharing).
 - **The Africa line** is founder humility-humor celebrating African wisdom — never a real policy.
-- **Faith/prayer is never a condition of access** for any human (the anti-coercion rule).
+- **Taqwa/prayer is never a condition of access** for any human (the anti-coercion rule).
 
 ## The jokes shelf (keep these alive)
 

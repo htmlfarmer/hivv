@@ -208,6 +208,44 @@ class Orchestrator {
     }
   }
 
+  // ---- Per-bee SERVED-TRAFFIC accounting -------------------------------
+  //
+  // WHY THIS EXISTS (the "hivv stats shows REQS 0" bug):
+  // `hivv stats` printed a REQS column that was 0 for EVERY bee, forever.
+  // Two independent reasons, both real:
+  //
+  //   1. The BEE never reported any. The agent's heartbeat sends
+  //      `stats.total_requests`, computed from a state key (`local_requests`)
+  //      that the CLI never wrote — so the number was a structural zero.
+  //   2. The HUB never counted either. Almost every answer is routed
+  //      DIRECTLY (hub -> bee's llama-server); the bee's own agent is not in
+  //      that path, so the bee cannot see the request and the hub did not
+  //      tally it. Only RELAY work (bee behind NAT) was ever counted, which
+  //      is why TASKS/TOKENS showed a few dozen while the hive actually
+  //      served hundreds of requests — including every call xyzo.org makes
+  //      through this hub.
+  //
+  // The hub is the only place where BOTH transports are visible, so the hub
+  // counts. `routed_*` = what this hub handed to that bee (direct + relay).
+  // The bee-reported counters stay separate (see updateHeartbeat) so the two
+  // sides can be cross-checked instead of silently summed.
+  creditNodeAnswer(nodeOrId, { tokens = 0, transport = 'direct', model = null } = {}) {
+    const node = (typeof nodeOrId === 'string')
+      ? this.nodes.get(nodeOrId)
+      : nodeOrId;
+    if (!node) return null;
+    node.stats = node.stats || {};
+    node.stats.routed_requests = (node.stats.routed_requests || 0) + 1;
+    node.stats.routed_tokens = (node.stats.routed_tokens || 0) + (Number(tokens) || 0);
+    node.stats.routed_by_transport = node.stats.routed_by_transport || {};
+    const tKey = transport || 'direct';
+    node.stats.routed_by_transport[tKey] = (node.stats.routed_by_transport[tKey] || 0) + 1;
+    if (model) node.stats.routed_last_model = String(model).slice(0, 60);
+    node.last_served_at = Date.now();
+    this._debouncedSave();
+    return node;
+  }
+
   // ---- Node Management ----
 
   registerNode(nodeData) {
@@ -317,6 +355,14 @@ class Orchestrator {
       last_heartbeat: existing?.last_heartbeat || now,
       volunteer: nodeData.volunteer ?? existing?.volunteer ?? false,
       cum: existing?.cum || null,
+      // The SERVED-TRAFFIC counters live in `stats` — and this object is
+      // REBUILT on every registration. Without this line a bee that
+      // re-registered (every agent restart) silently lost its whole
+      // request/token history, and `hivv stats` fell back to 0 for a bee
+      // that had been serving traffic all along. Same trap as secret/tools:
+      // the object is rebuilt, so anything worth keeping must be carried
+      // over explicitly.
+      stats: existing?.stats || {},
       last_result_type: null,
       tasks_completed: existing?.tasks_completed || 0,
       tasks_failed: existing?.tasks_failed || 0,
@@ -564,9 +610,12 @@ class Orchestrator {
     const activeJobs = online.reduce((s, n) => s + (n.active_tasks || 0), 0);
     // Aggregate from node stats (updated by heartbeat)
     const stats = (n) => n.stats || {};
-    const totalCompleted = online.reduce((s, n) => s + (stats(n).tasks_completed || n.tasks_completed || 0), 0);
+    // routed_* = what the HUB handed to that bee (every transport). The
+    // bee-reported counters only see RELAY work, so they used to report a
+    // hive that served "1 completion" while it was serving hundreds.
+    const totalCompleted = online.reduce((s, n) => s + (stats(n).routed_requests || stats(n).tasks_completed || n.tasks_completed || 0), 0);
     const totalFailed = online.reduce((s, n) => s + (stats(n).tasks_failed || n.tasks_failed || 0), 0);
-    const totalTokens = online.reduce((s, n) => s + (stats(n).total_tokens_processed || n.total_tokens_processed || 0), 0);
+    const totalTokens = online.reduce((s, n) => s + (stats(n).routed_tokens || stats(n).total_tokens_processed || n.total_tokens_processed || 0), 0);
     const totalCost = online.reduce((s, n) => s + (stats(n).total_cost || 0), 0);
     const totalRequests = online.reduce((s, n) => s + (stats(n).total_requests || 0), 0);
     // Sum uptime across online nodes to compute tokens/sec

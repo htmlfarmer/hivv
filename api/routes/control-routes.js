@@ -235,7 +235,13 @@ router.get('/stats', (req, res) => {
   const now = Date.now();
   const stats = nodes.map(n => {
     const hb_age = now - (n.last_heartbeat || 0);
-    const is_online = hb_age < 180000; // 3 min
+    // ONE truth for "is this bee alive" (the heartbeat), the same one the
+    // website counts with — this route used to hardcode its own 3-minute
+    // window, so the same hive published "3 online" here and "2 online" on
+    // the homepage whenever a bee's heartbeat was borderline.
+    const is_online = typeof orchestrator.isLive === 'function'
+      ? orchestrator.isLive(n, now)
+      : hb_age < 180000;
     const s = n.stats || {};
     return {
       id: n.node_id,
@@ -248,8 +254,18 @@ router.get('/stats', (req, res) => {
       uptime_s: n.uptime_seconds || 0,
       tasks_completed: s.tasks_completed || n.tasks_completed || 0,
       tasks_failed: s.tasks_failed || n.tasks_failed || 0,
-      tokens: s.total_tokens_processed || n.total_tokens_processed || 0,
-      requests: s.total_requests || 0,
+      // REQS/TOKENS = what the HUB actually handed to this bee (direct +
+      // relay). The bee-reported counters below are the other side of the
+      // same truth (the bee's own tally of relay jobs) — kept SEPARATE so
+      // the two can be cross-checked instead of silently summed. The old
+      // `requests: s.total_requests` read a bee-reported field the agent
+      // never wrote, so the column was a structural zero for every bee.
+      requests: s.routed_requests || 0,
+      tokens: s.routed_tokens || 0,
+      transport_split: s.routed_by_transport || {},
+      last_served_s: n.last_served_at ? Math.round((now - n.last_served_at) / 1000) : null,
+      bee_reported_requests: s.total_requests || 0,
+      bee_reported_tokens: s.total_tokens_processed || n.total_tokens_processed || 0,
       cost: s.total_cost || 0,
       last_heartbeat_s: Math.round(hb_age / 1000),
       hw: n.cpu_model || '?'

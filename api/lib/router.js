@@ -467,7 +467,64 @@ class AIRouter {
     _nodeForTarget(t) {
         if (!this.orchestrator) return null;
         if (t.nodeId) return this.orchestrator.nodes.get(t.nodeId) || null;
-        try { return this._nodeByHost(new URL(t.url).hostname); } catch (_e) { return null; }
+        try {
+            const byHost = this._nodeByHost(new URL(t.url).hostname);
+            if (byHost) return byHost;
+        } catch (_e) { /* fall through */ }
+        // A LOCALHOST target on the hub box is still a BEE serving traffic —
+        // the hub machine is usually registered as a bee itself (its own
+        // llama-server on :8080). Without this the hub's own answers were
+        // attributed to nobody.
+        try {
+            if (this._isLocalUrl(t.url)) return this._nodeForThisBox();
+        } catch (_e) { /* fall through */ }
+        return null;
+    }
+
+    // The registered bee that IS this machine (its lan_ip is one of our
+    // interface addresses). Used to credit hub-local answers to a bee.
+    _nodeForThisBox() {
+        if (!this.orchestrator) return null;
+        if (this._thisBoxNode && this.orchestrator.nodes.has(this._thisBoxNode.node_id)) {
+            return this.orchestrator.nodes.get(this._thisBoxNode.node_id);
+        }
+        let myIps = new Set();
+        try {
+            const ifaces = require('os').networkInterfaces();
+            for (const list of Object.values(ifaces)) {
+                for (const i of (list || [])) myIps.add(i.address);
+            }
+        } catch (_e) { return null; }
+        const matches = [];
+        for (const n of this.orchestrator.nodes.values()) {
+            if (myIps.has(n.lan_ip) || myIps.has(n.ip)) matches.push(n);
+        }
+        if (!matches.length) return null;
+        // Prefer the LAN address over a docker/bridge address (this box also
+        // owns 172.17-21.x docker interfaces) — a bee on the LAN is the one
+        // whose llama-server the hub is really talking to.
+        const lan = matches.find(n => /^(192\.168\.|10\.)/.test(String(n.lan_ip || n.ip || '')));
+        this._thisBoxNode = lan || matches[0];
+        return this._thisBoxNode;
+    }
+
+    // ── SERVED-TRAFFIC accounting ────────────────────────────────────────
+    // The hub is the only place where BOTH transports are visible, so the
+    // hub counts what each bee actually served. Without this the REQS column
+    // of `hivv stats` was a structural zero (the bee's agent is not in the
+    // direct path and the bee never reported anything either).
+    _creditAnswer(target, { tokens = 0, transport = 'direct', model = null } = {}) {
+        try {
+            // The caller may hand over a TARGET (a route candidate) or the bee
+            // itself (the relay path already holds the node object).
+            const node = (target && target.node_id && !target.url)
+                ? target
+                : this._nodeForTarget(target);
+            if (!node || !this.orchestrator?.creditNodeAnswer) return null;
+            return this.orchestrator.creditNodeAnswer(node, { tokens, transport, model });
+        } catch (_e) {
+            return null;   // accounting must NEVER break an answer
+        }
     }
 
     // Address used to reach this candidate (for the LAN/public privacy split).
@@ -1612,6 +1669,9 @@ class AIRouter {
                     telemetry.counter('bee_completions_total', { node: routeNode, model: routeModel, status: looksDegenerate(qualityBuf) ? 'degenerate' : 'ok' });
                 } catch (_e) { /* telemetry must never break a completion */ }
                 // warm-cache stickiness: same principal back within 3 min → same bee
+                // The bee SERVED this request — credit it. The hub counts both
+                // transports (the bee's own agent cannot see direct calls).
+                this._creditAnswer(local, { tokens: totalTokens, transport: 'direct', model: routeModel });
                 this._stickySet(options, `${routeNode}::${AIRouter._prettyModel(local.model || 'local')}`);
 
                 // Send stats as a final SSE event before [DONE]
@@ -1933,6 +1993,9 @@ class AIRouter {
                         telemetry.counter('bee_completions_total', { node: nodeName, model, status: 'ok' });
                     } catch (_e) { /* telemetry must never break a completion */ }
                     options.onRoute?.({ node: nodeName, model, via: 'relay' });
+                    // The bee SERVED this request (through its inbox) — credit it,
+                    // so a relay-only bee is not invisible in the traffic table.
+                    this._creditAnswer(node, { tokens: approxTokens, transport: 'relay', model });
                     return { ok: true, provider: route, tokensPerSec: tps, totalTokens: approxTokens, servedModel: model, answeredBy: route };
                 }
                 if (job.status === 'error' || job.status === 'expired') {
