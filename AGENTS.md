@@ -390,8 +390,54 @@ links the repo.
 
 **Tests**: `api/tests/proposal.test.js` (31 — the no-skipping law, the five
 invariants, the receipt chain + tamper detection) · `tests/test_propose_cli.py`
-(12) · `tests/test_dev_tools.py` (24 — the git/gh provisioning) ·
+(13) · `tests/test_dev_tools.py` (24 — the git/gh provisioning) ·
 `tests/test_fast_scan_parity.py` (+3 `rm -rf` cases).
+
+#### Stage 2 — the intake funnel and the ONE credential holder (2026-11-27)
+
+A second session built this end while Stage 1 was landing; both halves are in
+main now, **reconciled rather than merged blindly** (commit `6f9950e`).
+
+**Theirs** — `api/lib/proposal-funnel.js`: six stages, in order, and the
+**order is the law** — `verify → limit → dedupe → screen → review → policy`.
+The rule the file keeps: **a stage may only WEAKEN the outcome, never
+strengthen it.** Dedupe is the point of the whole thing: five bees with one
+idea become **one** proposal with five votes, not five issues. A vote is an
+*identity* (`{node_id, principal, at}`), not a counter — a number can be
+inflated by a loop, a list of principals can be audited, and the same bee
+twice counts once.
+
+**`api/lib/github-relay.js` — the ONLY secret-holder.** Nodes never hold a
+GitHub credential; the hub holds exactly one, behind a policy gate. With no
+token it is a **stub** that writes real artifacts locally, so local-first
+still works with zero secrets. Idempotent by marker — a retry returns the
+SAME issue, never a second one.
+
+**Their `router.js` fix (K1) is unrelated to proposals and is a real bug**: the
+empty-candidate fallback dropped the ownership filter, so a private key
+(`userId` set, `is_shared` false) became the catch-all for every OTHER user
+and for anonymous visitors whenever their own filtered set came up empty.
+
+**The reconciled contract** — what survived from each side:
+
+| Rule | From |
+|---|---|
+| A RISKY vote does **not** block; it sets `needs_human` | **mine** — theirs still blocked, which would let a 0.5B model's opinion make the project unmergeable by its own reviewers |
+| `deterministic_only` (unreviewed) is accepted but demands a human | **mine** |
+| `create()` allows a **patchless** proposal when there is a `body` | **theirs** — a bug report has no diff; refusing it throws away what the funnel exists to collect |
+| `repo` defaults to this hive's source | **theirs** |
+| `needs_human` seeded from `protected_hit` at creation | **theirs** |
+| `PROTECTED_PATHS` += `node-auth.js` · `fast-scan.js` · `github-relay.js` · `proposal-funnel.js`; `PROTECTED_PREFIXES` += `.keys/` | **theirs** |
+
+**Migration numbering — both sessions reached for 033.** Theirs keeps it
+(`033_hivv_permissions_demo_flag` — a real fix: `is_demo` on
+`hivv_permissions`, which 032 missed); the proposals table is `034`, the
+funnel `035`. After the renumber their staged `034_hivv_proposals.sql` was
+**byte-identical** to this one, so their intended numbering held and neither
+side had to redo anything.
+
+**Tests:** `api/tests/proposal-funnel.test.js` (31) +
+`api/tests/key-isolation.test.js` (10).
 
 ### Bee Identity (`honey.js`)
 - Hub-side sweep every 60s mints honey from heartbeat-truth only (never node self-reported):
