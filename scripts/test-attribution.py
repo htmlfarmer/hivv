@@ -115,7 +115,13 @@ def run_node():
 def run_pytest():
     rc, out = sh([sys.executable, "-m", "pytest", "tests/", "-q",
                   "--tb=no", "-p", "no:cacheprovider"], timeout=2400)
-    return rc, PYTEST_FAIL.findall(out), out
+    # normalise to (test_file, name) so it concatenates with node's
+    # tuples — they were mixed, and attribute() crashed unpacking them.
+    found = []
+    for token in PYTEST_FAIL.findall(out):
+        parts = token.split("::")
+        found.append((parts[0], "::".join(parts[1:]) or token))
+    return rc, found, out
 
 
 def run_scanner():
@@ -142,7 +148,13 @@ def run_scanner():
 
 def attribute(rows, modified, untracked):
     out = []
-    for path, name in rows:
+    for item in rows:
+        # (file, name) from either runner; a bare string is a pytest
+        # token like "tests/x.py::Class::test".
+        if isinstance(item, (tuple, list)):
+            path, name = item
+        else:
+            path, name = item, item
         # node gives us "tests/foo.test.js"; pytest gives "tests/foo.py::T::t"
         head = path.split("::")[0].strip()
         if head.startswith("tests/") or head.startswith("api/tests/"):
