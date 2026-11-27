@@ -374,8 +374,11 @@ router.get('/agents', authRequired, async (req, res) => {
     try {
         const db = pool();
         if (db) {
+            // The seeded sample rows have no owner, so "owner_user_id IS
+            // NULL" used to sweep all 15 of them into every signed-in
+            // user's agent list. A sample is not your agent.
             const result = await db.query(
-                'SELECT * FROM hivv_agents WHERE owner_user_id = $1 OR owner_user_id IS NULL ORDER BY created_at DESC',
+                'SELECT * FROM hivv_agents WHERE (owner_user_id = $1 OR owner_user_id IS NULL) AND is_demo = false ORDER BY created_at DESC',
                 [userId]
             );
             if (result.rows.length > 0) {

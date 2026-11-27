@@ -17,6 +17,36 @@ const pool = new Proxy({}, {
     }
 });
 
+// ── the SAMPLE flag ──────────────────────────────────────────
+//
+// Migration 033 adds hivv_agents.is_demo so the seeded sample rows can be
+// told apart from real registrations. The gateway ENSURES the columns on its
+// first request (idempotent, instant) so it also works on a box where the
+// migration has not been applied yet — a fresh clone boots the gateway
+// before anything else.
+let _demoColReady = null;
+async function ensureDemoCols() {
+    if (_demoColReady) return _demoColReady;
+    try {
+        await pool.query('ALTER TABLE hivv_agents ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false');
+        await pool.query('ALTER TABLE hivv_events ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false');
+        await pool.query('ALTER TABLE hivv_intentions ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false');
+        _demoColReady = true;
+    } catch (_e) {
+        // No database (local-first mode) or no permission. The queries that
+        // name is_demo will fail loudly — which is honest.
+        _demoColReady = false;
+    }
+    return _demoColReady;
+}
+
+// The filter clause for a demo mode.
+function demoClause(alias, mode) {
+    if (mode === 'only') return ` AND ${alias}.is_demo = true`;
+    if (mode === 'exclude') return ` AND ${alias}.is_demo = false`;
+    return '';
+}
+
 // Validation helper
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -48,6 +78,12 @@ async function dashboardAuth(req, res, next) {
 
 router.use(dashboardAuth);
 
+// The sample flag must exist before any query below names it.
+router.use(async (_req, _res, next) => {
+    try { await ensureDemoCols(); } catch (_e) { /* local-first: no database */ }
+    next();
+});
+
 // ============================================
 // AGENTS
 // ============================================
@@ -58,13 +94,17 @@ router.get('/agents',
         query('state').optional().isIn(['yes', 'maybe', 'no', 'unknown']),
         query('type').optional().isIn(['human', 'ai', 'organization', 'network', 'device', 'robot']),
         query('perspective').optional().isIn(['public', 'private', 'auditor']),
+        // demo=exclude (the default: only REAL registrations), demo=only
+        // (the sample rows), demo=all (both). A sample is never counted as
+        // a registration by accident.
+        query('demo').optional().isIn(['exclude', 'only', 'all']),
         query('limit').optional().isInt({ min: 1, max: 1000 }),
         query('offset').optional().isInt({ min: 0 })
     ],
     validate,
     async (req, res) => {
         try {
-            const { state, type, perspective = 'public', limit = 100, offset = 0 } = req.query;
+            const { state, type, perspective = 'public', demo = 'exclude', limit = 100, offset = 0 } = req.query;
 
             let sql = `
         SELECT
@@ -78,7 +118,8 @@ router.get('/agents',
           a.trust_score,
           a.reputation_score,
           a.last_active_at,
-          a.created_at
+          a.created_at,
+          a.is_demo
       `;
 
             // Include private fields only for private perspective
@@ -114,6 +155,11 @@ router.get('/agents',
                 sql += ' AND a.privacy_boundary = \'public\'';
             }
 
+            // The sample rows are excluded by default: they are schema seed
+            // data, not registrations, and a fleet count that includes them
+            // is a fleet count that lies.
+            sql += demoClause('a', demo);
+
             sql += ` ORDER BY a.last_active_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
             params.push(parseInt(limit), parseInt(offset));
 
@@ -135,13 +181,24 @@ router.get('/agents',
             if (perspective === 'public') {
                 countSql += ' AND a.privacy_boundary = \'public\'';
             }
+            countSql += demoClause('a', demo);
 
             const countResult = await pool.query(countSql, countParams);
+
+            // The sample count travels WITH the payload: a visitor can see
+            // exactly how much of what they are looking at is seed data.
+            let demoCount = 0;
+            try {
+                const d = await pool.query(
+                    "SELECT COUNT(*)::int AS n FROM hivv_agents WHERE is_demo = true AND COALESCE(privacy_boundary, 'public') = 'public'");
+                demoCount = d.rows[0]?.n ?? 0;
+            } catch (_e) { /* the column may not exist yet */ }
 
             res.json({
                 success: true,
                 agents: result.rows,
                 total: parseInt(countResult.rows[0].count),
+                demo_total: demoCount,
                 limit: parseInt(limit),
                 offset: parseInt(offset)
             });
@@ -262,6 +319,18 @@ router.post('/agents/:id/state',
                 return res.status(401).json({ success: false, error: 'Authentication required' });
             }
 
+            // A seeded sample row is a fixture, not a live agent. Pausing or
+            // activating it would dress it up as a registration.
+            const demoCheck = await pool.query(
+                'SELECT is_demo FROM hivv_agents WHERE id = $1', [id]);
+            if (demoCheck.rows[0]?.is_demo) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'SAMPLE_ROW',
+                    message: 'This is a seeded sample row, not a registered agent.',
+                });
+            }
+
             const agentResult = await pool.query(`
         UPDATE hivv_agents
         SET state = $1, updated_at = NOW()
@@ -315,12 +384,19 @@ router.get('/relationships',
           src.public_name as source_name,
           src.agent_type as source_type,
           tgt.public_name as target_name,
-          tgt.agent_type as target_type
+          tgt.agent_type as target_type,
+          (src.is_demo OR tgt.is_demo) AS is_demo
         FROM hivv_relationships r
         JOIN hivv_agents src ON src.id = r.source_agent_id
         JOIN hivv_agents tgt ON tgt.id = r.target_agent_id
         WHERE 1=1
       `;
+
+            // A relationship whose ends are sample rows is sample data.
+            // The graph is a picture of the live system; a fixture is
+            // not part of it.
+            sql += ' AND r.source_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = false)'
+                 + ' AND r.target_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = false)';
 
             const params = [];
             let idx = 1;
@@ -513,18 +589,20 @@ router.get('/activity',
         query('state').optional().isIn(['yes', 'maybe', 'no', 'all']),
         query('severity').optional().isIn(['debug', 'info', 'warning', 'error', 'critical']),
         query('time_range').optional().isIn(['1h', '6h', '24h', '7d', '30d', 'all']),
+        query('demo').optional().isIn(['exclude', 'only', 'all']),
         query('limit').optional().isInt({ min: 1, max: 500 }),
         query('offset').optional().isInt({ min: 0 })
     ],
     validate,
     async (req, res) => {
         try {
-            const { agent_id, type, state, severity, time_range = '24h', limit = 100, offset = 0 } = req.query;
+            const { agent_id, type, state, severity, time_range = '24h', demo = 'exclude', limit = 100, offset = 0 } = req.query;
 
             let sql = `
         SELECT e.*,
           a.public_name as agent_name,
-          t.public_name as target_name
+          t.public_name as target_name,
+          e.is_demo
         FROM hivv_events e
         LEFT JOIN hivv_agents a ON a.id = e.agent_id
         LEFT JOIN hivv_agents t ON t.id = e.target_agent_id
@@ -532,6 +610,8 @@ router.get('/activity',
       `;
 
             const params = [];
+            // A sample agent's tool call is not activity. It never happened.
+            sql += demoClause('e', demo);
             let idx = 1;
 
             if (agent_id) {
@@ -619,21 +699,25 @@ router.get('/intentions',
         query('agent_id').optional().isUUID(),
         query('state').optional().isIn(['yes', 'maybe', 'no', 'all']),
         query('scheduled').optional().isBoolean(),
+        query('demo').optional().isIn(['exclude', 'only', 'all']),
         query('limit').optional().isInt({ min: 1, max: 500 })
     ],
     validate,
     async (req, res) => {
         try {
-            const { agent_id, state, scheduled, limit = 100 } = req.query;
+            const { agent_id, state, scheduled, demo = 'exclude', limit = 100 } = req.query;
 
             let sql = `
-        SELECT i.*, a.public_name as agent_name
+        SELECT i.*, a.public_name as agent_name, i.is_demo
         FROM hivv_intentions i
         JOIN hivv_agents a ON a.id = i.agent_id
         WHERE i.executed_at IS NULL AND i.cancelled_at IS NULL
       `;
 
             const params = [];
+            // A sample agent's intention (a fake sell order) never existed.
+            // It is not a pending action; it is a fixture.
+            sql += demoClause('i', demo);
             let idx = 1;
 
             if (agent_id) {
@@ -1010,7 +1094,8 @@ router.get('/maybe-machine',
             const { agent_id, limit = 100 } = req.query;
 
             // Get agents in MAYBE state
-            let agentSql = 'SELECT * FROM hivv_agents WHERE state = \'maybe\'';
+            // Sample rows are fixtures, not decisions waiting for a human.
+            let agentSql = 'SELECT * FROM hivv_agents WHERE state = \'maybe\' AND is_demo = false';
             const agentParams = [];
             if (agent_id) {
                 agentSql += ' AND id = $1';
@@ -1025,7 +1110,7 @@ router.get('/maybe-machine',
             let intentSql = `SELECT i.*, a.public_name as agent_name
         FROM hivv_intentions i
         JOIN hivv_agents a ON a.id = i.agent_id
-        WHERE i.state = 'maybe' AND i. authorization_state = 'pending'`;
+        WHERE i.state = 'maybe' AND i. authorization_state = 'pending' AND i.is_demo = false`;
             const intentParams = [];
             if (agent_id) {
                 intentSql += ' AND i.agent_id = $1';
@@ -1040,7 +1125,7 @@ router.get('/maybe-machine',
             let approvalSql = `SELECT p.*, a.public_name as agent_name
         FROM hivv_permissions p
         JOIN hivv_agents a ON a.id = p.agent_id
-        WHERE p.state = 'maybe'`;
+        WHERE p.state = 'maybe' AND a.is_demo = false`;
             const approvalParams = [];
             if (agent_id) {
                 approvalSql += ' AND p.agent_id = $1';
@@ -1097,6 +1182,7 @@ router.get('/maybe-machine',
 router.get('/universe-map',
     [
         query('zoom_level').optional().isIn(['earth', 'network', 'organization', 'person', 'agent', 'task', 'action']),
+        query('demo').optional().isIn(['exclude', 'only', 'all']),
         query('state').optional().isIn(['yes', 'maybe', 'no', 'all']),
         query('cluster_id').optional().isString(),
         query('limit').optional().isInt({ min: 1, max: 5000 })
@@ -1104,10 +1190,15 @@ router.get('/universe-map',
     validate,
     async (req, res) => {
         try {
-            const { zoom_level = 'earth', state, cluster_id, limit = 1000 } = req.query;
+            const { zoom_level = 'earth', state, cluster_id, demo = 'exclude', limit = 1000 } = req.query;
 
             // Get nodes (agents)
-            let nodeSql = 'SELECT id, agent_type as type, state, public_name as name, model, trust_score, last_active_at FROM hivv_agents WHERE COALESCE(privacy_boundary, \'public\') = \'public\'';
+            // Sample rows are excluded from the live mesh by default: the
+            // graph is titled "SYSTEM RELATIONSHIP GRAPH" and a seed row is
+            // not a system. ?demo=only shows them; ?demo=all shows both.
+            const demoFilter = demo === 'only' ? ' AND is_demo = true'
+                : (demo === 'all' ? '' : ' AND is_demo = false');
+            let nodeSql = 'SELECT id, agent_type as type, state, public_name as name, model, trust_score, last_active_at, is_demo FROM hivv_agents WHERE COALESCE(privacy_boundary, \'public\') = \'public\'' + demoFilter;
             const nodeParams = [];
             let nodeIdx = 1;
 
@@ -1123,6 +1214,10 @@ router.get('/universe-map',
 
             // Get edges (relationships)
             let edgeSql = 'SELECT id, source_agent_id, target_agent_id, relationship_type as type, state, weight, last_interaction_at FROM hivv_relationships WHERE 1=1';
+            // The edges follow the nodes: a relationship whose ends are
+            // sample rows is sample data too.
+            if (demo === 'exclude') edgeSql += ' AND source_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = false) AND target_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = false)';
+            else if (demo === 'only') edgeSql += ' AND (source_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = true) OR target_agent_id IN (SELECT id FROM hivv_agents WHERE is_demo = true))';
             const edgeParams = [];
             let edgeIdx = 1;
 
@@ -1137,7 +1232,7 @@ router.get('/universe-map',
             const edgesResult = await pool.query(edgeSql, edgeParams);
 
             // Get state distribution
-            const stateResult = await pool.query('SELECT state, COUNT(*) as count FROM hivv_agents GROUP BY state');
+            const stateResult = await pool.query('SELECT state, COUNT(*) as count FROM hivv_agents WHERE is_demo = false GROUP BY state');
 
             res.json({
                 success: true,

@@ -78,6 +78,7 @@
   ],
   "api/lib/orchestrator.js": [
    "api/tests/quarantine-recovery.test.js",
+   "api/tests/traffic-count.test.js",
    "tests/test_resume_not_reregister.py"
   ],
   "api/lib/polite.js": [
@@ -91,7 +92,8 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
-   "api/tests/route-factors.test.js"
+   "api/tests/route-factors.test.js",
+   "api/tests/traffic-count.test.js"
   ],
   "api/lib/salah.js": [
    "api/tests/ritual.test.js",
@@ -192,6 +194,7 @@
    "tests/test_sync_review.py",
    "tests/test_testmap.py",
    "tests/test_tools_test_cmd.py",
+   "tests/test_traffic_count.py",
    "tests/test_upgrade_review.py",
    "tests/test_user_install_cmd.py",
    "tests/test_verify_drift.py"
@@ -269,6 +272,7 @@
   ]
  },
  "tests": {
+  "api/tests/agent-fleet-truth.test.js": [],
   "api/tests/brainboard.test.js": [
    "api/lib/brainboard.js"
   ],
@@ -352,6 +356,10 @@
   ],
   "api/tests/tool-profiles.test.js": [
    "api/lib/toolkit.js"
+  ],
+  "api/tests/traffic-count.test.js": [
+   "api/lib/orchestrator.js",
+   "api/lib/router.js"
   ],
   "api/tests/trust.test.js": [
    "api/lib/attest.js",
@@ -531,6 +539,9 @@
    "api"
   ],
   "tests/test_tools_test_cmd.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_traffic_count.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_upgrade_review.py": [

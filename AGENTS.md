@@ -483,6 +483,60 @@ already made).
 doors, `isLive` in every counter, no fabricated offsets, the nav pill, the
 charts, the map, the script tags.
 
+### The AGENT FLEET was a fiction (2026-11-26)
+
+Migration 003 ended with `SEED DATA: Sample Agents for Testing` and left **15
+rows** in `hivv_agents` — Alice, Bob, Carol, TechCorp, Code Assistant, Web
+Scraper, Data Analyzer, Email Agent, Customer Support, a Trading Bot, a
+Finance Agent — each with a hand-picked trust score and a creation timestamp
+frozen at `2026-09-07`. A later development batch added 9 more. All of them
+sat in the **production** database.
+
+The public Control Center rendered them under **“AGENT FLEET”** beside a
+**“REALTIME LIVE”** badge: ten ACTIVE AGENTS, ten trust scores nobody
+everned, a SYSTEM RELATIONSHIP GRAPH of thirteen invented edges, a
+pending intention to *“Execute sell order for 1000 shares”*, and an
+activity feed of tool calls that never happened. The page said “real-time
+telemetry” over data that had not moved in two and a half months.
+
+**THE LAW (same as the live numbers):**
+
+1. A seeded sample row is **SAMPLE DATA**. It is never counted as an agent,
+   never counted as an authorization, never a node in the graph, never an
+   event in the feed, never a pending decision.
+2. It is shown **only when someone asks for it**, and it is **labelled**.
+3. The flag is **permanent** — migration 033 marks the rows once.
+
+**`api/migrations/033_hivv_demo_seed_flags.sql`** adds
+`hivv_agents.is_demo` / `hivv_events.is_demo` / `hivv_intentions.is_demo`
+and marks the seed rows by name **AND** creation window (so a real agent
+later named “Carol” is never swept up). The gateway **ensures** the columns
+on its first request (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), so a box
+where the migration never ran still works.
+
+**The API** (`api/lib/routes/dashboard-routes.js`): every agent/event/
+intention/relationship query takes `demo=exclude` (the default) |
+`demo=only` | `demo=all`. `/api/dashboard/agents` also returns **`demo_total`**
+— how many samples it is hiding — so the page can say so out loud.
+`/api/hivv/agents` no longer sweeps the ownerless sample rows into every
+signed-in user's list. A sample row cannot be paused into looking real
+(`409 SAMPLE_ROW`).
+
+**The page** (`public_html/hivv-dashboard.html`): the fleet asks for
+`demo=exclude`, a **“Show sample data (10)”** toggle reveals the fixtures on
+request, every sample card carries a **SAMPLE** badge and is dimmed, and the
+counters (`ACTIVE AGENTS`, `YES AUTHORIZED`, the tri-state badges) **never
+count a sample** — not even while the samples are on screen.
+
+**Bonus bug found on the way:** the whole dashboard script is one IIFE, so
+inline `onclick="fn()"` handlers could only see functions that were
+explicitly put on `window`. The **“Refresh Graph”** button was dead that way
+(it called `loadNetworkGraph`, which was never exported). Fixed.
+
+**Tests**: `api/tests/agent-fleet-truth.test.js` (9) — the migration, the
+ensure, the default fleet, the labelled samples, the graph, the feed, the
+intentions, the mutation guard, and the page.
+
 ### Deterministic fast scan (`lib/fast-scan.js`)
 
 Free, reproducible, **no AI**. Reports size, entropy, imports, command/API
@@ -957,6 +1011,8 @@ hivv explain kubernetes           # also sends to the LLM
 5. ~~**Caddy streaming** — compression middleware may interfere with SSE through Caddy~~ ✅ Verified 2026-09-25: 54 SSE frames live; `flush_interval -1` on all proxy routes; compression skips SSE
 
 ## What's Next
+
+- [x] The REQS column that was always 0 — `hivv stats` now counts the traffic a bee really served — 2026-11-26: the report was "the hivv stats isnt showing any reqs and just isn't working with xyzo.org" (xyzo.org's AI client points its primary at this hub, so its traffic is the hive's traffic). **A number that never moved is not a measurement.** TWO independent causes, both real: **(1) The bee never reported anything** — the agent's heartbeat sends `stats.total_requests`, computed from a state key (`local_requests`) that the CLI NEVER wrote: a structural zero, not a reading. **(2) The hub never counted either** — nearly every answer is routed DIRECTLY (hub → bee's llama-server), and the bee's own agent is not in that path, so the bee cannot see the request; only RELAY work (bee behind NAT) was ever counted. That is why the table showed "31 TASKS / 528 TOKENS / 0 REQS" while the hive had actually served 169 requests and 104k tokens that day — and why xyzo.org's traffic (every call lands here) was invisible. **THE FIX, two halves:** the CLI counts the jobs its agent serves (`local_requests` — relay + coding), so the bee-reported counter is real; and the HUB counts what it ROUTES (`orchestrator.creditNodeAnswer` → `node.stats.routed_requests` / `routed_tokens` / `routed_by_transport`), because the hub is the only place where BOTH transports are visible. Credited at the two answer sites (`tryLocalAI` direct + `_tryRelay`), never in the answer's way (a throw is swallowed). **Three traps owned on the way**: (a) `registerNode` REBUILDS the node object — `stats` was NOT carried over, so every agent restart wiped the whole history and the column fell back to 0 for a bee that had been serving all along (same trap as `secret`/`tools`); (b) a LOCALHOST target on the hub box is still a BEE (the hub machine is usually a registered bee — ashy here) — the route label says "localhost", the credit must say "ashy"; (c) `GET /api/control/stats` hardcoded its OWN 3-minute alive window while the website counted with `orchestrator.isLive` — the same hive published "3 online" here and "2 online" on the homepage; one truth now (`isLive`). **The table says what it measures** (a number without a meaning is a rumour): "REQS = requests the hive routed to that bee (direct + relay) · TOKENS = tokens it generated · TASKS = jobs its own agent ran", and `--json` carries the transport split + the bee's own tally (`bee_reported_requests`) so the two sides can be cross-checked instead of silently summed. Tests: `api/tests/traffic-count.test.js` (9: counter + transport split · unknown bee is a no-op · **re-registration keeps the counters** · nodes.json round-trip survives a restart · target→bee mapping incl. the this-box case · accounting never breaks an answer · LIVE payload shape) + `tests/test_traffic_count.py` (8: the CLI writes `local_requests` on relay + coding jobs · the heartbeat still derives `total_requests` from it · the monotonic guard covers it · the table keeps its REQS column and its legend · **LIVE**: an answer through the hub moves the answering bee's counter). The independent ledger agrees: `hivv_request_provenance` shows the same bees (`masjid/… (direct)`) with the same counts.
 
 - [x] The keyless map — the tiles that demanded an API key, the `<script>` that ate the page, and the blocker-proof Leaflet — 2026-11-26: the report was "wuld be nice to get the map workin on https://hivv.org/map/" plus two console lines. **THREE separate faults, one page.** **(1) The unclosed `<script>`** — `public_html/map/index.html` opened a `<script>` at line 64 and never closed it: the browser swallowed the next `<script>` (the tab handler) as JS source, hit the literal `<` at line 140, and threw `Uncaught SyntaxError: Unexpected token '<'` — which kills the WHOLE block, so `L.map()` never ran and every card sat on "…". One line of HTML, one dead map. The tab handler now lives in its own block, and every map page is pinned by a test that counts `<script>` against `</script>`. **(2) "API KEY REQUIRED"** — CARTO's basemap CDN now burns `API KEY REQUIRED — carto.com/basemaps/apikey` into EVERY tile it serves (found by rendering the tiles in a browser and reading them), so the map was a wall of watermarks. A map that demands a key is a map this hive does not want → **new `api/routes/tile-routes.js`**: `GET /api/tile/:z/:x/:y` serves **OpenStreetMap** (ODbL — free, no key, no signup) with Esri's keyless dark Canvas as the server-side fallback; memory cache (900) + disk cache (512 MB, oldest-first prune) under `$HIVV_DATA_DIR/tiles` so a restart never re-fetches; a User-Agent that names the app (OSM's policy asks for it) and `X-Hivv-Tile-Source` (`memory|disk|upstream:*`) so the origin of every byte is auditable; out-of-range z/x/y → 404, never proxied. Mounted BEFORE the general API limiter with its own 1200/min budget — tiles are cheap, cached and public; the general budget belongs to the endpoints that cost money. The three map pages now point at the proxy, keep direct OSM + Esri Canvas as in-browser fallbacks, and invert the TILE pane in CSS so OSM's light tiles read as a dark map (only the tile pane — markers, arcs and rings live in the overlay pane and keep their own colours). **(3) Leaflet from a CDN** — a CDN is one blocker away from gone, and this hive's readers run blockers (the reported `ERR_BLOCKED_BY_CLIENT` was Cloudflare's own beacon): Leaflet 1.9.4 now lives at `public_html/lib/leaflet/` (js + css + images — `vendor/` is gitignored, `lib/` ships), with unpkg kept as a fallback. **Bonus**: the embedded xyzo.org world map now gets `allow="geolocation"` — without it the Permissions Policy refused the location and the console filled with violations (xyzo falls back to geoip, but the console is clean now). Tests: `api/tests/tile.test.js` (10: route validation · PNG magic + cache headers · the `.png` suffix · **no CARTO and no keyed provider in any map page** · **every `<script>` closed** · Leaflet vendored · the proxy is the tile source · the iframe grants geolocation · LIVE tile). **371 node --test green.**
 
