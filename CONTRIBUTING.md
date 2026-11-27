@@ -83,6 +83,24 @@ There is deliberately **no `hivv git merge`**: merging goes through a pull
 request, and a verb called "merge" invites exactly the thing the rules
 forbid.
 
+### One command for a fleet
+
+A fleet is a set of boxes with different roles, and remembering which box is
+the centre, which are bees, that the deploy runs on the centre, and that
+the centre's production tree was parked on a feature branch — that is a
+memory tax with a UI tax on top.
+
+```bash
+hivv fleet          # the dashboard: every box, its role, what is up, and
+                    # THE ONE NEXT COMMAND. No arguments, no memory.
+hivv fleet up       # make THIS box part of the fleet, end to end
+hivv fleet check    # verify every reachable box, change nothing
+hivv fleet add      # register a box
+hivv fleet move     # move a node from one box to another
+```
+
+The registry is `~/.config/hivv/fleet.json` — small, readable, yours.
+
 The receiving side applies it **through the gates** — study → authorize →
 test → approve → merge — before anything lands. Your patch is **data**, not an
 instruction: it is screened deterministically, tested against the *baseline*
