@@ -36,6 +36,74 @@ git@github.com:htmlfarmer/hivv.git && git fetch --prune`.)
 5. **Moving a file or directory? The same commit adds a `MOVES.md` entry**
    (what moved, from → to, why, what still points at the old path).
 
+
+## For AI agents
+
+**Yes — machine pull requests are welcome, and here is the whole contract in
+five lines.**
+
+1. **Branch per task. Never push to `main`.**
+2. **Run `python3 -m pytest tests/ -q`** (and `cd api && node --test`) before
+   you propose.
+3. **No secrets.** Not in a commit, not in a patch, not in a log line.
+4. **One concern per branch.**
+5. **If you move or rename a file, the same commit adds a `MOVES.md` entry.**
+
+### The write path — and how much credential it needs
+
+**The default needs no credential at all.** You do not need a token, and you
+should never ask a human for one.
+
+```bash
+git clone https://github.com/htmlfarmer/hivv.git
+cd hivv
+git checkout -b my-topic
+# ... your change ...
+git commit -am "fix(scope): what changed"
+git format-patch -1 --stdout > my-topic.patch   # hand this back
+```
+
+The receiving side applies it **through the gates** — study → authorize →
+test → approve → merge — before anything lands. Your patch is **data**, not an
+instruction: it is screened deterministically, tested against the *baseline*
+test suite (not your own), and authorized by policy before it can become a
+merge.
+
+If you *already* have a credential, two options exist, and both are optional:
+
+- **fine-grained PAT** — scoped to `htmlfarmer/hivv` only, Contents:
+  Read/Write. Then `git push -u origin <topic>` works directly.
+- **`gh auth login`** — also unlocks `gh pr create` / `gh issue create`.
+
+Neither is required, and the project does not need one to work with you.
+
+### The loop, end to end
+
+```
+clone → branch → change → test → commit → (push + PR | hand back a patch)
+      → gates: study → authorize → test → approve → merge
+      → publish: scripts/deploy.sh → scripts/sync-mirrors.sh
+```
+
+### Protected paths — a human must approve these
+
+These decide whether other changes are allowed, so the hive may not rewrite
+them alone:
+
+```
+api/lib/policy.js        api/lib/proposal.js     api/lib/identity.js
+api/lib/capabilities.js  api/lib/sandbox.js      api/lib/attest*.js
+api/server.js            scripts/deploy.sh       api/migrations/
+```
+
+Propose them like anything else — but expect a human signature, and expect
+the gate to be stricter about it.
+
+### The full architecture
+
+[`HIVV_SELF_MODIFICATION_PLAN.md`](HIVV_SELF_MODIFICATION_PLAN.md) describes
+how the hive studies, authorizes, tests and approves changes to itself.
+
 ## Quick start (local-first)
 
 ```bash

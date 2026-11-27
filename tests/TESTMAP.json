@@ -84,6 +84,9 @@
   "api/lib/polite.js": [
    "api/tests/polite.test.js"
   ],
+  "api/lib/proposal.js": [
+   "api/tests/proposal.test.js"
+  ],
   "api/lib/request-provenance.js": [
    "api/tests/provenance-schema.test.js",
    "api/tests/request-provenance.test.js"
@@ -174,6 +177,7 @@
    "tests/test_cli_link.py",
    "tests/test_cli_parser.py",
    "tests/test_contributors.py",
+   "tests/test_dev_tools.py",
    "tests/test_dial_setup.py",
    "tests/test_direct_messaging.py",
    "tests/test_direct_tool_loop.py",
@@ -187,6 +191,7 @@
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
    "tests/test_nodes_table.py",
+   "tests/test_propose_cli.py",
    "tests/test_resume_not_reregister.py",
    "tests/test_rollback.py",
    "tests/test_salah_cli.py",
@@ -208,6 +213,7 @@
    "tests/test_repo_scripts.py"
   ],
   "public_html/install-hivv.sh": [
+   "tests/test_dev_tools.py",
    "tests/test_llm_build_tools.py",
    "tests/test_rescue.py"
   ],
@@ -243,6 +249,7 @@
   "scripts/lib/deps.sh": [
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
+   "tests/test_dev_tools.py",
    "tests/test_llm_build_tools.py",
    "tests/test_setup_prompts.py",
    "tests/test_setup_scripts.py",
@@ -261,6 +268,7 @@
   ],
   "scripts/setup-local.sh": [
    "tests/test_cli_install.py",
+   "tests/test_dev_tools.py",
    "tests/test_setup_scripts.py"
   ],
   "scripts/sync-mirrors.sh": [
@@ -327,6 +335,9 @@
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
+  ],
+  "api/tests/proposal.test.js": [
+   "api/lib/proposal.js"
   ],
   "api/tests/provenance-schema.test.js": [
    "api/lib/request-provenance.js"
@@ -416,6 +427,12 @@
   "tests/test_cross_network.py": [
    "docs/INTEGRATION-CONTRACT.md"
   ],
+  "tests/test_dev_tools.py": [
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "scripts/lib/deps.sh",
+   "scripts/setup-local.sh"
+  ],
   "tests/test_dial_setup.py": [
    "public_html/hivv-cli.py"
   ],
@@ -482,6 +499,9 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_propose_cli.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_repo_scripts.py": [
    "AGENTS.md",

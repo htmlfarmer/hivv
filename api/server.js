@@ -4019,6 +4019,16 @@ const CodingRoutes = require('./routes/coding-routes');
 CodingRoutes.inject(orch);
 app.use('/api/coding', CodingRoutes);
 
+// ---- THE PROPOSAL PIPELINE: a change to the source, with the evidence ----
+// A proposal is one proposed change travelling from a diff to a merge.
+// The gates (study -> authorize -> test -> approve -> merge) live in
+// api/lib/proposal.js and are enforced by the STATE MACHINE, not by a
+// reviewer remembering to check. See HIVV_SELF_MODIFICATION_PLAN.md.
+const ProposalRoutes = require('./routes/proposal-routes');
+const proposalLib = require('./lib/proposal');
+proposalLib.init(pool);
+app.use('/api/proposals', ProposalRoutes);
+
 // ---- BLNQ trust layer: purpose-built signed code-safety scan ----
 // blnq submits source here, gets back a structured verdict signed with HIVV's
 // OWN Ed25519 key. The hub relays that signature but cannot forge it, which is

@@ -748,6 +748,90 @@ d_install_build_tools() {
     return 1
 }
 
+# ── contributor tools: git + gh ─────────────────────────────────────────
+# HIVV's source is open, and AI agents are explicitly welcome to change it
+# (see CONTRIBUTING.md "For AI agents" and /ai.txt). git is the transport;
+# gh is the PR/issue surface.
+#
+# NEITHER IS REQUIRED TO RUN HIVV. They are required only to CONTRIBUTE, so
+# the rule here is the same as everywhere else in this file: ASK, don't
+# decide — and when we do install, never dead-end (auto-install, else print
+# the exact copy-paste command).
+d_have_git() { command -v git >/dev/null 2>&1; }
+d_have_gh()   { command -v gh   >/dev/null 2>&1; }
+
+d_dev_tools_hint() {
+    case "$D_PKG" in
+        apt)    dcmd "sudo apt-get update && sudo apt-get install -y git gh" ;;
+        dnf)    dcmd "sudo dnf install -y git gh" ;;
+        yum)    dcmd "sudo yum install -y git gh" ;;
+        pacman) dcmd "sudo pacman -S --noconfirm git github-cli" ;;
+        apk)    dcmd "sudo apk add git github-cli" ;;
+        zypper) dcmd "sudo zypper --non-interactive install git github-cli" ;;
+        brew)   dcmd "brew install git gh" ;;
+        winget) dcmd "winget install --id GitHub.cli -e --source winget" ;;
+        scoop)  dcmd "scoop install git gh" ;;
+        choco)  dcmd "choco install git gh -y" ;;
+        *)      dcmd "install git and the GitHub CLI (gh) with your package manager" ;;
+    esac
+}
+
+# gh is NOT in every distro's default repo set. When the package manager
+# cannot find it, the official install script is the exact command — and it
+# needs no guesswork about universe/extra repos.
+d_gh_official_hint() {
+    dcmd "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg >/dev/null"
+    dcmd "sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg"
+    dcmd "echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list"
+    dcmd "sudo apt-get update && sudo apt-get install -y gh"
+}
+
+d_install_dev_tools() {
+    if d_have_git && d_have_gh; then
+        dok "contributor tools present (git, gh)"
+        return 0
+    fi
+
+    case "$D_PKG" in
+        apt)
+            d_run_privileged apt-get update >/dev/null 2>&1 || true
+            d_run_privileged apt-get install -y git >/dev/null 2>&1
+            d_run_privileged apt-get install -y gh >/dev/null 2>&1
+            ;;
+        dnf)    d_run_privileged dnf install -y git gh >/dev/null 2>&1 ;;
+        yum)    d_run_privileged yum install -y git gh >/dev/null 2>&1 ;;
+        pacman) d_run_privileged pacman -S --noconfirm git github-cli >/dev/null 2>&1 ;;
+        apk)    d_run_privileged apk add --no-cache git github-cli >/dev/null 2>&1 ;;
+        zypper) d_run_privileged zypper --non-interactive install git github-cli >/dev/null 2>&1 ;;
+        brew)   brew install git gh >/dev/null 2>&1 ;;
+        winget) winget install --id GitHub.cli -e --source winget --accept-package-agreements --accept-source-agreements >/dev/null 2>&1 ;;
+        scoop)  scoop install git gh >/dev/null 2>&1 ;;
+        choco)  choco install git gh -y >/dev/null 2>&1 ;;
+    esac
+
+    if d_have_git && d_have_gh; then
+        dok "installed contributor tools (git, gh)"
+        return 0
+    fi
+
+    # Partial success is still a partial success — say exactly what is missing.
+    if d_have_git && ! d_have_gh; then
+        printf '\n  %s!%s git is installed, but the GitHub CLI (gh) is not.\n' "$D_YLW" "$D_RST"
+        printf '    %sgh is what opens pull requests. Install it with:%s\n' "$D_DIM" "$D_RST"
+        if [[ "$D_PKG" == "apt" ]]; then d_gh_official_hint; else d_dev_tools_hint; fi
+        printf '\n'
+        return 1
+    fi
+    if ! d_have_git; then
+        printf '\n  %s✗%s Could not install git automatically.\n' "$D_RED" "$D_RST"
+        printf '    %sgit is how changes reach the source. Install it with:%s\n' "$D_DIM" "$D_RST"
+        d_dev_tools_hint
+        printf '\n'
+        return 1
+    fi
+    return 0
+}
+
 # ── convenience: ensure everything the gateway needs ─────────────────────
 # Returns 0 if node is present (the only hard requirement). Everything else
 # is best-effort and never blocks.
