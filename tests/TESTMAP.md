@@ -46,21 +46,24 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/toolkit.js` | `api/tests/polite.test.js`, `api/tests/tool-profiles.test.js` |
 | `api/lib/trust.js` | `api/tests/trust.test.js` |
 | `api/lib/version-date.js` | `api/tests/version-date.test.js` |
+| `api/migrations/005_hivv_feedback.sql` | `tests/test_submission.py` |
 | `api/migrations/020_feedback_grants.sql` | `tests/test_upgrade_review.py` |
 | `api/migrations/021_upgrade_diagnostics.sql` | `tests/test_failure_diagnostics.py` |
 | `api/routes/a2a-routes.js` | `api/tests/interop.test.js` |
 | `api/routes/control-routes.js` | `tests/test_llm_build_tools.py` |
 | `api/routes/honey-routes.js` | `tests/test_failure_diagnostics.py` |
+| `api/routes/mcp-routes.js` | `tests/test_submission.py` |
 | `api/routes/tile-routes.js` | `api/tests/tile.test.js` |
 | `api/server.js` | `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_repo_scripts.py`, `tests/test_scan_secrets.py` |
 | `docs/HELP.md` | `tests/test_fallback.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
 | `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_telemetry_tasks_a2a.py` |
+| `public_html/.well-known/skills/hivv/SKILL.md` | `tests/test_submission.py` |
 | `public_html/chat/app.js` | `tests/test_personas.py`, `tests/test_testmap.py` |
 | `public_html/chat/index.html` | `tests/test_personas.py` |
 | `public_html/hivv` | `tests/test_cli_install.py`, `tests/test_fallback.py` |
-| `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_discovery.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_dial_setup.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_eval_harness.py`, `tests/test_failure_diagnostics.py`, `tests/test_fallback.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_identity_cli.py`, `tests/test_llm_build_tools.py`, `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_resume_not_reregister.py`, `tests/test_rollback.py`, `tests/test_salah_cli.py`, `tests/test_speeds_view.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_tools_test_cmd.py`, `tests/test_traffic_count.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py`, `tests/test_watchdog.py` |
+| `public_html/hivv-cli.py` | `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_discovery.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_dial_setup.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_eval_harness.py`, `tests/test_failure_diagnostics.py`, `tests/test_fallback.py`, `tests/test_fast_scan_parity.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_identity_cli.py`, `tests/test_llm_build_tools.py`, `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_resume_not_reregister.py`, `tests/test_rollback.py`, `tests/test_salah_cli.py`, `tests/test_speeds_view.py`, `tests/test_submission.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_tools_test_cmd.py`, `tests/test_traffic_count.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py`, `tests/test_watchdog.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
 | `public_html/index.html` | `tests/test_repo_scripts.py` |
 | `public_html/install-hivv.sh` | `tests/test_fallback.py`, `tests/test_llm_build_tools.py`, `tests/test_rescue.py` |
@@ -157,6 +160,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_setup_prompts.py` | `scripts/lib/deps.sh`, `setup.sh` |
 | `tests/test_setup_scripts.py` | `hivv_init_node.sh`, `scripts/lib/deps.sh`, `scripts/setup-local.ps1`, `scripts/setup-local.sh`, `setup.sh` |
 | `tests/test_speeds_view.py` | `public_html/hivv-cli.py` |
+| `tests/test_submission.py` | `api/migrations/005_hivv_feedback.sql`, `api/routes/mcp-routes.js`, `opencode/skills/hivv/SKILL.md`, `public_html/.well-known/skills/hivv/SKILL.md`, `public_html/hivv-cli.py` |
 | `tests/test_sync_review.py` | `public_html/hivv-cli.py` |
 | `tests/test_telemetry_tasks_a2a.py` | `api`, `public_html` |
 | `tests/test_testmap.py` | `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
@@ -221,7 +225,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/identity-routes.js`
 - `api/routes/inbox-routes.js`
 - `api/routes/lyrz-routes.js`
-- `api/routes/mcp-routes.js`
 - `api/routes/music-routes.js`
 - `api/routes/partner-routes.js`
 - `api/routes/party-routes.js`
@@ -263,6 +266,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `scripts/gen-agent-card.js`
 - `scripts/kokoro-tts-server.py`
 - `scripts/loadtest.py`
+- `scripts/test-attribution.py`
 - `scripts/update-ip.py`
 - `scripts/update-ip.sh`
 - `scripts/whisper-stt-server.py`
