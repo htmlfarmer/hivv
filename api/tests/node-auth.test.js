@@ -328,8 +328,27 @@ test('cleanup: acks inbox messages and deletes the e2e node', async () => {
   const gone = await api(`/api/control/nodes/${FAKE_ID}`);
   assert.equal(gone.status, 404, 'deleted node must 404');
 
-  // no leftover active upgrade incident for our node
+  // Our fake node has NO heartbeat — by design — so the gateway's 60s sweep
+  // eventually opens a `node_stale` incident for it. That is correct
+  // behaviour, not a bug: the sweep cannot know it is a fixture. Deleting the
+  // node does not take the incident with them (they outlive each other), so a
+  // slow run left debris in the production database and THIS assertion then
+  // failed on every run after that — a cleanup test that never cleaned.
+  //
+  // A cleanup test cleans. Resolve whatever our own fixture caused, then
+  // assert there is genuinely nothing left.
+  const before = await api('/api/control/incidents?state=active');
+  const ours = (before.body?.incidents || []).filter(i => i.node_id === FAKE_ID);
+  for (const inc of ours) {
+    const res = await api(`/api/control/incidents/${inc.id}`, {
+      method: 'PATCH',
+      body: { state: 'resolved', resolution_notes: 'e2e fixture cleaned up' },
+    });
+    assert.ok(res.status < 400,
+      `could not resolve fixture incident ${inc.id}: ${res.status}`);
+  }
+
   const active = await api('/api/control/incidents?state=active');
-  const left = (active.body?.incidents || []).find(i => i.node_id === FAKE_ID);
-  assert.equal(left, undefined, 'e2e node must have no active incident at exit');
+  const left = (active.body?.incidents || []).filter(i => i.node_id === FAKE_ID);
+  assert.equal(left.length, 0, 'e2e node must have no active incident at exit');
 });

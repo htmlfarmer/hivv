@@ -124,24 +124,39 @@ def _clean_dial_marker():
 
 
 @pytest.fixture
-def shim():
+def shim(tmp_path):
     """A REAL dial shim on a free port (spawned, killed at teardown).
-    healthz needs no hub — the dial happens lazily on the first chat."""
+    healthz needs no hub — the dial happens lazily on the first chat.
+
+    The shim's output is CAPTURED, not thrown away: this fixture was failing
+    on the macOS CI runner for weeks with nothing but "never became healthy",
+    and a blind failure is a failure nobody can fix. Whatever the shim said
+    (or failed to say) now travels with the assertion.
+    """
     port = _free_port()
-    proc = subprocess.Popen(
-        [sys.executable, str(CLI), "dial", "--port", str(port)],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    log = tmp_path / "shim.log"
+    with open(log, "wb") as fh:
+        proc = subprocess.Popen(
+            [sys.executable, str(CLI), "dial", "--port", str(port)],
+            stdout=fh, stderr=subprocess.STDOUT)
+
+    def _tail():
+        try:
+            return log.read_text(encoding="utf-8", errors="replace")[-1200:]
+        except OSError:
+            return "(no shim output captured)"
+
     try:
         deadline = time.time() + 10
         while time.time() < deadline:
             if cli._dial_health(port, timeout=0.5):
                 break
             if proc.poll() is not None:
-                pytest.fail(f"shim exited early rc={proc.returncode}")
+                pytest.fail(f"shim exited early rc={proc.returncode}\n--- shim output ---\n{_tail()}")
             time.sleep(0.2)
         else:
             proc.kill()
-            pytest.fail("shim never became healthy")
+            pytest.fail("shim never became healthy\n--- shim output ---\n" + _tail())
         yield port
     finally:
         proc.terminate()
