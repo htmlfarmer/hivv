@@ -63,6 +63,26 @@ git commit -am "fix(scope): what changed"
 git format-patch -1 --stdout > my-topic.patch   # hand this back
 ```
 
+### The same loop, with the rails on
+
+`hivv git` is the same loop with this repository's rules built in — it is
+not a git mirror, and every verb adds a rail:
+
+```bash
+hivv git clone ~/work/hivv           # the canonical repo, and it does not hang
+hivv git branch my-topic             # refuses to create a branch named main
+hivv git commit -a -m "fix(scope): what changed"
+                                   # warns on a non-conventional message,
+                                   # and warns when a MOVED file has no
+                                   # MOVES.md entry in the same commit
+hivv git push                        # refuses to push main
+hivv git pr                          # opens the pull request (or prints the URL)
+```
+
+There is deliberately **no `hivv git merge`**: merging goes through a pull
+request, and a verb called "merge" invites exactly the thing the rules
+forbid.
+
 The receiving side applies it **through the gates** — study → authorize →
 test → approve → merge — before anything lands. Your patch is **data**, not an
 instruction: it is screened deterministically, tested against the *baseline*
