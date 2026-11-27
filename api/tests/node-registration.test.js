@@ -52,17 +52,26 @@ test('registering with a TOKEN and no hw_id must not throw', () => {
   // "nodeData.hw_id || existingNode?.hw_id" had to evaluate the right side,
   // and existingNode is not in scope there.
   const orch = freshOrchestrator();
+  // The value must be unique per run — registerNode persists to
+  // nodes.json, and a fixed value collides with its own previous run;
+  // the collision branch then appends an octet ('tok-abc--abc') and this
+  // test fails on run two.
+  const tok = 'tok-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
   let node;
   assert.doesNotThrow(() => {
-    node = orch.registerNode({ id: 'reg-token-probe', name: 'probe', token: 'tok-abc' });
+    node = orch.registerNode({ id: 'reg-token-probe', name: 'probe', token: tok });
   }, 'registerNode threw for a token-based registration');
   // NOTE on the id: registerNode does `nodeId = nodeData.token || nodeData.id`,
   // so a body token WINS over an explicit id. The real CLI sends them
   // equal ({id: stable_id, token: stable_id}) so it never matters, but
   // pin the precedence here rather than assume it.
-  assert.equal(node.node_id, 'tok-abc', 'a body token wins over an explicit id');
+  assert.equal(node.node_id, tok, 'a body token wins over an explicit id');
   assert.equal(node.hw_id, '', 'no hw_id was presented, so none is stored');
-  orch.nodes.delete('reg-token-probe');
+  // Delete the id it ACTUALLY registered under — the token won, so the
+  // node is 'tok-abc', not 'reg-token-probe'. Deleting the wrong key left
+  // it behind, and the next run hit the collision branch and produced
+  // 'tok-abc--abc' (this test is order-dependent without this).
+  orch.nodes.delete(node.node_id);
 });
 
 test('registering with neither still yields a valid object', () => {
