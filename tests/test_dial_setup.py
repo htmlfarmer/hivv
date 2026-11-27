@@ -124,24 +124,56 @@ def _clean_dial_marker():
 
 
 @pytest.fixture
-def shim():
+def shim(tmp_path):
     """A REAL dial shim on a free port (spawned, killed at teardown).
-    healthz needs no hub — the dial happens lazily on the first chat."""
+    healthz needs no hub — the dial happens lazily on the first chat.
+
+    The shim's output is CAPTURED, not thrown away: this fixture was failing
+    on the macOS CI runner for weeks with nothing but "never became healthy",
+    and a blind failure is a failure nobody can fix. Whatever the shim said
+    (or failed to say) now travels with the assertion.
+    """
     port = _free_port()
-    proc = subprocess.Popen(
-        [sys.executable, str(CLI), "dial", "--port", str(port)],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    log = tmp_path / "shim.log"
+    # PYTHONUNBUFFERED is the whole point of capturing this: stdout pointed at
+    # a FILE is block-buffered in Python, so a shim that prints two lines and
+    # then hangs shows an EMPTY log — and kill() throws the buffer away
+    # entirely. Unbuffered, whatever it managed to say is on disk when we
+    # read it, which is the only way this fixture can ever explain itself.
+    env = dict(os.environ)
+    env["PYTHONUNBUFFERED"] = "1"
+    with open(log, "wb") as fh:
+        proc = subprocess.Popen(
+            [sys.executable, str(CLI), "dial", "--port", str(port)],
+            stdout=fh, stderr=subprocess.STDOUT, env=env)
+
+    def _tail():
+        try:
+            return log.read_text(encoding="utf-8", errors="replace")[-1200:]
+        except OSError:
+            return "(no shim output captured)"
+
     try:
         deadline = time.time() + 10
         while time.time() < deadline:
             if cli._dial_health(port, timeout=0.5):
                 break
             if proc.poll() is not None:
-                pytest.fail(f"shim exited early rc={proc.returncode}")
+                pytest.fail(f"shim exited early rc={proc.returncode}\n--- shim output ---\n{_tail()}")
             time.sleep(0.2)
         else:
+            # READ BEFORE KILL. SIGKILL discards anything still in a buffer,
+            # so killing first and reading second returns an empty file even
+            # when the shim said something. Report what the process was doing
+            # (alive? how long?) alongside it, so the next failure is data and
+            # not another shrug.
+            tail = _tail()
+            alive = proc.poll() is None
             proc.kill()
-            pytest.fail("shim never became healthy")
+            pytest.fail(
+                "shim never became healthy "
+                f"(alive={alive} pid={proc.pid} waited=10s, "
+                f"log_bytes={len(tail)})\n--- shim output ---\n" + tail)
         yield port
     finally:
         proc.terminate()

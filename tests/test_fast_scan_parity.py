@@ -74,6 +74,13 @@ CASES = [
     ("credential-path", 'open("/etc/passwd").read()\n'),
     ("secret", 'KEY = "AKIAIOSFODNN7EXAMPLE"\n'),
     ("destructive", 'import shutil\nshutil.rmtree("/tmp/x")\n'),
+    # The flag CLUSTER: "rm -rf" used to slip through BOTH implementations,
+    # because -[rf] matched one character and the trailing word boundary then
+    # failed on the second letter. The most destructive command in the shell
+    # was invisible to the scanner.
+    ("rm-rf", 'rm -rf /\n'),
+    ("rm-r", 'rm -r /tmp/x\n'),
+    ("rm-fr", 'rm -fr /tmp/x\n'),
     ("child-process", "const { exec } = require('child_process');\nexec('ls');\n"),
 ]
 

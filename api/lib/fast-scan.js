@@ -60,7 +60,11 @@ const HARD_PATTERNS = [
     label: 'shell command execution' },
   { id: 'subprocess_shell', level: 'high', re: /\bsubprocess\.(?:run|call|Popen|check_output|check_call)\s*\(/g,
     label: 'process spawning' },
-  { id: 'destructive_delete', level: 'critical', re: /\b(?:shutil\.rmtree|fs\.rmSync|rm\s+-[rf])\b/g,
+  // The flag CLUSTER: -[rf] matched ONE character and the trailing \b
+  // then failed on "rm -rf" (the r|f is followed by another word char), so
+  // the most destructive command in the shell slipped through BOTH
+  // implementations. The cluster is what actually appears on disk.
+  { id: 'destructive_delete', level: 'critical', re: /\b(?:shutil\.rmtree|fs\.rmSync|rm\s+-[a-z]*[rf][a-z]*)\b/g,
     label: 'recursive/destructive delete' },
   { id: 'credential_paths', level: 'critical', re: /(?:^|[\s"'=])(?:\/etc\/(?:passwd|shadow)|\.ssh\/id_[a-z0-9]+|~?\/\.aws\/credentials)/gim,
     label: 'credential file access' },

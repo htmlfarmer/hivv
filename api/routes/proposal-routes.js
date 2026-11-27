@@ -80,17 +80,6 @@ async function _principal(req) {
     return v ? String(v).slice(0, 128) : null;
 }
 
-// node_id is attacker-influenced (a signed statement may carry any string).
-// Strip control characters so it can never forge a log line or smuggle a
-// header, and cap it — 120 is plenty for a bee name.
-function _cleanId(v) {
-    const s = String(v == null ? '' : v)
-        .replace(/[\u0000-\u001f\u007f]/g, '')
-        .trim()
-        .slice(0, 120);
-    return s || null;
-}
-
 function timingSafeEq(a, b) {
     const x = Buffer.from(String(a || ''));
     const y = Buffer.from(String(b || ''));
@@ -182,64 +171,6 @@ function node_id_label(nodeId, principal) {
     return 'unknown bee';
 }
 
-// THE HIVE'S REPLY. The issue body states the verdict; this comment says
-// WHY — every brain's verdict, its risk line and its notes, plus what the
-// deterministic screen found. A proposal the board could not answer says so
-// out loud instead of being read as approved (law B).
-function _reviewBody(out) {
-    const esc = (s) => String(s == null || s === '' ? '-' : s)
-        .replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').slice(0, 160);
-    const lines = [];
-    lines.push("### The hive's review");
-    lines.push('');
-    lines.push('**Verdict: ' + (out.verdict || 'unknown') + '**');
-    lines.push('');
-
-    const votes = (out.reviews || []).filter(v => v && v.ok);
-    if (votes.length) {
-        lines.push('| model | family | verdict | risk | notes |');
-        lines.push('|---|---|---|---|---|');
-        for (const v of votes) {
-            lines.push('| ' + esc(v.model) + ' | ' + esc(v.family)
-                + ' | **' + esc(v.verdict) + '** | ' + esc(v.risk)
-                + ' | ' + esc(v.notes) + ' |');
-        }
-        const fams = [...new Set(votes.map(v => v.family))];
-        lines.push('');
-        lines.push(votes.length + ' brain(s) across ' + fams.length
-            + ' famil' + (fams.length === 1 ? 'y' : 'ies') + ': ' + fams.join(', '));
-    } else {
-        lines.push('_No brain returned a usable verdict. This one is routed '
-            + 'for human review — that is not the same as being approved._');
-    }
-
-    const sc = out.screen || {};
-    if (sc.risks) {
-        lines.push('');
-        lines.push('Deterministic screen: **' + (sc.verdict || 'n/a')
-            + '** · score ' + (sc.risks.score != null ? sc.risks.score : '?')
-            + ' · ' + (sc.risks.level || ''));
-    }
-    if ((out.problems || []).length) {
-        lines.push('');
-        lines.push('Flags:');
-        for (const p of out.problems.slice(0, 8)) lines.push('- ' + p);
-    }
-    if (out.needs_human) {
-        lines.push('');
-        lines.push('> A human signs this one before it lands: the text carries '
-            + 'something that could be read as a directive.');
-    }
-    lines.push('');
-    lines.push('_Posted automatically by the hivv proposal funnel._');
-    return lines.join('\n');
-}
-
-// Would a patch walk the gate machine? (It only does when there is a diff.)
-function patchWouldWalk(out) {
-    return Boolean(out && out.patch && String(out.patch).trim());
-}
-
 function _labelsFor(out) {
     const labels = ['hive-proposal', out.type || 'suggestion'];
     if (out.verdict === 'RISKY' || out.verdict === 'REVIEW') labels.push('needs-review');
@@ -261,16 +192,12 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
 
     const body = req.body || {};
     const principal = (await _principal(req)) || _requester(req);
-    const nodeId = _cleanId(body.node_id || req.headers['x-hivv-node']);
-    // A pre-check is a query parameter, never a body field a client can
-    // smuggle past a proxy that only inspects the payload.
-    const dryRun = req.query.dry_run === '1' || req.query.dry_run === 'true';
+    const nodeId = String(body.node_id || req.headers['x-hivv-node'] || '').slice(0, 120) || null;
 
     let out;
     try {
         out = await funnel.run({
-            body, identity: body.identity, nodeId, ip: req.ip, principal,
-            pool: _pool, dryRun,
+            body, identity: body.identity, nodeId, ip: req.ip, principal, pool: _pool,
         });
     } catch (e) {
         // FAIL CLOSED — a funnel that threw could not decide, and a proposal
@@ -294,46 +221,6 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
         return res.status(code).json({
             ok: false, stage: out.stage, problems: out.problems || [],
             verdict: out.verdict || null, never_file: !!out.never_file,
-        });
-    }
-
-    // ── THE PRE-CHECK (?dry_run=1) — run every check, write NOTHING ──────
-    //
-    // This is the safe half of "let me see what would happen before I send".
-    // It is NOT a bypass: every stage still runs and still reports honestly,
-    // including the rate limit (peeked, not spent) and the policy gate
-    // (policy.gate dryRun never mints a grant). What it never does is leave
-    // a mark — no record, no issue, no comment, no grant, no vote.
-    //
-    // A client may ask for this. A client may never use it to skip a check.
-    if (dryRun) {
-        const existing = proposal.findByDedupe(out.dedupe_key);
-        const files = Array.isArray(body.files_changed) ? body.files_changed : [];
-        const cls = proposal.classifyPaths(files);
-        return res.json({
-            ok: true,
-            dry_run: true,
-            verdict: out.verdict,
-            dedupe_key: out.dedupe_key,
-            would: {
-                create: existing ? false : true,
-                add_vote_to: existing ? existing.id : null,
-                filing: out.filing,
-                needs_human: !!out.needs_human,
-                protected_path: cls.protected_hit,
-                protected_paths: cls.protected_paths,
-                gates: patchWouldWalk(out) ? ['study', 'authorize', 'test', 'approve', 'merge'] : [],
-            },
-            screen: out.screen
-                ? { verdict: out.screen.verdict, risks: out.screen.risks,
-                    hard: (out.screen.hard_findings || []).length,
-                    secrets: (out.screen.secret_findings || []).length }
-                : null,
-            reviews: out.reviews || [],
-            injection: out.injection || [],
-            problems: out.problems || [],
-            message: 'dry run — nothing was created, no grant was minted, '
-                + 'your rate-limit allowance was not spent',
         });
     }
 
@@ -404,7 +291,6 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
         screen: out.screen,
         reviews: out.reviews,
         needs_human: out.needs_human,
-        red_team: !!out.red_team,
     });
     if (!created.ok) return res.status(400).json({ ok: false, error: created.error });
 
@@ -428,19 +314,6 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
                     issue_url: filed.html_url,
                     filed_via: githubRelay.isStub() ? 'stub' : 'github',
                 });
-                // THE HIVE'S REPLY — the reasoning, not just the verdict.
-                // Best effort: a comment that fails must never lose the
-                // filing it is commenting on.
-                try {
-                    await githubRelay.comment({
-                        id,
-                        issue_number: filed.number,
-                        body: _reviewBody(out),
-                        principal: out.principal,
-                    });
-                } catch (e) {
-                    console.error('[PROPOSAL] review comment failed:', e.message);
-                }
             }
         } catch (e) {
             filed = { ok: false, error: String(e.message).slice(0, 200) };
@@ -541,34 +414,14 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
 router.get('/', (req, res) => {
     const state = req.query.state ? String(req.query.state) : null;
     const limit = parseInt(req.query.limit, 10) || 50;
-    // Hostile-testing traffic is RECORDED (you need to see what the funnel
-    // did with it) but never published — the public page is about what the
-    // hive is actually working on. Ask for them with ?red_team=1.
-    const wantRedTeam = req.query.red_team === '1' || req.query.red_team === 'true';
-    const all = proposal.list({ state, limit: Math.max(limit, 500) });
-    const rows = wantRedTeam ? all : all.filter(p => !p.red_team);
-    res.json({
-        proposals: rows.slice(0, limit),
-        red_team_excluded: wantRedTeam ? 0 : all.filter(p => p.red_team).length,
-    });
+    res.json({ proposals: proposal.list({ state, limit }) });
 });
 
 router.get('/stats', (req, res) => {
-    // The SAME population as the list door: hostile-testing rows are counted
-    // nowhere the public looks, or the two doors disagree about how many
-    // proposals exist and the page publishes two different numbers.
-    const wantRedTeam = req.query.red_team === '1' || req.query.red_team === 'true';
-    const all = proposal.list({ limit: 500 })
-        .filter(p => wantRedTeam || !p.red_team);
+    const all = proposal.list({ limit: 500 });
     const counts = {};
     for (const p of all) counts[p.state] = (counts[p.state] || 0) + 1;
-    res.json({
-        counts,
-        total: all.length,
-        red_team_excluded: wantRedTeam ? 0
-            : proposal.list({ limit: 500 }).filter(p => p.red_team).length,
-        gates: proposal.GATE_ORDER,
-    });
+    res.json({ counts, total: all.length, gates: proposal.GATE_ORDER });
 });
 
 // ── STAGE 4b · who is actually changing the hive ───────────────────────────
@@ -616,57 +469,12 @@ router.get('/contributors', async (_req, res) => {
     });
 });
 
-// ── STAGE 4c · the activity feed — what is going on, right now ──────────────
-//
-// Derived from fields we ALREADY store (created_at, votes[].at, each gate's
-// at, merged_at) — no new tracking, nothing that can drift from the records
-// it summarizes. Registered before /:id so 'activity' is a word, not an id.
-router.get('/activity', (req, res) => {
-    const wantRedTeam = req.query.red_team === '1' || req.query.red_team === 'true';
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
-    const all = proposal.list({ limit: 500 })
-        .filter(p => wantRedTeam || !p.red_team);
-
-    const events = [];
-    const brief = (p) => ({ id: p.id, title: p.title, type: p.type,
-        node_id: p.node_id, state: p.state });
-
-    for (const p of all) {
-        if (p.created_at) {
-            events.push({ at: p.created_at, kind: 'filed', ...brief(p),
-                verdict: p.verdict });
-        }
-        for (const v of (p.votes || [])) {
-            if (v.at) {
-                events.push({ at: v.at, kind: 'voted', ...brief(p),
-                    by: v.node_id || v.principal, verdict: v.verdict || null });
-            }
-        }
-        for (const g of proposal.GATE_ORDER) {
-            const gate = (p.gates || {})[g];
-            if (gate && gate.status === 'passed' && gate.at) {
-                events.push({ at: gate.at, kind: 'gate', gate: g, ...brief(p) });
-            }
-        }
-        if (p.merged_at) {
-            events.push({ at: p.merged_at, kind: 'merged', ...brief(p) });
-        }
-        if (p.filed_at && p.issue_url) {
-            events.push({ at: p.filed_at, kind: 'published', ...brief(p),
-                issue_url: p.issue_url });
-        }
-    }
-
-    events.sort((a, b) => (b.at || 0) - (a.at || 0));
-    res.json({ events: events.slice(0, limit), count: Math.min(events.length, limit),
-        total: events.length });
-});
 // ── STAGE 4 · the feedback loop ────────────────────────────────────────────
 // What THIS caller sent, with where each one got to. Registered before
 // /:id so 'mine' is a word, not an id.
 router.get('/mine', async (req, res) => {
     const who = await _principal(req);
-    const nodeId = _cleanId(req.headers['x-hivv-node'] || req.query.node);
+    const nodeId = String(req.headers['x-hivv-node'] || req.query.node || '').slice(0, 120) || null;
     const all = proposal.list({ limit: 500 });
     const mine = all.filter(p =>
         (nodeId && p.node_id === nodeId) || (who && p.principal === who));
@@ -685,33 +493,8 @@ router.get('/mine', async (req, res) => {
 router.get('/:id', (req, res) => {
     const p = proposal.get(req.params.id);
     if (!p) return res.status(404).json({ error: 'proposal not found' });
-    // The diff is 400 KB and never rides along on a read — but a reviewer
-    // cannot judge a patch they cannot see, so it is one flag away.
-    if (req.query.include_patch === '1' || req.query.include_patch === 'true') {
-        const patch = proposal.patchOf(req.params.id);
-        if (patch) return res.json({ ...p, patch });
-    }
     res.json(p);
 });
-
-// ── THE STUDY: one proposal, and everything it touches ──────────────────────
-//
-// The assembly lives in lib/proposal-study.js so this route and the MCP
-// `proposals` tool ask the SAME question and cannot drift apart in what
-// they report.
-router.get('/:id/study', async (req, res) => {
-    const studyOf = require('../lib/proposal-study');
-    let out;
-    try {
-        out = await studyOf.study(req.params.id);
-    } catch (e) {
-        console.error('[PROPOSAL] study failed for ' + req.params.id + ':', e.message);
-        return res.status(500).json({ error: 'study unavailable' });
-    }
-    if (!out) return res.status(404).json({ error: 'proposal not found' });
-    res.json(out);
-});
-
 
 router.get('/:id/verify', (req, res) => {
     const p = proposal.get(req.params.id);
@@ -833,12 +616,7 @@ router.post('/:id/approve', express.json({ limit: '1mb' }), async (req, res) => 
                     + '\nVerdict: ' + (p.verdict || 'unknown'),
                 base: 'main',
                 patch: patchText,
-                // Authorized as the PROPOSAL'S AUTHOR, not the clicker. The
-                // write is about their proposal, and they already consented
-                // to github.write when they filed it — otherwise opening the
-                // PR would ask a SECOND principal for a grant the first one
-                // already gave, and every approved change would stall here.
-                principal: p.principal,
+                principal: who,
             });
             if (pr && pr.ok) {
                 proposal.fileIssue(req.params.id, {

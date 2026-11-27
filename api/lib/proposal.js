@@ -206,12 +206,18 @@ function _validateStudy(e) {
         if (v.length) problems.push(key + ': ' + v.length + ' finding(s)');
     }
     if (!Array.isArray(e.injection)) problems.push('injection must be an array');
+    // A RISKY vote does NOT block. The review is a MODEL's opinion, and the
+    // small local models are harsh — one of them called a two-line function
+    // an undocumented, potentially unused function and voted RISKY, which
+    // would have made the whole project unmergeable. So a RISKY vote is a
+    // SIGNAL: it raises the bar (a human must sign) instead of killing the
+    // change. Only the deterministic findings — hard_danger and secrets —
+    // block.
     const votes = e.votes;
-    if (!Array.isArray(votes) || !votes.length) {
+    if (!Array.isArray(votes)) {
+        problems.push('votes must be an array');
+    } else if (!votes.length && e.deterministic_only !== true) {
         problems.push('votes required (at least one review)');
-    } else {
-        const risky = votes.filter(v => String(v.verdict || '').toUpperCase() === 'RISKY');
-        if (risky.length) problems.push(risky.length + ' review(s) voted RISKY');
     }
     return { ok: problems.length === 0, problems };
 }
@@ -431,12 +437,7 @@ function _public(p) {
         issue_number: p.issue_number || null,
         filed_at: p.filed_at || null,
         filed_via: p.filed_via || null,
-        red_team: !!p.red_team,
         patch_sha256: p.patch_sha256,
-        // Size, never the bytes: a 400 KB diff must not ride along on every
-        // list read, but a reader needs to know a proposal HAS a patch (and
-        // that it survived the restart that used to empty it).
-        patch_bytes: (p.patch || '').length,
         files_changed: p.files_changed,
         protected_hit: p.protected_hit,
         protected_paths: p.protected_paths,
@@ -478,7 +479,7 @@ function create({
     // ── the intake funnel's fields (035) ──
     type, body, evidence, node_id, dedupe_key, votes, verdict,
     screen, reviews, issue_url, issue_number, filed_via,
-    needs_human, red_team,
+    needs_human,
 } = {}) {
     // A proposal is about THIS hive's source. The route and the CLI both
     // default it; requiring it here made every caller re-state the obvious.
@@ -538,7 +539,6 @@ function create({
         issue_number: Number.isFinite(issue_number) ? issue_number : null,
         filed_at: issue_url ? now : null,
         filed_via: filed_via ? String(filed_via).slice(0, 40) : null,
-        red_team: !!red_team,
         status: 'open',
         created_at: now,
         updated_at: now,
@@ -566,6 +566,15 @@ function study(id, evidence, { by } = {}) {
     // settle — it routes the proposal to the approve gate, it does not kill
     // it. (Invariant I5: a diff is DATA, so we never let it instruct us.)
     if (evidence && Array.isArray(evidence.injection) && evidence.injection.length) {
+        p.needs_human = true;
+    }
+    const studyVotes = (evidence && Array.isArray(evidence.votes)) ? evidence.votes : [];
+    if (studyVotes.some(v => String(v.verdict || '').toUpperCase() === 'RISKY')) {
+        p.needs_human = true;
+    }
+    // Nobody reviewed it — the contributor said so out loud. That is not a
+    // block, but it does mean a human has to look before it lands.
+    if (evidence && evidence.deterministic_only === true) {
         p.needs_human = true;
     }
     p.gates.study.evidence = evidence || null;
@@ -911,10 +920,9 @@ function _persist(p) {
              protected_hit, high_risk, gates, receipts, chain_hash,
              created_at, updated_at, expires_at, merged_at, deployed_at,
              type, body, evidence, node_id, dedupe_key, votes, verdict,
-             screen, reviews, issue_number, issue_url, filed_at, filed_via,
-             patch, red_team)
+             screen, reviews, issue_number, issue_url, filed_at, filed_via)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-                $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+                $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
         ON CONFLICT (id) DO UPDATE SET
             state=EXCLUDED.state, gates=EXCLUDED.gates, receipts=EXCLUDED.receipts,
             chain_hash=EXCLUDED.chain_hash, updated_at=EXCLUDED.updated_at,
@@ -930,8 +938,7 @@ function _persist(p) {
             JSON.stringify(p.votes || []), p.verdict,
             p.screen ? JSON.stringify(p.screen) : null,
             JSON.stringify(p.reviews || []),
-            p.issue_number, p.issue_url, p.filed_at, p.filed_via,
-            p.patch || null, !!p.red_team])
+            p.issue_number, p.issue_url, p.filed_at, p.filed_via])
         .catch((err) => console.warn('[PROPOSAL] persist failed:', err.message));
 }
 
@@ -948,8 +955,7 @@ async function init(pgPool) {
                     id: row.id,
                     principal: row.principal, repo: row.repo,
                     base_ref: null, base_sha: row.base_sha, branch: row.branch,
-                    title: row.title, summary: '', patch: row.patch || '',
-                    patch_sha256: row.patch_sha256,
+                    title: row.title, summary: '', patch: '', patch_sha256: row.patch_sha256,
                     // ── intake (035) ──
                     type: row.type || null,
                     body: row.body || null,
@@ -964,7 +970,6 @@ async function init(pgPool) {
                     issue_url: row.issue_url || null,
                     filed_at: row.filed_at ? Number(row.filed_at) : null,
                     filed_via: row.filed_via || null,
-                    red_team: !!row.red_team,
                     files_changed: [], baseline_suite_digest: null,
                     protected_hit: !!row.protected_hit, protected_paths: [],
                     high_risk: !!row.high_risk, high_risk_paths: [],
