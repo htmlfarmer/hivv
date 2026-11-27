@@ -130,6 +130,32 @@ def main() -> int:
         check("the report is JSON-serialisable",
               isinstance(json.dumps(st, default=str), str))
 
+    # ── the probe ─────────────────────────────────────────────────────────
+    # The probe is what the fleet asks when the CLI on a box is an old
+    # version. It runs on a box with no fleet code at all, so it has to
+    # stand alone: no imports beyond the standard library, and it must
+    # answer even when there is nothing to report.
+    probe = ROOT / "scripts" / "fleet-probe.py"
+    check("the probe ships with the repo", probe.exists())
+    if probe.exists():
+        with tempfile.TemporaryDirectory(prefix="hivv-probe-") as td:
+            import subprocess as sp
+            r = sp.run([sys.executable, str(probe)], capture_output=True,
+                       text=True, timeout=90,
+                       env={**os.environ, "HOME": td})
+            check("the probe exits 0", r.returncode == 0, r.stderr[-200:])
+            try:
+                rep = json.loads(r.stdout)
+                ok = True
+            except Exception as e:
+                rep, ok = {}, False
+                check("the probe emits JSON", False, str(e))
+            if ok:
+                check("the probe emits JSON", True)
+                for key in ("host", "reachable", "agent_running", "nodes",
+                            "gateway", "git", "deployed"):
+                    check(f"the probe reports '{key}'", key in rep, str(sorted(rep)))
+
     # ── the parser ─────────────────────────────────────────────────────────
     import argparse
     parser = mod.build_parser()

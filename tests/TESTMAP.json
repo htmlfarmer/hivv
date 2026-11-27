@@ -278,6 +278,9 @@
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
   ],
+  "scripts/fleet-probe.py": [
+   "tests/test_fleet.py"
+  ],
   "scripts/health-watchdog.sh": [
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
@@ -518,7 +521,8 @@
    "public_html/hivv-cli.py"
   ],
   "tests/test_fleet.py": [
-   "public_html/hivv-cli.py"
+   "public_html/hivv-cli.py",
+   "scripts/fleet-probe.py"
   ],
   "tests/test_git_verbs.py": [
    "public_html/hivv-cli.py"

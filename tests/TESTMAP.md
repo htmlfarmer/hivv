@@ -79,6 +79,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `scripts/bridge-canary.py` | `tests/test_location_independence.py` |
 | `scripts/deploy.sh` | `tests/test_repo_scripts.py` |
 | `scripts/emergency-update.py` | `tests/test_upgrade_review.py` |
+| `scripts/fleet-probe.py` | `tests/test_fleet.py` |
 | `scripts/health-watchdog.sh` | `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_watchdog.py` |
 | `scripts/lib/deps.sh` | `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_dev_tools.py`, `tests/test_llm_build_tools.py`, `tests/test_setup_prompts.py`, `tests/test_setup_scripts.py`, `tests/test_testmap.py` |
 | `scripts/scan_secrets.py` | `tests/test_location_independence.py`, `tests/test_scan_secrets.py` |
@@ -151,7 +152,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_failure_diagnostics.py` | `api/migrations/021_upgrade_diagnostics.sql`, `api/routes/honey-routes.js`, `public_html/hivv-cli.py` |
 | `tests/test_fallback.py` | `docs/HELP.md`, `public_html/hivv`, `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `public_html/rescue` |
 | `tests/test_fast_scan_parity.py` | `api/lib/fast-scan.js`, `public_html/hivv-cli.py` |
-| `tests/test_fleet.py` | `public_html/hivv-cli.py` |
+| `tests/test_fleet.py` | `public_html/hivv-cli.py`, `scripts/fleet-probe.py` |
 | `tests/test_git_verbs.py` | `public_html/hivv-cli.py` |
 | `tests/test_gui_e2e.py` | `public_html/hivv-cli.py`, `public_html/hivv-gui-setup.py` |
 | `tests/test_gui_setup.py` | `public_html/hivv-cli.py`, `public_html/hivv-gui-setup.py` |
