@@ -21,7 +21,11 @@ const {
   LEGACY_PRINCIPAL_PATTERN,
 } = require('./attestation-contract');
 
-const KINDS = ['source.review', 'run.request', 'io.record', 'run.record'];
+// 'proposal' = a hive node suggesting a change to the system it runs
+// (api/lib/github-relay.js). Its subject is the dedupe key, so two bees
+// signing the same idea derive the same subject and land on ONE issue.
+const KINDS = ['source.review', 'run.request', 'io.record', 'run.record',
+               'proposal'];
 
 // ── canonical JSON ────────────────────────────────────────────────────────
 //
