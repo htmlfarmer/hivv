@@ -121,6 +121,13 @@ describe('LAW A — the API answers JSON, even when it fails', () => {
             'the API error branch must answer application/json');
         assert.ok(/respond\s+`\{[^`]*"error"/.test(cfg),
             'the API error branch must answer a JSON body');
+        // THE 502 TRAP (measured 2026-11-26): Cloudflare REPLACES the body of
+        // a 502 that comes from the origin with its own plain-text page
+        // ("error code: 502") — so the JSON never reached the browser. A 500
+        // and a 503 pass through untouched. The rule therefore answers 503,
+        // which is also the honest status for "the upstream is not answering".
+        assert.ok(!/respond\s+`\{[^`]*"error"[^`]*`\s+502/.test(cfg),
+            'the API error must be a 503 — Cloudflare replaces a 502 body with its own plain-text page');
     });
 
     test('a DEAD upstream on an API path answers JSON (the proxy drill)', async (t) => {
@@ -134,7 +141,7 @@ describe('LAW A — the API answers JSON, even when it fails', () => {
         }
         const port = 3900 + (process.pid % 90);
         const deadPort = port + 1;
-        const body = '{"error":"the gateway is not answering right now - try again in a moment","status":502}';
+        const body = '{"error":"the gateway is not answering right now - try again in a moment","status":503}';
         const cfg = [
             '{',
             '\tadmin off',
@@ -148,7 +155,7 @@ describe('LAW A — the API answers JSON, even when it fails', () => {
             '\t\t@api path /api/*',
             '\t\thandle @api {',
             '\t\t\theader Content-Type application/json',
-            '\t\t\trespond ' + String.fromCharCode(96) + body + String.fromCharCode(96) + ' 502',
+            '\t\t\trespond ' + String.fromCharCode(96) + body + String.fromCharCode(96) + ' 503',
             '\t\t}',
             '\t\thandle {',
             '\t\t\trespond "not json" 404',
@@ -171,7 +178,7 @@ describe('LAW A — the API answers JSON, even when it fails', () => {
             }
             assert.ok(up, 'the drill caddy never came up');
             const res = await fetch('http://127.0.0.1:' + port + '/api/ping');
-            assert.equal(res.status, 502);
+            assert.equal(res.status, 503);
             const ct = (res.headers.get('content-type') || '').toLowerCase();
             assert.ok(ct.includes('json'),
                 'a dead upstream on an API path must answer JSON (got ' + ct + ')');
