@@ -1173,7 +1173,16 @@ class AIRouter {
         });
 
         if (candidates.length === 0) {
-            candidates = keys.filter(k => k.key.isAvailable());
+            // K1 (HIVV_PERSONAL_MODELS_PLAN.md §5 P1): the fallback may relax the
+            // MODEL pin, never ownership. The old `keys.filter(k => k.key.isAvailable())`
+            // dropped both filters, so a private key (userId set, is_shared=false)
+            // became the catch-all for every OTHER user — and for anonymous visitors —
+            // whenever their own filtered set came up empty.
+            candidates = keys.filter(k => {
+                if (!k.key.isAvailable()) {return false;}
+                if (k.key.userId && k.key.userId !== userId && !k.key.isShared) {return false;}
+                return true;
+            });
         }
 
         if (candidates.length === 0) {return null;}

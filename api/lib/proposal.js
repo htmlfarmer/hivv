@@ -82,18 +82,31 @@ const STATES = ['draft', 'studied', 'authorized', 'tested', 'approved',
 // alone; a human must sign (invariant I2). These are the files whose
 // behaviour decides whether OTHER changes are allowed, so a change to them
 // must not be approved by the machinery it modifies.
+// THE GUARDRAIL (non-negotiable): these files DECIDE whether nodes are
+// trusted. One compromised bee must never rewrite the thing that decides
+// whether bees are trusted — so a change here needs a HUMAN signature
+// regardless of how many models voted yes (invariant I2, CONTRIBUTING #2).
+//   policy.js      — the verdict engine
+//   attest.js      — the signature contract (and blnq's byte-identical twin)
+//   node-auth.js   — the bee<->hub shared secret
+//   fast-scan.js   — the deterministic screen every other gate leans on
+//   .keys/         — the key material itself
 const PROTECTED_PATHS = [
     'api/lib/policy.js',
     'api/lib/proposal.js',
+    'api/lib/proposal-funnel.js',
     'api/lib/identity.js',
     'api/lib/capabilities.js',
     'api/lib/sandbox.js',
     'api/lib/attest.js',
     'api/lib/attestation-contract.js',
+    'api/lib/node-auth.js',
+    'api/lib/fast-scan.js',
+    'api/lib/github-relay.js',
     'api/server.js',
     'scripts/deploy.sh',
 ];
-const PROTECTED_PREFIXES = ['api/migrations/'];
+const PROTECTED_PREFIXES = ['api/migrations/', '.keys/', 'api/.keys/'];
 const PROTECTED_PATTERNS = [/^api\/lib\/attest.*\.js$/];
 
 // HIGH-RISK — not protected, but they carry the machinery. A human or a
@@ -410,6 +423,20 @@ function _public(p) {
         branch: p.branch,
         title: p.title,
         summary: p.summary,
+        type: p.type || null,
+        body: p.body || null,
+        evidence: p.evidence || null,
+        node_id: p.node_id || null,
+        dedupe_key: p.dedupe_key || null,
+        votes: p.votes || [],
+        vote_count: (p.votes || []).length,
+        verdict: p.verdict || null,
+        screen: p.screen || null,
+        reviews: p.reviews || [],
+        issue_url: p.issue_url || null,
+        issue_number: p.issue_number || null,
+        filed_at: p.filed_at || null,
+        filed_via: p.filed_via || null,
         patch_sha256: p.patch_sha256,
         files_changed: p.files_changed,
         protected_hit: p.protected_hit,
@@ -426,6 +453,7 @@ function _public(p) {
         expires_at: p.expires_at,
         merged_at: p.merged_at || null,
         deployed_at: p.deployed_at || null,
+        rejection: p.rejection || null,
     };
 }
 
@@ -448,13 +476,24 @@ function stateOf(p) {
 function create({
     principal, repo, base_ref, base_sha, branch, title, summary,
     patch, files_changed, baseline_suite_digest, ttl_ms,
+    // ── the intake funnel's fields (035) ──
+    type, body, evidence, node_id, dedupe_key, votes, verdict,
+    screen, reviews, issue_url, issue_number, filed_via,
+    needs_human,
 } = {}) {
-    if (!repo || typeof repo !== 'string' || !repo.trim()) {
-        return { ok: false, error: 'repo required' };
+    // A proposal is about THIS hive's source. The route and the CLI both
+    // default it; requiring it here made every caller re-state the obvious.
+    const repoName = (repo && typeof repo === 'string' && repo.trim())
+        ? repo.trim() : 'htmlfarmer/hivv';
+    const patchText = typeof patch === 'string' ? patch : '';
+    const hasText = Boolean(body && String(body).trim());
+    // A bug report or a suggestion is a PROPOSAL with no diff. Refusing it
+    // for lacking a patch would throw away exactly the input this funnel
+    // exists to collect. What must never be empty is the CONTENT.
+    if (!patchText.trim() && !hasText) {
+        return { ok: false, error: 'a patch or a body is required' };
     }
-    const body = typeof patch === 'string' ? patch : '';
-    if (!body.trim()) return { ok: false, error: 'patch required' };
-    if (body.length > CFG.maxPatchChars) {
+    if (patchText.length > CFG.maxPatchChars) {
         return { ok: false, error: 'patch too large (max ' + CFG.maxPatchChars + ' chars)' };
     }
     const files = (Array.isArray(files_changed) ? files_changed : [])
@@ -464,17 +503,21 @@ function create({
     const p = {
         id: _id(),
         principal: String(principal || 'anonymous'),
-        repo: repo.trim(),
+        repo: repoName,
         base_ref: base_ref ? String(base_ref).slice(0, 256) : null,
         base_sha: base_sha ? String(base_sha).slice(0, 64) : null,
         branch: branch ? String(branch).slice(0, 256) : null,
         title: String(title || '').slice(0, 300),
         summary: String(summary || '').slice(0, 4000),
-        patch: body,
-        patch_sha256: _sha256(body),
+        patch: patchText,
+        patch_sha256: _sha256(patchText),
         files_changed: files,
         baseline_suite_digest: baseline_suite_digest ? String(baseline_suite_digest).slice(0, 64) : null,
-        needs_human: false,
+        // The funnel sets this when the TEXT carries something that looks
+        // like a directive (invariant I5). Without it the approve gate would
+        // never demand a human for an injected diff — only for a protected
+        // PATH — and I5 would be a comment instead of a rule.
+        needs_human: !!needs_human || cls.protected_hit,
         protected_hit: cls.protected_hit,
         protected_paths: cls.protected_paths,
         high_risk: cls.high_risk,
@@ -482,6 +525,20 @@ function create({
         gates: _blankGates(),
         receipts: [],
         chain_hash: null,
+        // ── intake (035) ──
+        type: type ? String(type).slice(0, 20) : null,
+        body: body ? String(body).slice(0, 40000) : null,
+        evidence: evidence ? String(evidence).slice(0, 4000) : null,
+        node_id: node_id ? String(node_id).slice(0, 120) : null,
+        dedupe_key: dedupe_key ? String(dedupe_key).slice(0, 64) : null,
+        votes: Array.isArray(votes) ? votes.slice(0, 200) : [],
+        verdict: verdict ? String(verdict).slice(0, 16) : null,
+        screen: screen || null,
+        reviews: Array.isArray(reviews) ? reviews.slice(0, 50) : [],
+        issue_url: issue_url ? String(issue_url).slice(0, 500) : null,
+        issue_number: Number.isFinite(issue_number) ? issue_number : null,
+        filed_at: issue_url ? now : null,
+        filed_via: filed_via ? String(filed_via).slice(0, 40) : null,
         status: 'open',
         created_at: now,
         updated_at: now,
@@ -714,9 +771,79 @@ function reject(id, { reason, by } = {}) {
     return { ok: true, proposal: _public(p) };
 }
 
+// ── dedupe + votes ──────────────────────────────────────────────────────────
+
+// Find an existing proposal carrying the same normalized title+body. This is
+// the whole point of the dedupe stage: five bees with the same idea must
+// become ONE issue with +5 votes, not five issues nobody can compare.
+function findByDedupe(key) {
+    if (!key) return null;
+    for (const p of proposals.values()) {
+        if (p.dedupe_key && p.dedupe_key === key) return _public(p);
+    }
+    return null;
+}
+
+// A vote is an IDENTITY, not a counter — {node_id, principal, at}. A number
+// can be inflated by a loop; a list of principals can be audited.
+// The SAME bee voting twice on the same proposal counts ONCE.
+const VERDICT_ORDER = { SAFE: 0, REVIEW: 1, RISKY: 2 };
+
+function addVote(id, vote) {
+    const p = proposals.get(id);
+    if (!p) return { ok: false, error: 'proposal not found' };
+    if (!Array.isArray(p.votes)) p.votes = [];
+
+    // LAW A — a later bee's screen may only make the record WORSE. If bee #2
+    // found something bee #1 missed, keeping the original SAFE would launder
+    // the finding through the dedupe path.
+    const incoming = vote && vote.verdict;
+    const current = p.verdict || 'SAFE';
+    if (incoming && (VERDICT_ORDER[incoming] || 0) > (VERDICT_ORDER[current] || 0)) {
+        p.verdict = incoming;
+    }
+
+    const node = String((vote && (vote.node_id || vote.principal)) || '').slice(0, 120);
+    if (node && p.votes.some(v => String(v.node_id || v.principal || '') === node)) {
+        p.updated_at = Date.now();
+        _persist(p);
+        return { ok: true, deduped_vote: true, votes: p.votes.length, proposal: _public(p) };
+    }
+    p.votes.push({
+        node_id: (vote && vote.node_id) ? String(vote.node_id).slice(0, 120) : null,
+        principal: (vote && vote.principal) ? String(vote.principal).slice(0, 120) : null,
+        at: Date.now(),
+    });
+    p.updated_at = Date.now();
+    _persist(p);
+    return { ok: true, votes: p.votes.length, proposal: _public(p) };
+}
+
+// Record where it landed on GitHub. The relay is idempotent, so this is
+// called on every attempt and simply records the first successful answer.
+function fileIssue(id, { issue_number, issue_url, filed_via } = {}) {
+    const p = proposals.get(id);
+    if (!p) return { ok: false, error: 'proposal not found' };
+    if (issue_number != null) p.issue_number = Number(issue_number);
+    if (issue_url) p.issue_url = String(issue_url).slice(0, 500);
+    if (filed_via) p.filed_via = String(filed_via).slice(0, 40);
+    p.filed_at = p.filed_at || Date.now();
+    p.updated_at = Date.now();
+    _persist(p);
+    return { ok: true, proposal: _public(p) };
+}
+
 // ── reads ───────────────────────────────────────────────────────────────────
 
 function get(id) { return _public(proposals.get(id)); }
+
+// The patch TEXT. Deliberately absent from _public(): it can be 400 KB and
+// every list read would carry it. The relay needs it exactly once, when an
+// approved change becomes a branch.
+function patchOf(id) {
+    const p = proposals.get(id);
+    return p && typeof p.patch === 'string' ? p.patch : '';
+}
 
 function list({ state = null, principal = null, limit = 50 } = {}) {
     const out = [];
@@ -791,16 +918,27 @@ function _persist(p) {
         INSERT INTO hivv_proposals
             (id, state, principal, repo, base_sha, branch, title, patch_sha256,
              protected_hit, high_risk, gates, receipts, chain_hash,
-             created_at, updated_at, expires_at, merged_at, deployed_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+             created_at, updated_at, expires_at, merged_at, deployed_at,
+             type, body, evidence, node_id, dedupe_key, votes, verdict,
+             screen, reviews, issue_number, issue_url, filed_at, filed_via)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+                $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
         ON CONFLICT (id) DO UPDATE SET
             state=EXCLUDED.state, gates=EXCLUDED.gates, receipts=EXCLUDED.receipts,
             chain_hash=EXCLUDED.chain_hash, updated_at=EXCLUDED.updated_at,
-            merged_at=EXCLUDED.merged_at, deployed_at=EXCLUDED.deployed_at`,
+            merged_at=EXCLUDED.merged_at, deployed_at=EXCLUDED.deployed_at,
+            votes=EXCLUDED.votes, verdict=EXCLUDED.verdict,
+            issue_number=EXCLUDED.issue_number, issue_url=EXCLUDED.issue_url,
+            filed_at=EXCLUDED.filed_at, filed_via=EXCLUDED.filed_via`,
         [p.id, stateOf(p), p.principal, p.repo, p.base_sha, p.branch, p.title,
             p.patch_sha256, p.protected_hit, p.high_risk,
             JSON.stringify(p.gates), JSON.stringify(p.receipts), p.chain_hash,
-            p.created_at, p.updated_at, p.expires_at, p.merged_at, p.deployed_at])
+            p.created_at, p.updated_at, p.expires_at, p.merged_at, p.deployed_at,
+            p.type, p.body, p.evidence, p.node_id, p.dedupe_key,
+            JSON.stringify(p.votes || []), p.verdict,
+            p.screen ? JSON.stringify(p.screen) : null,
+            JSON.stringify(p.reviews || []),
+            p.issue_number, p.issue_url, p.filed_at, p.filed_via])
         .catch((err) => console.warn('[PROPOSAL] persist failed:', err.message));
 }
 
@@ -818,6 +956,20 @@ async function init(pgPool) {
                     principal: row.principal, repo: row.repo,
                     base_ref: null, base_sha: row.base_sha, branch: row.branch,
                     title: row.title, summary: '', patch: '', patch_sha256: row.patch_sha256,
+                    // ── intake (035) ──
+                    type: row.type || null,
+                    body: row.body || null,
+                    evidence: row.evidence || null,
+                    node_id: row.node_id || null,
+                    dedupe_key: row.dedupe_key || null,
+                    votes: Array.isArray(row.votes) ? row.votes : [],
+                    verdict: row.verdict || null,
+                    screen: row.screen || null,
+                    reviews: Array.isArray(row.reviews) ? row.reviews : [],
+                    issue_number: row.issue_number != null ? Number(row.issue_number) : null,
+                    issue_url: row.issue_url || null,
+                    filed_at: row.filed_at ? Number(row.filed_at) : null,
+                    filed_via: row.filed_via || null,
                     files_changed: [], baseline_suite_digest: null,
                     protected_hit: !!row.protected_hit, protected_paths: [],
                     high_risk: !!row.high_risk, high_risk_paths: [],
@@ -855,6 +1007,7 @@ module.exports = {
     CFG, GATE_ORDER, GATE_STATE, STATES,
     PROTECTED_PATHS, HIGH_RISK_PREFIXES, HIGH_RISK_FILES,
     create, study, authorize, test, approve, merge, deployed, reject,
+    findByDedupe, addVote, fileIssue, patchOf,
     get, list, stateOf, chainHash, verifyChain,
     isProtected, isHighRisk, classifyPaths,
     init, _resetForTests,
