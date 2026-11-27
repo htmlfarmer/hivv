@@ -155,10 +155,14 @@ NODES_FP="$(fingerprint "$REPO_ROOT/api/data/nodes.json")"
 
 # json_get <file> <key> — the report is flat, with simple string values.
 json_get() {
-    grep -F "\"$2\": \"" "$1" 2>/dev/null | head -1 |
-        # The order matters: strip the comma BEFORE the quote. The other
-        # way round leaves the quote behind on every value.
-        sed -e 's/^[^:]*: *"//' -e 's/,$//' -e 's/"$//'
+    # grep -o, not a line-based sed: a report that has been through any JSON
+    # round-trip (jq -c, json.dumps, a pretty-printer that collapses it) is ONE
+    # LINE, and a line-based parse then returns the entire rest of the file as
+    # the value. The comparison then reports nonsense -- and, worse, it reports
+    # that as "differs", which would send someone hunting for a secret
+    # mismatch that does not exist.
+    grep -o "\"$2\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$1" 2>/dev/null | head -1 |
+        sed -e 's/^[^:]*:[[:space:]]*"//' -e 's/"$//'
 }
 
 emit() {
@@ -196,7 +200,7 @@ if [ -n "$REPORT_OUT" ]; then
         _name="${pair%%:*}"
         _val="${pair#*:}"
         if [ "$_val" = "absent" ]; then
-            printf '%s!%s %s: ABSENT on this centre\n' "$D_YLW" "$D_RST" "$_name"
+            printf '%s!%s %s: absent on this centre\n' "$D_YLW" "$D_RST" "$_name"
             _missing=1
         fi
     done

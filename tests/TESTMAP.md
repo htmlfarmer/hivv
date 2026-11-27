@@ -78,6 +78,8 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `scripts/emergency-update.py` | `tests/test_upgrade_review.py` |
 | `scripts/health-watchdog.sh` | `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_watchdog.py` |
 | `scripts/lib/deps.sh` | `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_dev_tools.py`, `tests/test_llm_build_tools.py`, `tests/test_setup_prompts.py`, `tests/test_setup_scripts.py`, `tests/test_testmap.py` |
+| `scripts/portability/centre-parity.sh` | `tests/test_portability.py` |
+| `scripts/portability/node-state.sh` | `tests/test_portability.py` |
 | `scripts/scan_secrets.py` | `tests/test_location_independence.py`, `tests/test_scan_secrets.py` |
 | `scripts/secretz-hivv.sh` | `tests/test_location_independence.py` |
 | `scripts/setup-local.ps1` | `tests/test_cli_install.py`, `tests/test_setup_scripts.py` |
@@ -156,6 +158,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_nodes_table.py` | `public_html/hivv-cli.py` |
 | `tests/test_panel_update.py` | `public_html/panel.html` |
 | `tests/test_personas.py` | `public_html/chat/app.js`, `public_html/chat/index.html` |
+| `tests/test_portability.py` | `scripts/portability/centre-parity.sh`, `scripts/portability/node-state.sh` |
 | `tests/test_propose_cli.py` | `public_html/hivv-cli.py` |
 | `tests/test_repo_scripts.py` | `AGENTS.md`, `README.md`, `api/server.js`, `public_html/css/site.css`, `public_html/index.html`, `scripts`, `scripts/deploy.sh`, `scripts/sync-mirrors.sh`, `setup.sh` |
 | `tests/test_rescue.py` | `public_html/install-hivv.sh`, `public_html/rescue` |

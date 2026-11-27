@@ -278,6 +278,12 @@
    "tests/test_setup_scripts.py",
    "tests/test_testmap.py"
   ],
+  "scripts/portability/centre-parity.sh": [
+   "tests/test_portability.py"
+  ],
+  "scripts/portability/node-state.sh": [
+   "tests/test_portability.py"
+  ],
   "scripts/scan_secrets.py": [
    "tests/test_location_independence.py",
    "tests/test_scan_secrets.py"
@@ -543,6 +549,10 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_portability.py": [
+   "scripts/portability/centre-parity.sh",
+   "scripts/portability/node-state.sh"
   ],
   "tests/test_propose_cli.py": [
    "public_html/hivv-cli.py"
