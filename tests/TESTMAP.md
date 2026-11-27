@@ -40,6 +40,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/router.js` | `api/tests/route-factors.test.js`, `api/tests/traffic-count.test.js` |
 | `api/lib/salah.js` | `api/tests/ritual.test.js`, `api/tests/salah.test.js` |
 | `api/lib/ssrf.js` | `api/tests/interop.test.js` |
+| `api/lib/suggestions.js` | `api/tests/suggestions.test.js` |
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
 | `api/lib/toolkit.js` | `api/tests/polite.test.js`, `api/tests/tool-profiles.test.js` |
@@ -112,6 +113,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/ritual.test.js` | `api/lib/bee-identity.js`, `api/lib/moon.js`, `api/lib/salah.js` |
 | `api/tests/route-factors.test.js` | `api/lib/route-factors.js`, `api/lib/router.js` |
 | `api/tests/salah.test.js` | `api/lib/attendance.js`, `api/lib/salah.js` |
+| `api/tests/suggestions.test.js` | `api/lib/suggestions.js` |
 | `api/tests/task-queue.test.js` | `api/lib/task-queue.js` |
 | `api/tests/telemetry.test.js` | `api/lib/telemetry.js` |
 | `api/tests/tile.test.js` | `api/routes/tile-routes.js` |
@@ -229,6 +231,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/relay-routes.js`
 - `api/routes/scan-routes.js`
 - `api/routes/stt-routes.js`
+- `api/routes/suggestion-routes.js`
 - `api/routes/telemetry-routes.js`
 - `api/routes/tips-routes.js`
 - `api/routes/tool-routes.js`
@@ -249,6 +252,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `public_html/js/hivv-dashboard.js`
 - `public_html/js/hivv-live.js`
 - `public_html/js/hivv-nav.js`
+- `public_html/js/hivv-suggest.js`
 - `public_html/js/shared.js`
 - `public_html/lib/leaflet/leaflet.js`
 - `public_html/lib/swaggerui/swagger-ui-bundle.js`

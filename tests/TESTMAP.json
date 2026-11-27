@@ -102,6 +102,9 @@
   "api/lib/ssrf.js": [
    "api/tests/interop.test.js"
   ],
+  "api/lib/suggestions.js": [
+   "api/tests/suggestions.test.js"
+  ],
   "api/lib/task-queue.js": [
    "api/tests/task-queue.test.js"
   ],
@@ -356,6 +359,9 @@
   "api/tests/salah.test.js": [
    "api/lib/attendance.js",
    "api/lib/salah.js"
+  ],
+  "api/tests/suggestions.test.js": [
+   "api/lib/suggestions.js"
   ],
   "api/tests/task-queue.test.js": [
    "api/lib/task-queue.js"
