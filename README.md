@@ -118,6 +118,51 @@ The PowerShell installer downloads the CLI, adds it to your PATH, and offers to
 start your node automatically at every logon (Task Scheduler). Prefer Linux
 tools? `wsl --install` and use the one-liner above inside WSL — it works there.
 
+#### If hivv.org is down
+
+`hivv.org` serves the CLI, the wrapper, the installer, the rescue script and
+the online help — so it is a single point of failure, and it is also the very
+thing you need to fix when it breaks. **This repository is the second copy.**
+The layout is identical (`public_html/` mirrors what the site serves):
+
+```bash
+# install
+curl -sSL https://raw.githubusercontent.com/htmlfarmer/hivv/main/public_html/install-hivv.sh | bash
+
+# repair a broken install
+curl -sSL https://raw.githubusercontent.com/htmlfarmer/hivv/main/public_html/rescue | bash
+
+# update an existing CLI
+hivv update --from-github
+
+# the short help — works with no network at all
+hivv fallback
+```
+
+**If you suspect hivv.org is compromised**, do not use your installed `hivv`
+binary to fix it — it may be the thing that is compromised. Stop the
+bleeding first (the agent polls the hub every 5 minutes and would pull the
+compromised copy straight back over your fix), then fetch a known-good copy
+by hand at a **commit SHA** (immutable) and check it: the CLI's version *is*
+the hash of its own bytes.
+
+```bash
+hivv dev on                                                   # block the auto-update
+git ls-remote https://github.com/htmlfarmer/hivv main        # find the commit
+curl -fsSL https://raw.githubusercontent.com/htmlfarmer/hivv/<COMMIT-SHA>/public_html/hivv-cli.py \
+  -o ~/.local/lib/hivv/hivv-cli.py
+python3 ~/.local/lib/hivv/hivv-cli.py --version              # 0.2.<sha256[:8]>
+hivv dev off                                                  # when you trust it again
+```
+
+Full details: **[docs/HELP.md](docs/HELP.md)**.
+
+> **GitHub is never polled automatically.** The agent checks for updates every
+> 5 minutes on every bee; if that path fell back to GitHub, a hive of N bees
+> would make N requests every 5 minutes against a third party's CDN — a flood.
+> GitHub is a place a human goes on purpose, and every deliberate fetch passes
+> a one-per-minute guard. It is a law, pinned by a test.
+
 ### Then (any OS)
 
 ```bash
