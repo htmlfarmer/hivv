@@ -168,17 +168,43 @@ async function _gh(method, p, body) {
 
 // Find an existing artifact carrying our marker. This is the idempotency
 // check: a retry must find the FIRST post, not create a second.
+// WHY THE LIST ENDPOINT AND NOT /search/issues
+// ─────────────────────────────────────────────
+// GitHub's search index is EVENTUALLY CONSISTENT. An issue that was just
+// created can take seconds to minutes to appear in search results, so a
+// retry inside that window gets a clean, well-formed EMPTY result — which is
+// indistinguishable from "no issue yet" and creates a SECOND one.
+//
+// The old code defended against search FAILING (it throws rather than risk a
+// duplicate, which is right). It could not defend against search SUCCEEDING
+// with stale data, because a 200 with no items looks like the truth.
+// GET /repos/:owner/:repo/issues reads the same store the POST wrote to, so
+// it is consistent the moment the write returns.
+//
+// It also returns pull requests, which is what ensurePR needs to check —
+// /search/issues includes PRs too, so behaviour is preserved exactly.
+// Default sort is created DESC, so the artifact a retry wants is on page one;
+// we still walk a few pages, BOUNDED, so a large repo cannot turn an
+// idempotency check into a rate-limit bill.
+const LIST_PAGES = 3;
+const LIST_PER_PAGE = 100;
+
 async function _findByMarker(id) {
-  const q = encodeURIComponent(`repo:${REPO} "${marker(id)}"`);
   try {
-    const j = await _gh('GET', `/search/issues?q=${q}&per_page=5`);
-    const hit = (j.items || []).find(i => hasMarker(id, i.body));
-    return hit || null;
+    for (let page = 1; page <= LIST_PAGES; page++) {
+      const batch = await _gh('GET',
+        `/repos/${REPO}/issues?state=all&per_page=${LIST_PER_PAGE}&page=${page}`);
+      if (!Array.isArray(batch) || batch.length === 0) return null;
+      const hit = batch.find(i => hasMarker(id, i.body));
+      if (hit) return hit;
+      if (batch.length < LIST_PER_PAGE) return null;   // ran out of issues
+    }
+    return null;
   } catch (_e) {
-    // A failed search must NOT become a duplicate post. Returning null
+    // A failed lookup must NOT become a duplicate post. Returning null
     // here would let a timeout-then-retry double-file. Fail loudly instead
     // and let the caller decide; the funnel treats this as "unknown".
-    const e = new Error('idempotency search failed — refusing to risk a duplicate post');
+    const e = new Error('idempotency lookup failed — refusing to risk a duplicate post');
     e.code = 'idempotency_unknown';
     throw e;
   }

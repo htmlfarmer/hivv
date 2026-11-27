@@ -52,6 +52,7 @@
    "tests/test_fast_scan_parity.py"
   ],
   "api/lib/github-relay.js": [
+   "api/tests/github-relay.test.js",
    "api/tests/proposal-funnel.test.js"
   ],
   "api/lib/hive-clients.js": [
@@ -87,6 +88,7 @@
    "tests/test_resume_not_reregister.py"
   ],
   "api/lib/policy.js": [
+   "api/tests/github-relay.test.js",
    "api/tests/proposal-funnel.test.js"
   ],
   "api/lib/polite.js": [
@@ -338,6 +340,10 @@
    "api/lib/fast-scan.js"
   ],
   "api/tests/file-permissions.test.js": [],
+  "api/tests/github-relay.test.js": [
+   "api/lib/github-relay.js",
+   "api/lib/policy.js"
+  ],
   "api/tests/horizon.test.js": [
    "api/lib/horizon.js"
   ],
