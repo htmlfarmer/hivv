@@ -19,6 +19,7 @@ api/.secrets.key
 api/.control-token
 api/.session-secret
 api/.encryption-key
+api/.encryption-key
 api/.lyrz-api-key
 api/.db-password
 api/.p2p.json

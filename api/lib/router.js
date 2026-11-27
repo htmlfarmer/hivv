@@ -1,5 +1,6 @@
 const { AIProvider, AIKey, ProviderClient, StreamCapture } = require('./providers');
 const CircuitBreaker = require('./circuit-breaker');
+const keyDonation = require('./key-donation');   // K2: spend caps + donor guard-rails
 
 const { PROVIDER_DEFAULTS } = require('./providers');
 const { looksDegenerate } = require('./degenerate');
@@ -783,21 +784,75 @@ class AIRouter {
         return scored.map(s => s.t);
     }
 
+    // ── K3/K4 (HIVV_PERSONAL_MODELS_PLAN.md §6) ─────────────────────────────
+    // principal_defaults + self_owners ride the SAME gateway_config.routing
+    // merge loadConfig already does — no extra load, no per-request query.
+
+    /** The stored defaults for this caller's scopes (null when none match). */
+    routeDefaultFor(scopes) {
+        const map = this._routeCfg && this._routeCfg.principal_defaults;
+        if (!map || typeof map !== 'object' || !Array.isArray(scopes)) {return null;}
+        const modes = Object.keys(routeFactors.DEFAULT_WEIGHTS);
+        for (const s of scopes) {
+            const v = map[s];
+            if (!v || typeof v !== 'object') {continue;}
+            const out = {};
+            if (v.mode && modes.includes(v.mode)) {out.mode = v.mode;}
+            if (v.privacy && ['localhost', 'hive', 'self', 'any'].includes(v.privacy)) {out.privacy = v.privacy;}
+            if (out.mode || out.privacy) {return out;}
+        }
+        return null;
+    }
+
+    /**
+     * K4 — the nodeIds this caller may reach under privacy 'self':
+     *   · the bee they can PROVE (a node:<id> scope — proven x-node-secret),
+     *   · nodes they claimed through PUT /api/prefs {self_nodes} (self_owners).
+     * No verified scopes → owns nothing (an empty Set, never "everything").
+     */
+    selfAllowedNodes(scopes) {
+        const allowed = new Set();
+        if (!Array.isArray(scopes)) {return allowed;}
+        const owners = this._routeCfg && this._routeCfg.self_owners;
+        for (const s of scopes) {
+            if (typeof s !== 'string') {continue;}
+            if (s.startsWith('node:')) {allowed.add(s.slice(5));}
+            if (owners && typeof owners === 'object') {
+                for (const [nid, sc] of Object.entries(owners)) {
+                    if (Array.isArray(sc) && sc.includes(s)) {allowed.add(nid);}
+                }
+            }
+        }
+        return allowed;
+    }
+
+    /** K4 — endpoint candidates: hub-local entries (no nodeId) always stay,
+     *  registered-bee entries stay only when this caller may reach them. */
+    filterSelfTargets(targets, scopes) {
+        const allowed = this.selfAllowedNodes(scopes);
+        return (targets || []).filter(t => !t.nodeId || allowed.has(t.nodeId));
+    }
+
     // Dry-run: what WOULD happen — candidates, scores, transports, policy verdict.
     // Executes nothing (the anti-single-protocol test harness).
-    async routePreview({ capability = 'reasoning', mode = 'balanced', privacy = 'any', principal = null } = {}) {
+    async routePreview({ capability = 'reasoning', mode = 'balanced', privacy = 'any', principal = null, keyScopes = [] } = {}) {
         if (mode === 'private' && (!privacy || privacy === 'any')) privacy = 'hive'; // same mapping as routeWithFailover
         let gate = null;
         try {
             if (this.policy) gate = await this.policy.gate({ capability, principal, mode, transport: 'preview' }, { dryRun: true });
         } catch (e) { gate = { verdict: 'error', rule: e.message }; }
         const targets = this.getAllEndpoints();
-        const filtered = privacy === 'localhost' ? targets.filter(t => this._isLocalUrl(t.url)) : targets;
+        // K4: 'self' shows exactly what a self request would be allowed to touch.
+        const selfAllowed = privacy === 'self' ? this.selfAllowedNodes(keyScopes) : null;
+        const filtered = privacy === 'localhost' ? targets.filter(t => this._isLocalUrl(t.url))
+            : privacy === 'self' ? this.filterSelfTargets(targets, keyScopes)
+                : targets;
         const scored = await this._scoreTargets(filtered, mode);
         const relay = [];
         if (this.orchestrator && privacy !== 'localhost') {
             for (const n of this.orchestrator.nodes.values()) {
                 if (n.status === 'online' && (n.volunteer === true || n.volunteer?.on === true)) {
+                    if (selfAllowed && !selfAllowed.has(n.node_id)) {continue;}
                     relay.push({ node: n.name || n.node_id, models: (n.local_models || []).length });
                 }
             }
@@ -850,7 +905,9 @@ class AIRouter {
                 relay,
                 cloud,
             },
-            order: privacy === 'localhost' ? ['local'] : privacy === 'hive' ? ['local', 'direct', 'relay'] : ['local', 'direct', 'relay', 'cloud'],
+            order: privacy === 'localhost' ? ['local']
+                : privacy === 'self' ? ['local', 'direct', 'relay']   // bees filtered to YOURS; cloud hard-blocked
+                    : privacy === 'hive' ? ['local', 'direct', 'relay'] : ['local', 'direct', 'relay', 'cloud'],
             ts: Date.now(),
         };
     }
@@ -1159,13 +1216,35 @@ class AIRouter {
         }
     }
 
-    selectKey(providerId, preferredModel = null, userId = null) {
+    selectKey(providerId, preferredModel = null, userId = null, principals = null) {
         const keys = this.keysByProvider.get(providerId);
         if (!keys || keys.length === 0) {return null;}
 
+        // K2 (HIVV_PERSONAL_MODELS_PLAN.md §6): verified identity scopes for
+        // THIS caller — `user:<id>` (session/Bearer), `visitor:<id>` (SIGNED
+        // cookie only), `node:<id>` (proven x-node-secret). A key with no
+        // owner bindings (donated) answers to everyone; a bound key answers
+        // only to a matching scope. The raw `x-visitor-id` header is spoofable
+        // and is deliberately NOT a scope.
+        const scopes = principals == null ? []
+            : (Array.isArray(principals) ? principals : [principals]).filter(Boolean);
+
+        // Is this key owned by somebody who is NOT the current caller?
+        const ownedByOther = (k) => {
+            const kk = k.key;
+            if (!kk.userId && !kk.principal) {return false;}   // donated / system key
+            if (kk.isShared) {return false;}
+            if (userId != null && kk.userId && kk.userId === userId) {return false;}
+            if (kk.principal && scopes.includes(kk.principal)) {return false;}
+            return true;
+        };
+
+        // Available AND within its spend caps (key-donation.js windows).
+        const usable = (k) => k.key.isAvailable() && !keyDonation.keyOverBudget(k.key);
+
         let candidates = keys.filter(k => {
-            if (!k.key.isAvailable()) {return false;}
-            if (k.key.userId && k.key.userId !== userId && !k.key.isShared) {return false;}
+            if (!usable(k)) {return false;}
+            if (ownedByOther(k)) {return false;}
             if (preferredModel && k.key.model !== '*' && k.key.model !== preferredModel) {
                 return false;
             }
@@ -1173,7 +1252,13 @@ class AIRouter {
         });
 
         if (candidates.length === 0) {
-            candidates = keys.filter(k => k.key.isAvailable());
+            // K1 (HIVV_PERSONAL_MODELS_PLAN.md §5 P1): the fallback may relax the
+            // MODEL pin, never ownership — and K2 never relaxes budget either.
+            // The old `keys.filter(k => k.key.isAvailable())` dropped both
+            // filters, so a private key became the catch-all for every OTHER
+            // user — and for anonymous visitors — whenever their own filtered
+            // set came up empty.
+            candidates = keys.filter(k => usable(k) && !ownedByOther(k));
         }
 
         if (candidates.length === 0) {return null;}
@@ -1197,7 +1282,23 @@ class AIRouter {
             break;
         }
 
-        return candidates[0];
+        const chosen = candidates[0];
+        // Spend one hourly slot NOW: a selected key is an attempted spend,
+        // success or failure (that is what stops a hammering loop).
+        try { keyDonation.noteKeyRequest(chosen.key.id); } catch (_e) { /* never break selection */ }
+        return chosen;
+    }
+
+    // Account provider-reported usage against the key's daily token budget.
+    // Fire-and-forget: a missing `usage` block simply counts nothing extra.
+    _noteProviderSpend(key, res) {
+        try {
+            if (!res || !res.ok) {return;}
+            const u = (res.data && res.data.usage) || res.usage || null;
+            if (!u) {return;}
+            const total = u.total_tokens || ((u.prompt_tokens || 0) + (u.completion_tokens || 0));
+            keyDonation.noteKeyTokens(key.id, total);
+        } catch (_e) { /* accounting never breaks a reply */ }
     }
 
     async routeToProvider(providerName, model, messages, streamToRes, options = {}) {
@@ -1206,7 +1307,7 @@ class AIRouter {
             return { ok: false, error: `Unknown provider: ${providerName}` };
         }
 
-        const keyPair = this.selectKey(provider.id, model, options.userId);
+        const keyPair = this.selectKey(provider.id, model, options.userId, options.keyScopes);
         if (!keyPair) {
             return { ok: false, error: `No available keys for provider: ${providerName}` };
         }
@@ -1214,7 +1315,9 @@ class AIRouter {
         try {
             return await this.circuitBreaker.execute(providerName, async () => {
                 const client = new ProviderClient(keyPair.key, keyPair.provider);
-                return await client.makeRequest(model, messages, streamToRes, options);
+                const res = await client.makeRequest(model, messages, streamToRes, options);
+                this._noteProviderSpend(keyPair.key, res);
+                return res;
             });
         } catch (err) {
             return { ok: false, error: err.message, circuitBreakerOpen: this.circuitBreaker.isOpen(providerName) };
@@ -1287,6 +1390,13 @@ class AIRouter {
                 (l.provider && l.provider.toLowerCase() === pLower)
             );
             if (matched.length > 0) targets = matched;
+        }
+
+        // K4: privacy 'self' — only hub-local endpoints (no nodeId) and the
+        // caller's own bees survive. Applied AFTER the preferred-name pin so
+        // a pin can never reach around it.
+        if (options.privacy === 'self') {
+            targets = this.filterSelfTargets(targets, options.keyScopes);
         }
 
         // MODEL PINNING for local bees. Every bee serves exactly one model, so
@@ -1891,6 +2001,12 @@ class AIRouter {
             (n.volunteer === true || n.volunteer?.on === true) &&
             (n.local_models || []).some(m => !m.locked) &&   // locked (keyed) LLMs can't serve relay jobs
             this.relay.activeForNode(n.node_id) < (relayCfg.maxActivePerNode || 2));
+        // K4: privacy 'self' — relay crosses NAT to ANOTHER machine, so under
+        // 'self' it may only reach the caller's own bees.
+        if (options.privacy === 'self') {
+            const allowed = this.selfAllowedNodes(options.keyScopes);
+            cands = cands.filter(n => allowed.has(n.node_id));
+        }
         // Same model pin as the direct path — a relay bee that only serves
         // Qwen2.5-0.5B must not answer a request that asked for gemma-4-E2B.
         const wantModel = options.preferredModel || options.model;
@@ -2020,9 +2136,24 @@ class AIRouter {
         // ── hivv OS §3: THE GATE. Every action enters YES / MAYBE / NO here. ──
         // Chat (capability 'reasoning') lands on the cached allow fast-path —
         // policy is a map lookup, not a DB write, so conversation stays free.
-        const routeSpec = options.route || {};
+        // K3 (HIVV_PERSONAL_MODELS_PLAN.md §6): per-principal defaults from
+        // gateway_config.routing.principal_defaults fill in ONLY the fields
+        // this request did not set — an explicit route.mode / route.privacy
+        // from the caller always wins. keyScopes are VERIFIED identities
+        // (session · signed cookie · proven node secret), never the raw
+        // x-visitor-id header.
+        let routeSpec = options.route || {};
+        if (Array.isArray(options.keyScopes) && options.keyScopes.length) {
+            const pref = this.routeDefaultFor(options.keyScopes);
+            if (pref) {
+                if (pref.mode && !routeSpec.mode) routeSpec = { ...routeSpec, mode: pref.mode };
+                if (pref.privacy && !routeSpec.privacy) routeSpec = { ...routeSpec, privacy: pref.privacy };
+            }
+        }
+        // privacy 'self' (K4) passes through like any other value: it blocks
+        // cloud (privacy !== 'any' below) and filters direct/relay candidates.
         let privacy = routeSpec.privacy || (routeSpec.mode === 'private' ? 'hive' : 'any');
-        if (options.privacy && ['localhost', 'hive', 'any'].includes(options.privacy)) privacy = options.privacy;
+        if (options.privacy && ['localhost', 'hive', 'any', 'self'].includes(options.privacy)) privacy = options.privacy;
         options.privacy = privacy;
         options.route = { ...routeSpec, privacy };
         if (this.policy) {
@@ -2076,6 +2207,7 @@ class AIRouter {
                 plainStream: !!options.plainStream,
                 principal: options.principal,
                 userId: options.userId,
+                keyScopes: options.keyScopes,
                 onRoute: options.onRoute,
                 route: options.route,
                 privacy: options.privacy,
@@ -2127,7 +2259,7 @@ class AIRouter {
             .filter(p => !this._overCostBudget(p.name, options.route)); // §2 COST signal: respect max_cost
 
         for (const provider of sortedProviders) {
-            const keyPair = this.selectKey(provider.id, preferredModel, userId);
+            const keyPair = this.selectKey(provider.id, preferredModel, userId, options.keyScopes);
             if (!keyPair) {continue;}
 
             const client = new ProviderClient(keyPair.key, provider);
@@ -2141,7 +2273,10 @@ class AIRouter {
                     toolChoice: options.toolChoice ?? null,
                     gen: options.gen,
                 });
-                if (res.ok) {return { ...res, provider: provider.name };}
+                if (res.ok) {
+                    this._noteProviderSpend(keyPair.key, res);
+                    return { ...res, provider: provider.name };
+                }
 
                 console.log(`Provider ${provider.name} attempt ${attempt + 1} failed: ${res.error}`);
                 // A context overflow is the CLIENT's prompt being too big.
@@ -2188,6 +2323,7 @@ class AIRouter {
             capability: options.capability,
             route: options.route,
             principal: options.principal,
+            keyScopes: options.keyScopes,   // K2: verified scopes → selectKey
             data_class: options.data_class,
             capability_args: options.capability_args,
             reason: options.reason,

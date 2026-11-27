@@ -17,7 +17,7 @@ const RANK_SQL = `CASE
     WHEN honey >= 500    THEN 'worker'
     ELSE 'larva' END`;
 
-const HONEY_PER = { minute: 1, job: 10, tokens_per_honey: 100 };
+const HONEY_PER = { minute: 1, job: 10, tokens_per_honey: 100, proposal_merged: 100 };
 
 // C2: golden-hive days — fetch active event multiplier (stacks multiplicatively)
 let _cachedMultiplier = 1.0;
@@ -316,4 +316,41 @@ function start(orchestratorRef, pgPool, intervalMs = 60000) {
 
 function stop() { if (timer) clearInterval(timer); }
 
-module.exports = { start, stop, profile, leaderboard, hiveGoal, rankFor };
+// ── awarding honey for something that is NOT compute ────────────────────────
+//
+// The sweep above mints honey from heartbeat truth (online minutes, jobs,
+// tokens). A MERGED PROPOSAL is a different kind of contribution — the bee
+// changed the hive's own source — so it gets its own door. It writes the
+// SAME two rows the sweep does (node_stats + honey_events), so the
+// leaderboard, the ranks and the weekly goal all see it with no extra code.
+//
+// HUB-SIDE ONLY: a bee cannot mint its own honey, and neither can a
+// proposal's author — this is called by the merge gate, after every other
+// gate has passed.
+async function award(nodeId, amount, kind = 'proposal_merged') {
+  if (!pool) return { ok: false, reason: 'no database' };
+  if (!nodeId) return { ok: false, reason: 'no node' };
+  const amt = Math.max(0, Math.min(1000000, Math.floor(Number(amount) || 0)));
+  if (!amt) return { ok: false, reason: 'nothing to award' };
+  try {
+    await pool.query(
+      `INSERT INTO hivv_node_stats (node_id, honey, bee_rank)
+       VALUES ($1, $2::bigint, 'larva')
+       ON CONFLICT (node_id) DO UPDATE SET
+         honey = hivv_node_stats.honey + EXCLUDED.honey,
+         updated_at = NOW()`,
+      [nodeId, amt]);
+    await pool.query(
+      `UPDATE hivv_node_stats SET bee_rank = ${RANK_SQL} WHERE node_id = $1`,
+      [nodeId]);
+    await pool.query(
+      'INSERT INTO hivv_honey_events (node_id, kind, amount) VALUES ($1, $2, $3)',
+      [nodeId, kind, amt]);
+    return { ok: true, amount: amt, kind };
+  } catch (e) {
+    // A reward that fails must never fail the merge that earned it.
+    return { ok: false, reason: e.message };
+  }
+}
+
+module.exports = { start, stop, profile, leaderboard, hiveGoal, rankFor, award, HONEY_PER };

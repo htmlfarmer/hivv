@@ -86,6 +86,8 @@ const BUILTIN_CAPABILITIES = [
   { key: 'translation', label: 'Translation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Translate between languages' },
   { key: 'coding', label: 'Coding', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Generate and edit code' },
   { key: 'coding.execute', label: 'Execute code', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Run code in an ephemeral docker/bwrap sandbox — no network, capped resources, read-only' },
+  { key: 'source.modify', label: 'Modify the source', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Change the source of the hive itself — gated by the proposal pipeline: study, authorize, test, approve, merge' },
+  { key: 'github.write', label: 'Write to GitHub', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'File an issue, open a PR, comment or close on the repository — the hub is the ONLY credential holder, and every write passes this gate' },
   { key: 'local.computation', label: 'Local computation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Local CPU/math/time work' },
   { key: 'image.generate', label: 'Image generation', tier: 'compute', default_verdict: 'allow', requires_consent: false, description: 'Generate images' },
   { key: 'web.search', label: 'Web search', tier: 'side-effect', default_verdict: 'ask', requires_consent: true, description: 'Query the open internet — human-approved per grant' },

@@ -306,3 +306,31 @@ else
     tail -20 "$LOG" || true
     exit 1
 fi
+
+# ── contributor tools (optional) ─────────────────────────────────────────
+# HIVV's source is open and AI agents are welcome to change it. git + gh are
+# NOT needed to RUN the hive — only to CONTRIBUTE to it. So this is asked,
+# and the default answer is "no": most people came here to run a network,
+# not to edit one. (Already installed? 'hivv contribute' sets this up later.)
+if [[ "$CHECK_ONLY" -eq 0 ]]; then
+    if d_have_git && d_have_gh; then
+        ok "contributor tools present (git, gh)"
+    else
+        echo "  ${BLD}Contribute to HIVV's source?${RST}"
+        echo "    HIVV is open source and AI agents are welcome to change it."
+        echo "    git + the GitHub CLI let you branch, commit and open a pull request."
+        echo "    Neither is needed to run the hive. You can also do it later with:"
+        echo "    hivv contribute"
+        echo ""
+        if d_ask_yesno "Install git and the GitHub CLI now?" "n"; then
+            if d_install_dev_tools; then
+                ok "git + gh ready — see CONTRIBUTING.md for the agent workflow"
+            else
+                warn "could not install them automatically — the exact command is above"
+            fi
+        else
+            info "skipped — install later with: hivv contribute"
+        fi
+        echo ""
+    fi
+fi

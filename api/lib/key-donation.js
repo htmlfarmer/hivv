@@ -98,7 +98,9 @@ function noteDonorKey(fingerprint) {
  * @returns {{ok: true, plan: object} | {ok: false, status: number, error: string, detail?: any}}
  */
 async function validateDonation(req, { provider, api_key, endpoint, name, model,
-                                        max_requests_per_hour, max_tokens_per_day }) {
+                                        max_requests_per_hour, max_tokens_per_day },
+                                opts = {}) {
+    const personal = !!opts.personal;
     // ── provider ─────────────────────────────────────────────────────
     const p = String(provider || '').toLowerCase().trim();
     if (!p) return { ok: false, status: 400, error: 'provider required' };
@@ -172,6 +174,16 @@ async function validateDonation(req, { provider, api_key, endpoint, name, model,
         return { ok: false, status: 400, error: 'max_tokens_per_day must be positive' };
     }
 
+    // A PERSONAL key is not a gift to the network: only the owner's requests
+    // can reach it (see selectKey), so the donation caps would throttle the
+    // owner, not protect the hive. Personal keys default to NO cap — normal
+    // per-principal chat quotas still apply — unless the owner sets one.
+    // The donor limit above still counts: it exists to stop key-spam, and a
+    // personal key is just as good a spam vehicle as a donated one.
+    const wantDefaultCap = (v, explicit) => (Number.isFinite(explicit)
+        ? explicit
+        : (personal ? null : v));
+
     return {
         ok: true,
         plan: {
@@ -180,11 +192,90 @@ async function validateDonation(req, { provider, api_key, endpoint, name, model,
             endpoint: ep || null,
             name: String(name || `${p}-donated`).slice(0, 100),
             model: model || '*',
-            max_requests_per_hour: Number.isFinite(rpm) ? rpm : DEFAULT_MAX_REQUESTS_PER_HOUR,
-            max_tokens_per_day: Number.isFinite(tpd) ? tpd : DEFAULT_MAX_TOKENS_PER_DAY,
+            max_requests_per_hour: wantDefaultCap(DEFAULT_MAX_REQUESTS_PER_HOUR, rpm),
+            max_tokens_per_day: wantDefaultCap(DEFAULT_MAX_TOKENS_PER_DAY, tpd),
             donor_fingerprint: fingerprint,
+            personal,
         },
     };
+}
+
+// ── per-key spend windows (K2 — the caps this file promises) ──────────────
+// Process-local, like the donor map: a restart clears the window, which is
+// the safe direction (the caps themselves live in Postgres and survive).
+// The router consults keyOverBudget() at key SELECTION, so an over-budget
+// key is never even tried — it does not fail a request, it steps aside for
+// the next candidate.
+const keyWindows = new Map();   // keyId -> { hour: number[], day: 'YYYY-MM-DD', dayTokens: number }
+
+function _dayKey(now) {
+    return new Date(now).toISOString().slice(0, 10);
+}
+
+function _keyWindow(keyId) {
+    const now = Date.now();
+    let w = keyWindows.get(keyId);
+    if (!w) {
+        w = { hour: [], day: _dayKey(now), dayTokens: 0 };
+        keyWindows.set(keyId, w);
+    }
+    // Rolling hour: drop timestamps older than 60 minutes.
+    w.hour = w.hour.filter((t) => now - t < 60 * 60 * 1000);
+    // Rolling day: UTC date key; crossing midnight resets the token budget.
+    const dk = _dayKey(now);
+    if (w.day !== dk) {
+        w.day = dk;
+        w.dayTokens = 0;
+    }
+    return w;
+}
+
+/**
+ * Is this key at (or over) one of its spend caps? Checked at selection time.
+ * A key with no caps (personal keys, legacy rows) is never over budget.
+ */
+function keyOverBudget(key) {
+    if (!key || key.id == null) {return false;}
+    const rpm = key.maxRequestsPerHour;
+    const tpd = key.maxTokensPerDay;
+    if (!Number.isFinite(rpm) && !Number.isFinite(tpd)) {return false;}
+    const w = _keyWindow(key.id);
+    if (Number.isFinite(rpm) && w.hour.length >= rpm) {return true;}
+    if (Number.isFinite(tpd) && w.dayTokens >= tpd) {return true;}
+    return false;
+}
+
+/** Count one request against the key's hourly window (selection time). */
+function noteKeyRequest(keyId) {
+    if (keyId == null) {return;}
+    _keyWindow(keyId).hour.push(Date.now());
+    if (keyWindows.size > 5000) {
+        const now = Date.now();
+        for (const [k, w] of keyWindows) {
+            if (!w.hour.length || now - w.hour[w.hour.length - 1] > 60 * 60 * 1000) {
+                keyWindows.delete(k);
+            }
+        }
+    }
+}
+
+/** Count tokens against the key's daily budget (when the provider reports usage). */
+function noteKeyTokens(keyId, tokens) {
+    if (keyId == null) {return;}
+    const t = Number(tokens);
+    if (!Number.isFinite(t) || t <= 0) {return;}
+    _keyWindow(keyId).dayTokens += t;
+}
+
+/** Test/ops helper: read the live window for a key (null when unseen). */
+function keyWindowSnapshot(keyId) {
+    const w = keyWindows.get(keyId);
+    return w ? { requestsLastHour: w.hour.length, tokensToday: w.dayTokens, day: w.day } : null;
+}
+
+/** Test helper: forget every window (never used by the router). */
+function _resetKeyWindows() {
+    keyWindows.clear();
 }
 
 module.exports = {
@@ -197,4 +288,9 @@ module.exports = {
     donorKeyCount,
     noteDonorKey,
     validateDonation,
+    keyOverBudget,
+    noteKeyRequest,
+    noteKeyTokens,
+    keyWindowSnapshot,
+    _resetKeyWindows,
 };

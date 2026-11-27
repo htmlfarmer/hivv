@@ -22,6 +22,9 @@
   ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-adversarial.test.js",
+   "api/tests/proposal-funnel.test.js",
+   "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
@@ -50,6 +53,10 @@
    "api/tests/fast-scan.test.js",
    "tests/test_fast_scan_parity.py"
   ],
+  "api/lib/github-relay.js": [
+   "api/tests/proposal-adversarial.test.js",
+   "api/tests/proposal-funnel.test.js"
+  ],
   "api/lib/hive-clients.js": [
    "api/tests/interop.test.js"
   ],
@@ -58,8 +65,14 @@
   ],
   "api/lib/identity.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-funnel.test.js",
+   "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
+  ],
+  "api/lib/key-donation.js": [
+   "api/tests/key-donation.test.js",
+   "api/tests/key-isolation.test.js"
   ],
   "api/lib/licenses.js": [
    "api/tests/licenses.test.js"
@@ -81,8 +94,19 @@
    "api/tests/traffic-count.test.js",
    "tests/test_resume_not_reregister.py"
   ],
+  "api/lib/policy.js": [
+   "api/tests/proposal-funnel.test.js"
+  ],
   "api/lib/polite.js": [
    "api/tests/polite.test.js"
+  ],
+  "api/lib/proposal-funnel.js": [
+   "api/tests/proposal-adversarial.test.js",
+   "api/tests/proposal-funnel.test.js"
+  ],
+  "api/lib/proposal.js": [
+   "api/tests/proposal-adversarial.test.js",
+   "api/tests/proposal-funnel.test.js"
   ],
   "api/lib/request-provenance.js": [
    "api/tests/provenance-schema.test.js",
@@ -92,7 +116,9 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
+   "api/tests/key-isolation.test.js",
    "api/tests/route-factors.test.js",
+   "api/tests/route-prefs.test.js",
    "api/tests/traffic-count.test.js"
   ],
   "api/lib/salah.js": [
@@ -100,7 +126,8 @@
    "api/tests/salah.test.js"
   ],
   "api/lib/ssrf.js": [
-   "api/tests/interop.test.js"
+   "api/tests/interop.test.js",
+   "api/tests/key-donation.test.js"
   ],
   "api/lib/suggestions.js": [
    "api/tests/suggestions.test.js"
@@ -181,6 +208,7 @@
    "tests/test_fallback.py"
   ],
   "public_html/hivv-cli.py": [
+   "tests/test_add_personal.py",
    "tests/test_ask_flags.py",
    "tests/test_bee_chat.py",
    "tests/test_boot_command.py",
@@ -204,6 +232,8 @@
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
    "tests/test_nodes_table.py",
+   "tests/test_prefs_cli.py",
+   "tests/test_propose_cli.py",
    "tests/test_resume_not_reregister.py",
    "tests/test_rollback.py",
    "tests/test_salah_cli.py",
@@ -332,6 +362,14 @@
    "api/lib/ssrf.js",
    "api/routes/a2a-routes.js"
   ],
+  "api/tests/key-donation.test.js": [
+   "api/lib/key-donation.js",
+   "api/lib/ssrf.js"
+  ],
+  "api/tests/key-isolation.test.js": [
+   "api/lib/key-donation.js",
+   "api/lib/router.js"
+  ],
   "api/tests/licenses.test.js": [
    "api/lib/licenses.js"
   ],
@@ -344,9 +382,30 @@
   ],
   "api/tests/nav.test.js": [],
   "api/tests/node-auth.test.js": [],
+  "api/tests/node-name-xss.test.js": [],
+  "api/tests/node-registration.test.js": [],
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
+  ],
+  "api/tests/proposal-adversarial.test.js": [
+   "api/lib/attest.js",
+   "api/lib/github-relay.js",
+   "api/lib/proposal-funnel.js",
+   "api/lib/proposal.js"
+  ],
+  "api/tests/proposal-funnel.test.js": [
+   "api/lib/attest.js",
+   "api/lib/github-relay.js",
+   "api/lib/identity.js",
+   "api/lib/policy.js",
+   "api/lib/proposal-funnel.js",
+   "api/lib/proposal.js"
+  ],
+  "api/tests/proposal-page.test.js": [],
+  "api/tests/proposal-sign.test.js": [
+   "api/lib/attest.js",
+   "api/lib/identity.js"
   ],
   "api/tests/provenance-schema.test.js": [
    "api/lib/request-provenance.js"
@@ -364,6 +423,9 @@
   ],
   "api/tests/route-factors.test.js": [
    "api/lib/route-factors.js",
+   "api/lib/router.js"
+  ],
+  "api/tests/route-prefs.test.js": [
    "api/lib/router.js"
   ],
   "api/tests/salah.test.js": [
@@ -396,6 +458,9 @@
   ],
   "api/tests/version-date.test.js": [
    "api/lib/version-date.js"
+  ],
+  "tests/test_add_personal.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_ask_flags.py": [
    "public_html/hivv-cli.py"
@@ -512,6 +577,12 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_prefs_cli.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_propose_cli.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_repo_scripts.py": [
    "AGENTS.md",

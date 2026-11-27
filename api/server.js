@@ -23,6 +23,8 @@ const { encryptKey, decryptKey, hashToken } = require('./lib/crypto-utils');
 const { createCache } = require('./lib/cache');
 const { createAuthRoutes } = require('./lib/routes');
 const lockedLlm = require('./lib/locked-llm');
+const keyDonation = require('./lib/key-donation');   // K2: donor guard-rails + spend caps
+const nodeAuth = require('./lib/node-auth');         // K2: prove the CLI's node identity
 
 const cache = createCache({ ttl: 30000, localTtl: 300000 });
 
@@ -533,6 +535,43 @@ function _nodeFromReceipt(receipt) {
     return /^[A-Za-z0-9._-]+$/.test(s) ? s : null;
 }
 
+// K2 (HIVV_PERSONAL_MODELS_PLAN.md §6) — VERIFIED identity scopes for key
+// binding. Unlike getVisitorId(), which deliberately falls back to the
+// spoofable `x-visitor-id` header (rate-limiting wants a cheap label, not a
+// proof), every scope here is something the hub itself can verify:
+//   user:<id>     a signed session (or Bearer users.api_key on /v1)
+//   visitor:<id>  the SIGNED hivv_visitor cookie — forging it needs the secret
+//   node:<id>     x-hivv-node + x-node-secret, timing-safe, enrolled bees only
+// Returns an ARRAY, strongest first: a key bound while logged out keeps
+// working after login, because both scopes are presented at selection time.
+async function keyScopesOf(req, knownUserId = null) {
+    const scopes = [];
+    if (knownUserId) {
+        scopes.push(`user:${knownUserId}`);
+    } else {
+        try {
+            const session = await getSession(req);
+            if (session && session.userId) {scopes.push(`user:${session.userId}`);}
+        } catch (_e) { /* no session */ }
+    }
+    const signed = req.signedCookies && req.signedCookies.hivv_visitor;
+    if (signed) {scopes.push(`visitor:${signed}`);}
+    try {
+        const nid = _nodeIdOf(req);
+        const provided = req.headers['x-node-secret'];
+        if (nid && provided && orch && orch.nodes) {
+            const node = orch.nodes.get(nid);
+            // node-auth.verify() is deliberately lenient for legacy bees that
+            // have not enrolled yet — but a KEY BINDING must be proven, so
+            // require secret_seen here.
+            if (node && node.secret_seen && nodeAuth.verify(node, provided).ok) {
+                scopes.push(`node:${nid}`);
+            }
+        }
+    } catch (_e) { /* no node identity */ }
+    return scopes;
+}
+
 function getVisitorId(req, res) {
     let visitorId = req.signedCookies?.hivv_visitor
         || req.headers['x-visitor-id']
@@ -634,7 +673,7 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT'],
     allowedHeaders: ['Content-Type', 'X-Session-Token', 'X-Visitor-Id', 'X-CSRF-Token', 'X-Node-Token', 'X-Node-Secret', 'Authorization'],
     credentials: true
 }));
@@ -2332,6 +2371,8 @@ app.post('/v1/chat/completions', async (req, res) => {
         route: route || {},
         node: _nodeIdOf(req),
         gen,
+        // K2: verified scopes for personal-key selection (selectKey).
+        keyScopes: await keyScopesOf(req, userId || null),
     };
 
     const ipCheck = ipLimiter.check(ip);
@@ -2901,6 +2942,8 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         route: route || {},
         node: _nodeIdOf(req),
         gen,
+        // K2: verified scopes for personal-key selection (selectKey).
+        keyScopes: await keyScopesOf(req, userId || null),
     };
 
     // Durable provenance for hivv's native surface (/api/chat — CLI, web chat,
@@ -3589,11 +3632,24 @@ app.get('/api/keys/stats', async (req, res) => {
 });
 
 // ---- Key Donation: add any AI to the network ----
-// POST /api/keys/donate { provider, api_key, endpoint?, name? }
+// POST /api/keys/donate { provider, api_key, endpoint?, name?, model?,
+//                         personal?, max_requests_per_hour?, max_tokens_per_day? }
 // provider: "openai", "anthropic", "google", "groq", "ollama", "llamacpp", or custom
-// endpoint: optional custom URL (for self-hosted or non-standard providers)
+// endpoint: optional custom URL — stored ON THE KEY (ai_keys.api_endpoint),
+//           NEVER on the shared provider row (one donor must not redirect
+//           every other user's keys of that provider — P3).
+// personal: true binds the key to the CALLER's verified identity (session →
+//           user:<id>, signed cookie → visitor:<id>, proven node secret →
+//           node:<id>) with is_shared=false — only their requests can spend
+//           it (selectKey). Anonymous callers get 401 IDENTITY_REQUIRED:
+//           a key bound to nothing would be nobody's, i.e. everyone's.
+// default:  a DONATION — hive-shared by design, now SAYING SO, with the
+//           guard-rails from lib/key-donation.js actually enforced (they
+//           were exported-but-dead until K2): provider allow-list, key
+//           sanity, endpoint SSRF check, 5 keys/donor/day, spend caps.
 app.post('/api/keys/donate', async (req, res) => {
-    const { provider, api_key, endpoint, name, model } = req.body || {};
+    const { provider, api_key, endpoint, name, model, personal,
+            max_requests_per_hour, max_tokens_per_day } = req.body || {};
 
     if (!provider || !api_key) {
         return res.status(400).json({
@@ -3604,8 +3660,30 @@ app.post('/api/keys/donate', async (req, res) => {
     }
 
     try {
-        // Check if provider exists, create if not
-        let providerRow = await pool.query('SELECT * FROM ai_providers WHERE name = $1', [provider]);
+        const isPersonal = personal === true || personal === 'true';
+
+        // WHO is binding this key? Verified scopes only (see keyScopesOf).
+        const scopes = await keyScopesOf(req);
+        if (isPersonal && scopes.length === 0) {
+            return res.status(401).json({
+                error: 'personal keys need a verified identity',
+                code: 'IDENTITY_REQUIRED',
+                hint: 'log in on hivv.org first — or run `hivv add --personal` from a registered bee (hivv start)',
+            });
+        }
+
+        // THE GUARD-RAILS — live as of K2 (this endpoint used to skip all of it).
+        const v = await keyDonation.validateDonation(req,
+            { provider, api_key, endpoint, name, model, max_requests_per_hour, max_tokens_per_day },
+            { personal: isPersonal });
+        if (!v.ok) {
+            return res.status(v.status).json({ error: v.error, ...(v.detail ? { detail: v.detail } : {}) });
+        }
+        const plan = v.plan;
+
+        // Provider row: created ONCE with defaults. The endpoint never
+        // mutates this shared row — it lives on the key below.
+        let providerRow = await pool.query('SELECT * FROM ai_providers WHERE name = $1', [plan.provider]);
         if (providerRow.rows.length === 0) {
             // Auto-configure known providers
             const defaults = {
@@ -3616,41 +3694,59 @@ app.post('/api/keys/donate', async (req, res) => {
                 ollama: { api_format: 'openai', default_endpoint: 'http://localhost:11434/v1', is_cloud: false },
                 llamacpp: { api_format: 'openai', default_endpoint: 'http://localhost:8080/v1', is_cloud: false },
             };
-            const d = defaults[provider] || { api_format: 'openai', default_endpoint: endpoint || '', is_cloud: !!endpoint };
+            const d = defaults[plan.provider]
+                || { api_format: 'openai', default_endpoint: '', is_cloud: !!plan.endpoint };
             await pool.query(
                 'INSERT INTO ai_providers (name, display_name, api_format, default_endpoint, is_cloud, is_active) VALUES ($1, $2, $3, $4, $5, TRUE)',
-                [provider, provider.charAt(0).toUpperCase() + provider.slice(1), d.api_format, d.default_endpoint, d.is_cloud]
+                [plan.provider, plan.provider.charAt(0).toUpperCase() + plan.provider.slice(1), d.api_format, d.default_endpoint, d.is_cloud]
             );
-            providerRow = await pool.query('SELECT * FROM ai_providers WHERE name = $1', [provider]);
+            providerRow = await pool.query('SELECT * FROM ai_providers WHERE name = $1', [plan.provider]);
         }
-
         const prov = providerRow.rows[0];
 
-        // If custom endpoint provided, update it
-        if (endpoint) {
-            await pool.query('UPDATE ai_providers SET default_endpoint = $1 WHERE id = $2', [endpoint, prov.id]);
-        }
-
-        // Insert the API key (encrypted)
-        const keyName = name || `${provider}-donated`;
-        const encryptedKey = encryptKey(api_key);
+        // THE KEY. Personal → bound (principal = strongest verified scope,
+        // user_id when that scope is a user, no donation caps — only the
+        // owner can reach it, so throttling them protects nobody). Donation
+        // → unbound (user_id NULL = hive-wide, exactly as before) WITH caps.
+        const boundPrincipal = isPersonal ? scopes[0] : null;
+        const boundUserId = (isPersonal && scopes[0].startsWith('user:'))
+            ? parseInt(scopes[0].slice(5), 10) : null;
+        const keyName = plan.name;
+        const encryptedKey = encryptKey(plan.api_key);
         await pool.query(
-            'INSERT INTO ai_keys (provider_id, key_value, key_name, model, priority, is_active) VALUES ($1, $2, $3, $4, 10, TRUE)',
-            [prov.id, encryptedKey, keyName, model || '*']
+            `INSERT INTO ai_keys
+                (provider_id, user_id, key_value, key_name, api_endpoint, model,
+                 priority, is_active, is_shared, principal,
+                 max_requests_per_hour, max_tokens_per_day)
+             VALUES ($1, $2, $3, $4, $5, $6, 10, TRUE, FALSE, $7, $8, $9)`,
+            [prov.id, boundUserId, encryptedKey, keyName, plan.endpoint, plan.model,
+             boundPrincipal, plan.max_requests_per_hour, plan.max_tokens_per_day]
         );
+
+        // Count it against the donor's daily limit — both kinds: a personal
+        // key is just as good a spam vehicle as a donated one.
+        keyDonation.noteDonorKey(plan.donor_fingerprint);
 
         // Reload providers in the router
         await router.loadProviders();
         await router.loadKeys();
 
-        console.log(`[KEYS] New key donated: ${provider} (${keyName})`);
+        console.log(`[KEYS] ${isPersonal ? 'personal key' : 'key donated'}: ${plan.provider} (${keyName})${boundPrincipal ? ` → ${boundPrincipal}` : ' → hive-wide'}`);
 
         res.json({
             success: true,
-            provider: provider,
+            personal: isPersonal,
+            provider: plan.provider,
             name: keyName,
-            endpoint: endpoint || prov.default_endpoint,
-            message: `Key added! ${provider} is now available to the network.`
+            endpoint: plan.endpoint || prov.default_endpoint,
+            bound_to: boundPrincipal,
+            ...(plan.max_requests_per_hour != null
+                ? { max_requests_per_hour: plan.max_requests_per_hour } : {}),
+            ...(plan.max_tokens_per_day != null
+                ? { max_tokens_per_day: plan.max_tokens_per_day } : {}),
+            message: isPersonal
+                ? `Personal key added — only YOUR requests can spend it (bound to ${boundPrincipal}).`
+                : `Key added to the HIVE — every bee on hivv.org can spend it, capped at ${plan.max_requests_per_hour} req/hour and ${plan.max_tokens_per_day} tokens/day. Send personal:true (hivv add --personal) to keep it yours.`,
         });
     } catch (err) {
         console.error('[KEYS] donate error:', err);
@@ -3837,6 +3933,7 @@ const toolkitLib = require('./lib/toolkit');
 const toolStreamLib = require('./lib/tool-stream');
 const memoryLib = require('./lib/memory');
 const CapabilityRoutes = require('./routes/capability-routes');
+const PrefsRoutes = require('./routes/prefs-routes');   // K3/K4: per-principal route defaults
 const PolicyRoutes = require('./routes/policy-routes');
 const DatabaseRoutes = require('./routes/database-routes');
 const ToolRoutes = require('./routes/tool-routes');
@@ -3846,11 +3943,15 @@ memoryLib.init(pool);
 toolkitLib.inject(router);
 router.setCapabilities(capsLib);
 router.setPolicy(policyLib);
-CapabilityRoutes.inject(orch, router);
+CapabilityRoutes.inject(orch, router, keyScopesOf);
+// K3/K4: prefs read/write the caller's VERIFIED scopes (same identity the
+// chat path uses) and refresh the router's in-memory config after a write.
+PrefsRoutes.inject({ pool, router, keyScopes: keyScopesOf, orchestrator: orch });
 PolicyRoutes.inject(orch);
 DatabaseRoutes.inject(pool);
 ToolRoutes.inject(orch, router);
 app.use('/api/capabilities', CapabilityRoutes);
+app.use('/api/prefs', PrefsRoutes);
 app.use('/api/policy', PolicyRoutes);
 app.use('/api/database', DatabaseRoutes);
 // The suggestions door — ONE engine, its own endpoint, never inside the
@@ -4023,6 +4124,19 @@ if (typeof IdentityRoutes.inject === 'function') {
 const CodingRoutes = require('./routes/coding-routes');
 CodingRoutes.inject(orch);
 app.use('/api/coding', CodingRoutes);
+
+// ---- THE PROPOSAL PIPELINE: a change to the source, with the evidence ----
+// A proposal is one proposed change travelling from a diff to a merge.
+// The gates (study -> authorize -> test -> approve -> merge) live in
+// api/lib/proposal.js and are enforced by the STATE MACHINE, not by a
+// reviewer remembering to check. See HIVV_SELF_MODIFICATION_PLAN.md.
+const ProposalRoutes = require('./routes/proposal-routes');
+const proposalLib = require('./lib/proposal');
+proposalLib.init(pool);
+// The funnel needs the LIVE AIRouter (its model board votes with the brains
+// this hive runs) — the same hand-down ScanRoutes gets at line 4042.
+ProposalRoutes.inject(router, pool);
+app.use('/api/proposals', ProposalRoutes);
 
 // ---- BLNQ trust layer: purpose-built signed code-safety scan ----
 // blnq submits source here, gets back a structured verdict signed with HIVV's

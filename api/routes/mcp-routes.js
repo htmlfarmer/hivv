@@ -150,6 +150,11 @@ const HONEY_SHAPE = {
   node: z.string().optional().describe("Optional node name/id — pass it to see ONE bee's profile (rank, streak, jobs) instead of the top-20 leaderboard.")
 };
 
+const PROPOSALS_SHAPE = {
+  id: z.string().optional().describe("Study ONE proposal in depth — the hive's reasoning, who agreed, the gate chain, the artifacts, what shipped. Omit to list."),
+  limit: z.number().int().optional().describe("How many to list when no id is given (default 20, max 200)."),
+};
+
 const NO_ARGS_SHAPE = {};
 
 // Feedback is the one tool that must work BEFORE anything else does: an AI
@@ -208,6 +213,15 @@ const TOOL_DEFS = {
     description: 'Contribution leaderboard of the hive: honey earned (1/minute online, 10/job, 1/100 tokens), bee rank (larva → queen-bee) and streaks. '
       + 'Use for "who contributes the most?", "what is my rank?" or other gamification questions; pass `node` for one bee’s full profile.',
     shape: HONEY_SHAPE, schema: z.object(HONEY_SHAPE)
+  },
+  proposals: {
+    title: 'Proposals — what the hive is being asked to change',
+    description: 'Read the proposal funnel: every change the hive has been asked to make, what the model board thought of it, who agreed, '
+      + 'and where each one got to (draft → study → authorize → test → approve → merged). '
+      + 'Use for "what is the hive working on?", "what did the AI think of X?", "who proposed this?" or "is this merged yet?". '
+      + 'Pass id for the full interconnected study of ONE proposal (voters, gates, receipt chain, issue/PR, honey earned). '
+      + 'To FILE one, run: hivv propose "title" --evidence "..."  on a bee — proposals are signed by their author, so they cannot be filed anonymously.',
+    shape: PROPOSALS_SHAPE, schema: z.object(PROPOSALS_SHAPE)
   },
   feedback: {
     title: 'Send feedback or report a bug',
@@ -453,6 +467,28 @@ async function _toolHoney(args) {
   return _json({ bees });
 }
 
+// ── proposals: the funnel, readable by any AI on the network ───────────────
+//
+// READ-ONLY on purpose. Filing requires the author's signature (the design
+// law: every proposal is signed, and nodes never hold a credential), so this
+// tool REPORTS and a bee FILES — it never becomes an unsigned side door.
+async function _toolProposals(args) {
+  const proposalLib = require('../lib/proposal');
+  const studyOf = require('../lib/proposal-study');
+  if (args && args.id) {
+    const out = await _withTimeout(studyOf.study(String(args.id)), 15000, 'proposal study');
+    if (!out) return _err('No proposal with id ' + args.id);
+    return _json(out);
+  }
+  const limit = Math.min(200, Math.max(1, Number(args && args.limit) || 20));
+  const rows = proposalLib.list({ limit });
+  return _json({
+    proposals: rows,
+    count: rows.length,
+    file_one: 'hivv propose "title" --evidence "..."   (on any bee — proposals are signed)',
+    public_page: '/proposals/',
+  });
+}
 // ── feedback: file it, and read back the answer ────────────────────────────
 //
 // This is the tool an AI needs when the user says "this is broken" — not a
@@ -595,6 +631,7 @@ function _dispatch(name, args, ctx) {
   case 'search': return _toolWeb('search', args, ctx);
   case 'news':  return _toolWeb('news', args, ctx);
   case 'honey': return _toolHoney(args);
+  case 'proposals': return _toolProposals(args);
   case 'feedback': return _toolFeedback(args, ctx);
   default:      return Promise.resolve(_err(`Unknown tool: ${name}`));
   }

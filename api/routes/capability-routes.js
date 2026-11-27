@@ -11,7 +11,8 @@ const caps = require('../lib/capabilities');
 
 let orchestrator = null;
 let aiRouter = null;
-router.inject = (orch, rt) => { orchestrator = orch; aiRouter = rt; };
+let keyScopes = null;   // K4: verified scopes so a 'self' dry-run shows YOUR bees
+router.inject = (orch, rt, ks) => { orchestrator = orch; aiRouter = rt; keyScopes = ks || null; };
 
 router.get('/', async (req, res) => {
   try {
@@ -56,6 +57,11 @@ router.get('/route/dry-run', async (req, res) => {
     const preview = await aiRouter.routePreview({
       capability, mode, privacy: privacy || undefined,
       principal: req.headers['x-visitor-id'] || null,
+      // K4: verified scopes (signed cookie / proven node secret / session) —
+      // a privacy=self dry-run then lists exactly the bees THAT caller may
+      // reach. Unauthenticated → [] → self shows hub-local only, which is
+      // the honest answer for an unverified caller.
+      keyScopes: keyScopes ? await keyScopes(req) : [],
     });
     res.set('Cache-Control', 'no-store');
     res.json(preview);

@@ -113,7 +113,10 @@ router.post('/grants/:id/decide', express.json(), async (req, res) => {
     const admin = await _isAdmin(req);
     // High-risk capabilities (code execution, money, physical world) must be
     // approved by an ADMIN — the requesting principal may NOT self-approve.
-    const HIGH_RISK = new Set(['coding.execute', 'financial.transaction', 'physical.world']);
+    // source.modify: the author must not be able to answer their own MAYBE
+    // on a change to the hive's own code. An ADMIN (a human at the hub) does.
+    const HIGH_RISK = new Set(['coding.execute', 'financial.transaction',
+                               'physical.world', 'source.modify']);
     if (HIGH_RISK.has(grant.capability) && !admin) {
       return res.status(403).json({ error: `${grant.capability} requires an admin to approve (self-approval not allowed)` });
     }
