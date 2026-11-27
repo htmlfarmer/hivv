@@ -1,4 +1,4 @@
--- 033_hivv_demo_seed_flags.sql — the seeded rows are SAMPLE DATA, and the
+-- 032_hivv_demo_seed_flags.sql — the seeded rows are SAMPLE DATA, and the
 -- public dashboard was publishing them as a live fleet.
 --
 -- WHAT HAPPENED
