@@ -139,7 +139,25 @@ describe('LAW A — the API answers JSON, even when it fails', () => {
         } catch (_e) {
             return t.skip('caddy is not installed on this box');
         }
-        const port = 3900 + (process.pid % 90);
+        // Pick a port that is actually FREE. `3900 + (pid % 90)` spans
+        // 3900-3989, and 3911 is the dial shim (`hivv dial`, a real service
+        // on this box) — a worker whose pid happens to be 11 mod 90 would
+        // pick it, Caddy would fail to bind, and the drill would report
+        // "never came up". That flake failed the full suite roughly half the
+        // time. Probe instead of guessing.
+        const net = require('node:net');
+        const portIsFree = (p) => new Promise((resolve) => {
+            const s = net.createServer();
+            s.once('error', () => resolve(false));
+            s.once('listening', () => s.close(() => resolve(true)));
+            s.listen(p, '127.0.0.1');
+        });
+        let port = null;
+        for (let i = 0; i < 90 && port === null; i++) {
+            const candidate = 3900 + ((process.pid + i) % 90);
+            if (await portIsFree(candidate)) port = candidate;
+        }
+        if (port === null) return t.skip('no free drill port in 3900-3989');
         const deadPort = port + 1;
         const body = '{"error":"the gateway is not answering right now - try again in a moment","status":503}';
         const cfg = [

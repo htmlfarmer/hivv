@@ -49,14 +49,20 @@ function read(rel) {
 
 test('the migration that marks the sample rows exists and is explicit', () => {
   // Found by CONTENT, not by number: the migration number is a sequence, and
-  // a concurrent session may renumber it. What matters is that ONE migration
-  // adds the flag and marks the seed rows.
+  // a concurrent session may renumber it. What matters is that the flag is
+  // added to hivv_agents by EXACTLY ONE migration — two migrations racing to
+  // add the same column is a deploy that fails on the second one.
+  //
+  // (033 also carries an is_demo, but for hivv_permissions: a permission
+  // granted to a sample agent is sample data too. Different table, so it is
+  // not a duplicate.)
   const dir = path.join(REPO, 'api', 'migrations');
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.sql'));
   const hits = files.filter((f) =>
-    /ADD COLUMN IF NOT EXISTS is_demo/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+    /ALTER TABLE hivv_agents ADD COLUMN IF NOT EXISTS is_demo/.test(
+      fs.readFileSync(path.join(dir, f), 'utf8')));
   assert.equal(hits.length, 1,
-    'exactly ONE migration may add the is_demo flag (found ' + hits.length + ')');
+    'exactly ONE migration may add is_demo to hivv_agents (found ' + hits.length + ')');
   const sql = fs.readFileSync(path.join(dir, hits[0]), 'utf8');
   assert.ok(/ADD COLUMN IF NOT EXISTS is_demo/.test(sql),
     'the migration must add the is_demo flag');
