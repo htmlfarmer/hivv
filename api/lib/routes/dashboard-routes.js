@@ -253,7 +253,7 @@ router.get('/agents/:id',
 
             // Get permissions
             const permResult = await pool.query(`
-        SELECT * FROM hivv_permissions
+        SELECT *, is_demo FROM hivv_permissions
         WHERE agent_id = $1
         ORDER BY resource, action
       `, [id]);
@@ -486,11 +486,14 @@ router.get('/permissions/matrix',
         try {
             const { agent_id } = req.query;
 
+            // A permission granted to a SAMPLE agent is not an
+            // authorization. Migration 033 gave hivv_permissions the flag;
+            // this is the count it protects.
             let sql = `
-        SELECT p.*, a.public_name as agent_name
+        SELECT p.*, a.public_name as agent_name, p.is_demo
         FROM hivv_permissions p
         JOIN hivv_agents a ON a.id = p.agent_id
-        WHERE 1=1
+        WHERE p.is_demo = false
       `;
 
             const params = [];
