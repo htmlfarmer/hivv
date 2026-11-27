@@ -4828,6 +4828,34 @@ app.get('/omni/stats', (req, res) => { res.json(omni.getStats()); });
 
 
 
+// ---- A JSON 404 for the API surface (2026-11-26) --------------------
+//
+// THE LAW: a blocked or failed request may DEGRADE the page, never BREAK
+// it. An API that answers an unknown path with an HTML page breaks every
+// reader that does `await res.json()` — the HTML body throws
+// `SyntaxError: Unexpected token '<'`, the live panel freezes on stale data,
+// and the console fills with errors that look like the site's fault (they are
+// not: the endpoint was renamed, or the gateway was restarting).
+//
+// So the API always answers JSON, even when it says no. A PAGE path still
+// gets the friendly 404 page.
+app.use((req, res) => {
+    const p = req.path || '';
+    const isApi = p === '/v1' || p === '/mcp' || p === '/bee' || p === '/omni'
+        || p.startsWith('/api/') || p.startsWith('/v1/') || p.startsWith('/mcp/')
+        || p.startsWith('/nodes/') || p.startsWith('/control/') || p.startsWith('/bee/')
+        || p.startsWith('/think/') || p.startsWith('/stream/');
+    if (isApi) {
+        return res.status(404).json({
+            error: 'no such endpoint',
+            path: p,
+            method: req.method,
+            hint: 'this API answers JSON — a page asking for this path should check res.ok before parsing',
+        });
+    }
+    return res.status(404).sendFile(path.join(__dirname, '..', 'public_html', '404.html'));
+});
+
 // ---- Export for other modules ----
 module.exports.distributedState = { orchestrator: orch };
 const finalExports = {

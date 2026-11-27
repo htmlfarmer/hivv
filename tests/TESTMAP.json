@@ -275,6 +275,7 @@
  },
  "tests": {
   "api/tests/agent-fleet-truth.test.js": [],
+  "api/tests/blocked-friendly.test.js": [],
   "api/tests/brainboard.test.js": [
    "api/lib/brainboard.js"
   ],

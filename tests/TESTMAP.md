@@ -84,6 +84,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | test file | exercises |
 |---|---|
 | `api/tests/agent-fleet-truth.test.js` | *(no static source reference — part of the full suite)* |
+| `api/tests/blocked-friendly.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/brainboard.test.js` | `api/lib/brainboard.js` |
 | `api/tests/cache.test.js` | `api/lib/cache.js` |
 | `api/tests/circuit-breaker.test.js` | `api/lib/circuit-breaker.js` |
