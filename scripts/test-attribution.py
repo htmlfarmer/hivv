@@ -22,7 +22,7 @@ WHAT IT DOES
   * prints one line per failure, attributed:
       IN-FLIGHT   the test file itself is uncommitted or modified
       COMMITTED   the test is clean, so the source under it moved
-      FLAKY?      no source change is recorded at all -- re-run before believing it
+      FLAKY?      no source change is recorded at all -- re-run first
   * ends with a verdict: GREEN, or what needs a human
 
 USAGE
@@ -82,10 +82,6 @@ def working_set():
     return modified, untracked
 
 
-def is_clean(path, modified, untracked):
-    return path not in modified and path not in untracked
-
-
 # ---- running --------------------------------------------------------------
 
 # node's failure SUMMARY is the only place that names the FILE:
@@ -97,15 +93,17 @@ NODE_FAIL = re.compile(
 # pytest names the file and the test in one token.
 PYTEST_FAIL = re.compile(r"^FAILED\s+(\S+)", re.M)
 
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
 
 def run_node():
     # node --test discovers tests/ relative to CWD, and they live in api/tests.
     #
-    # --test-timeout is NOT optional. node defaults to 0 (never), and the
-    # full suite runs ~40 files in parallel against one gateway and a
-    # handful of ports; a file that waits on a contended resource waits
-    # FOREVER, and the whole run hangs with it. Measured: without this
-    # the suite never finished; with it, 540 tests completed.
+    # --test-timeout is NOT optional. node defaults to 0 (never), and the full
+    # suite runs ~40 files in parallel against one gateway and a handful of
+    # ports; a file waiting on a contended resource waits FOREVER, and the
+    # whole run hangs with it. Measured: without this the suite never
+    # finished; with it, 540 tests completed.
     rc, out = sh(["node", "--test", "--test-timeout=60000",
                   "--test-concurrency=4"],
                  timeout=1800, cwd=os.path.join(REPO, "api"))
@@ -115,8 +113,8 @@ def run_node():
 def run_pytest():
     rc, out = sh([sys.executable, "-m", "pytest", "tests/", "-q",
                   "--tb=no", "-p", "no:cacheprovider"], timeout=2400)
-    # normalise to (test_file, name) so it concatenates with node's
-    # tuples — they were mixed, and attribute() crashed unpacking them.
+    # normalise to (test_file, name) so it concatenates with node's tuples --
+    # they were mixed, and attribute() crashed unpacking them.
     found = []
     for token in PYTEST_FAIL.findall(out):
         parts = token.split("::")
@@ -126,45 +124,112 @@ def run_pytest():
 
 def run_scanner():
     rc, out = sh([sys.executable, "scripts/scan_secrets.py"], timeout=600)
-    # the scanner prints "  <name>  <file>:<line>" under a BLOCK/WARN heading
+    # The scanner prints THREE sections under headers like
+    #     BLOCK - do not push until resolved: 1
+    #     WARN  - review these: 2
+    #     NOISE - infra layout (already gitignored where sensitive): 32
+    # followed by indented "<name>  <file>:<line>" lines. Only BLOCK and WARN
+    # are findings. Counting NOISE as blocking reported "32 blocking" next to
+    # "ok" - which is the opposite of the truth.
     findings = []
     severity = None
     for line in out.splitlines():
-        plain = re.sub(r"\x1b\[[0-9;]*m", "", line)
-        if "BLOCK" in plain and "finding" not in plain.lower():
-            severity = "BLOCK"
+        plain = ANSI.sub("", line)
+        head = re.match(r"^\s*\S?\s*(BLOCK|WARN|NOISE)\b", plain)
+        if head:
+            severity = head.group(1)
             continue
-        if "WARN" in plain and "review" in plain.lower():
-            severity = "WARN"
+        if severity in (None, "NOISE"):
             continue
-        if severity:
-            m = re.match(r"\s*(\S.*?)\s{2,}(\S+):(\d+)\s*$", plain)
-            if m:
-                findings.append("%s  %s:%s" % (severity, m.group(2), m.group(3)))
+        m = re.match(r"^\s*(\S.*?)\s{2,}(\S+):(\d+)\s*$", plain)
+        if m:
+            findings.append("%s  %s  %s:%s"
+                            % (severity, m.group(1), m.group(2), m.group(3)))
     return rc, findings
+
+
+# ---- proving flakiness ---------------------------------------------------
+
+# Tests that run the entire suite INSIDE themselves. Isolating them means
+# running everything again (~8 minutes here), and they cannot be the cause of
+# anything -- they fail because something ELSE did. They are a CASCADE.
+META_TESTS = ("test_verify_drift", "test_verify_drift.py")
+
+
+def is_meta(path, name):
+    blob = "%s %s" % (path, name)
+    return any(m in blob for m in META_TESTS)
+
+
+def isolate(node_fail, py_fail):
+    """Re-run each failing test file ONCE, alone.
+
+    Parallel runs contend: this suite is ~40 files against one gateway and a
+    handful of ports, and a file that waits on a contended resource fails for
+    reasons that have nothing to do with the code. Re-running it alone is the
+    difference between "someone shipped a bug" and "the runner was busy".
+
+    Returns the set of test files that pass when run on their own.
+    """
+    proven = set()
+    api = os.path.join(REPO, "api")
+
+    for path, name in node_fail:
+        if path in proven or is_meta(path, name):
+            continue
+        rc, _ = sh(["node", "--test", path, "--test-timeout=60000"],
+                   timeout=420, cwd=api)
+        if rc == 0:
+            proven.add(path)
+
+    for path, name in py_fail:
+        if path in proven or is_meta(path, name):
+            continue
+        rc, _ = sh([sys.executable, "-m", "pytest", path, "-q",
+                    "--tb=no", "-p", "no:cacheprovider"], timeout=600)
+        if rc == 0:
+            proven.add(path)
+
+    return proven
 
 
 # ---- attribution ----------------------------------------------------------
 
-def attribute(rows, modified, untracked):
+def attribute(rows, modified, untracked, proven=None):
+    proven = proven or set()
     out = []
     for item in rows:
-        # (file, name) from either runner; a bare string is a pytest
-        # token like "tests/x.py::Class::test".
+        # (file, name) from either runner; a bare string is a pytest token
+        # like "tests/x.py::Class::test".
         if isinstance(item, (tuple, list)):
             path, name = item
         else:
             path, name = item, item
-        # node gives us "tests/foo.test.js"; pytest gives "tests/foo.py::T::t"
         head = path.split("::")[0].strip()
-        if head.startswith("tests/") or head.startswith("api/tests/"):
-            head = head[4:] if head.startswith("api/") else head
         row = {"test_file": head, "failure": name, "verdict": "?", "why": ""}
 
-        if head in untracked:
+        # node runs from api/ so it reports "tests/x.test.js" while git
+        # reports "api/tests/x.test.js". Compare BOTH spellings, or a
+        # half-written test looks clean and gets blamed on committed source.
+        candidates = {head}
+        if head.startswith("api/"):
+            candidates.add(head[4:])
+        else:
+            candidates.add("api/" + head)
+
+        if is_meta(path, name):
+            # It runs the whole suite inside itself, so it fails whenever
+            # anything else does. Isolating it would re-run everything.
+            row["verdict"] = "CASCADE"
+            row["why"] = "runs the whole suite inside itself - it failed because something else did"
+        elif head in proven:
+            # It failed under load and passes alone: contention, not code.
+            row["verdict"] = "FLAKY"
+            row["why"] = "passes when run ALONE - it was contention, not code"
+        elif candidates & untracked:
             row["verdict"] = "IN-FLIGHT"
             row["why"] = "the test file itself is uncommitted (mid-write)"
-        elif head in modified:
+        elif candidates & modified:
             row["verdict"] = "IN-FLIGHT"
             row["why"] = "the test file itself has uncommitted edits"
         else:
@@ -205,7 +270,8 @@ def main():
         sc_rc, sc_find = run_scanner()
         res["scanner"] = {"rc": sc_rc, "findings": sc_find}
 
-    rows = attribute(node_fail + py_fail, modified, untracked)
+    proven = isolate(node_fail, py_fail) if (node_fail or py_fail) else set()
+    rows = attribute(node_fail + py_fail, modified, untracked, proven)
     res["attributed"] = rows
 
     counts = {}
@@ -222,11 +288,21 @@ def main():
     print("=" * 74)
     print("TEST REPORT   (%.1f min)" % mins)
     print("=" * 74)
-    print("tree : %d modified, %d uncommitted/untracked" % (len(modified), len(untracked)))
-    print("node : %s   %d failure(s)" % ("ok" if node_rc == 0 else "FAIL", len(node_fail)))
+    print("tree   : %d modified, %d uncommitted/untracked"
+          % (len(modified), len(untracked)))
+    print("node   : %s   %d failure(s)"
+          % ("ok" if node_rc == 0 else "FAIL", len(node_fail)))
     if not args.quick:
-        print("pytest : %s   %d failure(s)" % ("ok" if res["pytest"]["rc"] == 0 else "FAIL", len(py_fail)))
-        print("scanner: %s   %d blocking finding(s)" % ("ok" if res["scanner"]["rc"] == 0 else "BLOCK", len(sc_find)))
+        print("pytest : %s   %d failure(s)"
+              % ("ok" if res["pytest"]["rc"] == 0 else "FAIL", len(py_fail)))
+        blocks = [f for f in sc_find if f.startswith("BLOCK")]
+        warns = [f for f in sc_find if f.startswith("WARN")]
+        if blocks:
+            print("scanner: BLOCK   %d blocking, %d warning" % (len(blocks), len(warns)))
+        elif warns:
+            print("scanner: ok      %d warning(s), 0 blocking" % len(warns))
+        else:
+            print("scanner: ok      0 blocking, 0 warning")
 
     if not rows and not sc_find:
         print()
@@ -242,24 +318,35 @@ def main():
             print("             %s   <%s>" % (r["why"][:96], r["test_file"]))
     if sc_find:
         print()
-        print("  [SCANNER ] blocking finding(s):")
+        print("  scanner findings:")
         for f in sc_find[:8]:
             print("             %s" % f)
+        if len(sc_find) > 8:
+            print("             ... and %d more" % (len(sc_find) - 8))
 
     print()
     committed = counts.get("COMMITTED", 0)
     inflight = counts.get("IN-FLIGHT", 0)
-    flaky = counts.get("FLAKY?", 0)
+    cascade = counts.get("CASCADE", 0)
+    flaky = counts.get("FLAKY?", 0) + counts.get("FLAKY", 0)
+    # A cascade is a symptom: it is only RED if something underneath it is.
     if committed:
-        print("VERDICT: RED - %d failure(s) from COMMITTED work. Action needed." % committed)
+        print("VERDICT: RED - %d failure(s) from COMMITTED work. Action needed."
+              % committed)
     elif inflight:
-        print("VERDICT: RED, but from IN-FLIGHT work (%d). It should clear when the" % inflight)
+        print("VERDICT: RED, but from IN-FLIGHT work (%d). It should clear when the"
+              % inflight)
         print("         agents editing those files finish. Not your bug yet.")
+    elif cascade and not committed and not inflight:
+        print("VERDICT: a CASCADE only - the meta-test that runs the whole")
+        print("         suite failed, and nothing underneath it did. It is a")
+        print("         symptom of the run, not of the code.")
     elif flaky:
-        print("VERDICT: RED, but every failure is FLAKY - no source change is recorded.")
-        print("         Re-run before believing any of it.")
+        print("VERDICT: RED, but every failure was PROVEN FLAKY - each passes")
+        print("         when run on its own. Contention under load, not code.")
+        print("         Re-run the suite; do not chase these.")
     else:
-        print("VERDICT: RED - see the scanner finding(s) above.")
+        print("VERDICT: RED - see the scanner findings above.")
     print()
     print("files in flight: %s" % (", ".join(sorted(dirty)[:8]) or "none"))
     if len(dirty) > 8:

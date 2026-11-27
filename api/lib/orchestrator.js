@@ -253,6 +253,23 @@ class Orchestrator {
     const now = Date.now();
     const STALE_MS = 300000; // 5 minutes
 
+    // A bee's name is DISPLAY TEXT that lands in innerHTML on the homepage
+    // and the Command Center. It arrives in the request body and was never
+    // cleaned - so POST /api/nodes/register with an <img onerror=...> name
+    // put a payload in EVERY visitor's page. Reproduced end-to-end: the
+    // document.title of both pages became XSS-FIRED.
+    //
+    // Strip the markup here, at the one place every registration passes
+    // through: defense at the boundary, so no new render site can reopen it.
+    // Angle brackets are what make a tag; without them a name is still a name.
+    if (nodeData && typeof nodeData.name === 'string') {
+      nodeData.name = nodeData.name
+        .replace(/[<>]/g, '')
+        .replace(/[\u0000-\u001f\u007f]/g, ' ')
+        .trim()
+        .slice(0, 64);
+    }
+
     // If a node with this name already exists, handle collision
     if (this.nodes.has(nodeId)) {
       const existingNode = this.nodes.get(nodeId);
@@ -311,7 +328,13 @@ class Orchestrator {
       // verification of repair plans. Same treatment as tools/registered_at.
       secret: nodeData.secret || existing?.secret,
       secret_seen: existing?.secret_seen || false,
-      hw_id: nodeData.hw_id || existingNode?.hw_id || '',
+      // `existing` (function scope, declared above) - NOT `existingNode`,
+      // which lives inside the `if (this.nodes.has(nodeId))` block and is
+      // out of scope here. It only ever worked because `||` short-circuits:
+      // with hw_id present the right side is never evaluated. Register with
+      // a TOKEN instead (which this endpoint explicitly allows) and it
+      // threw ReferenceError: existingNode is not defined -> HTTP 500.
+      hw_id: nodeData.hw_id || existing?.hw_id || '',
       name: nodeData.name || `node-${nodeId.slice(0,6)}`,
       ip: nodeData.ip || nodeData.lan_ip || '',
       version: nodeData.version || '2.0.0',
