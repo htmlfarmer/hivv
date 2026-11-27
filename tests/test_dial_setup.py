@@ -135,10 +135,17 @@ def shim(tmp_path):
     """
     port = _free_port()
     log = tmp_path / "shim.log"
+    # PYTHONUNBUFFERED is the whole point of capturing this: stdout pointed at
+    # a FILE is block-buffered in Python, so a shim that prints two lines and
+    # then hangs shows an EMPTY log — and kill() throws the buffer away
+    # entirely. Unbuffered, whatever it managed to say is on disk when we
+    # read it, which is the only way this fixture can ever explain itself.
+    env = dict(os.environ)
+    env["PYTHONUNBUFFERED"] = "1"
     with open(log, "wb") as fh:
         proc = subprocess.Popen(
             [sys.executable, str(CLI), "dial", "--port", str(port)],
-            stdout=fh, stderr=subprocess.STDOUT)
+            stdout=fh, stderr=subprocess.STDOUT, env=env)
 
     def _tail():
         try:
