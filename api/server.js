@@ -4032,6 +4032,9 @@ app.use('/api/coding', CodingRoutes);
 const ProposalRoutes = require('./routes/proposal-routes');
 const proposalLib = require('./lib/proposal');
 proposalLib.init(pool);
+// The funnel needs the LIVE AIRouter (its model board votes with the brains
+// this hive runs) — the same hand-down ScanRoutes gets at line 4042.
+ProposalRoutes.inject(router, pool);
 app.use('/api/proposals', ProposalRoutes);
 
 // ---- BLNQ trust layer: purpose-built signed code-safety scan ----

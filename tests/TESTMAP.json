@@ -22,6 +22,7 @@
   ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-funnel.test.js",
    "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
@@ -50,6 +51,9 @@
    "api/tests/fast-scan.test.js",
    "tests/test_fast_scan_parity.py"
   ],
+  "api/lib/github-relay.js": [
+   "api/tests/proposal-funnel.test.js"
+  ],
   "api/lib/hive-clients.js": [
    "api/tests/interop.test.js"
   ],
@@ -58,6 +62,7 @@
   ],
   "api/lib/identity.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-funnel.test.js",
    "api/tests/trust.test.js",
    "tests/test_identity_cli.py"
   ],
@@ -81,10 +86,17 @@
    "api/tests/traffic-count.test.js",
    "tests/test_resume_not_reregister.py"
   ],
+  "api/lib/policy.js": [
+   "api/tests/proposal-funnel.test.js"
+  ],
   "api/lib/polite.js": [
    "api/tests/polite.test.js"
   ],
+  "api/lib/proposal-funnel.js": [
+   "api/tests/proposal-funnel.test.js"
+  ],
   "api/lib/proposal.js": [
+   "api/tests/proposal-funnel.test.js",
    "api/tests/proposal.test.js"
   ],
   "api/lib/request-provenance.js": [
@@ -95,6 +107,7 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
+   "api/tests/key-isolation.test.js",
    "api/tests/route-factors.test.js",
    "api/tests/traffic-count.test.js"
   ],
@@ -330,6 +343,9 @@
    "api/lib/ssrf.js",
    "api/routes/a2a-routes.js"
   ],
+  "api/tests/key-isolation.test.js": [
+   "api/lib/router.js"
+  ],
   "api/tests/licenses.test.js": [
    "api/lib/licenses.js"
   ],
@@ -345,6 +361,14 @@
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
+  ],
+  "api/tests/proposal-funnel.test.js": [
+   "api/lib/attest.js",
+   "api/lib/github-relay.js",
+   "api/lib/identity.js",
+   "api/lib/policy.js",
+   "api/lib/proposal-funnel.js",
+   "api/lib/proposal.js"
   ],
   "api/tests/proposal.test.js": [
    "api/lib/proposal.js"

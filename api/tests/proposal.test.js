@@ -392,7 +392,19 @@ test('rejection records the reason and the name', () => {
     assert.equal(rec.state, 'rejected');
 });
 
-test('a proposal needs a repo and a patch', () => {
-    assert.equal(proposal.create({ repo: '', patch: 'x' }).ok, false);
-    assert.equal(proposal.create({ repo: 'r', patch: '' }).ok, false);
+test('a proposal needs CONTENT — a patch or a body, never neither', () => {
+    // The funnel collects bug reports and suggestions too: those carry a
+    // body and no diff. What must never be empty is the CONTENT — and the
+    // repo defaults to this hive's source, because the route and the CLI
+    // both default it and requiring it made every caller re-state it.
+    assert.equal(proposal.create({}).ok, false, 'no patch and no body');
+    assert.equal(proposal.create({ patch: '', body: '   ' }).ok, false,
+        'blank in both places is still nothing');
+    assert.equal(proposal.create({ patch: 'diff --git a/x b/x' }).ok, true,
+        'a patch alone is a proposal');
+    assert.equal(
+        proposal.create({ body: 'the tools server restarts too often' }).ok,
+        true, 'a body alone is a proposal — a suggestion has no diff');
+    const p = proposal.create({ body: 'hello' });
+    assert.equal(p.proposal.repo, 'htmlfarmer/hivv', 'repo defaults to this hive');
 });
