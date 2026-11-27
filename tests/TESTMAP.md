@@ -100,6 +100,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/live-numbers.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/local-mode.test.js` | `api/lib/local-mode.js` |
 | `api/tests/locked-llm.test.js` | `api/lib/locked-llm.js` |
+| `api/tests/nav.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/node-auth.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/polite.test.js` | `api/lib/polite.js`, `api/lib/toolkit.js` |
 | `api/tests/provenance-schema.test.js` | `api/lib/request-provenance.js` |
@@ -242,6 +243,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `public_html/install-hivv.ps1`
 - `public_html/js/hivv-dashboard.js`
 - `public_html/js/hivv-live.js`
+- `public_html/js/hivv-nav.js`
 - `public_html/js/shared.js`
 - `public_html/lib/leaflet/leaflet.js`
 - `public_html/lib/swaggerui/swagger-ui-bundle.js`

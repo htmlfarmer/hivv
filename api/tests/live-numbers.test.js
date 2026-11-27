@@ -192,16 +192,18 @@ test('the shared binding exists and every page that uses it loads it', () => {
 });
 
 test('the MAIN PANEL (the nav bee pill) is live-bound', () => {
-  const html = read('index.html');
-  assert.ok(/id="hivv-bee-pill"[^>]*data-hivv-pill/.test(html),
-    'the nav pill must carry data-hivv-pill');
-  assert.ok(/data-hivv-pill-count/.test(html), 'the pill needs a count slot');
-  assert.ok(/data-hivv-pill-dot/.test(html), 'the pill needs a live status dot');
+  // The nav lives in ONE component now (public_html/js/hivv-nav.js), so the
+  // pill lives there too — and on every page, not just the homepage.
+  const nav = read('js/hivv-nav.js');
+  assert.ok(/data-hivv-pill/.test(nav), 'the nav pill must carry data-hivv-pill');
+  assert.ok(/data-hivv-pill-count/.test(nav), 'the pill needs a count slot');
+  assert.ok(/data-hivv-pill-dot/.test(nav), 'the pill needs a live status dot');
   // The pill must NOT carry a typed number any more.
-  const pill = html.match(/<a[^>]*id="hivv-bee-pill"[^>]*>[\s\S]*?<\/a>/);
-  assert.ok(pill, 'the pill must be findable');
-  assert.ok(!/\d+\/\d+/.test(pill[0]),
+  assert.ok(!/\d+\/\d+ online/.test(nav),
     'the pill must not carry a hard-coded "3/6" - the count is measured');
+  // And the homepage must load that component.
+  assert.ok(read('index.html').includes('/js/hivv-nav.js'),
+    'the homepage must load the shared nav');
 });
 
 test('the homepage charts are fed by measurements, not by chance', () => {

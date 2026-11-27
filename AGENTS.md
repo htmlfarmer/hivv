@@ -483,6 +483,44 @@ already made).
 doors, `isLive` in every counter, no fabricated offsets, the nav pill, the
 charts, the map, the script tags.
 
+### ONE navigation, and it lists EVERY page (2026-11-26)
+
+Every page used to carry its **own** hand-written nav, and every one of them
+listed a **different subset** of the site. `nodes.html` linked to `/hivv.html`
+— a page that does not exist. `status.html` linked to `/api.html` while
+every other page linked to `/docs`. The map had no Home link. A dozen pages had
+no nav at all. *“Some pages are missing” was not a feeling: it was forty
+different navs.
+
+**`public_html/js/hivv-nav.js`** is now the ONLY nav. One component, one
+inventory, every page:
+
+- **the primary row** — Map · Chat · Governance · Status · Live · Nodes ·
+  Install CLI · API Docs, then the **live bee pill** (real numbers from
+  `/api/hivv/stats`, never a typed one) and the **“All pages”** button.
+- **the “All pages” panel** — **every page the site serves** (40 of
+  them), grouped by what it is FOR: *The Hive* · *Talk & Build* ·
+  *Governance* · *The Project*, each entry with one line saying what it is
+  for. It is **filterable** (type ‘privacy’, ‘yalla’, ‘api…) and it says
+  *“N of 40 pages”* as you type.
+- **it marks the page you are on** — the old navs mostly guessed, and one of
+  them was hard-coded to *Chat* on every page but one.
+- **the redirect stubs are not listed**: `watch.html` → `/live/`,
+  `account.html` → `/bee`, `hivv-page.html` → `/hivv-dashboard.html`. The
+  menu links to the TARGET, never to a page that immediately bounces.
+- **mobile**: the primary row scrolls sideways, but the pill and the menu
+  button are **pinned** — on a phone they used to scroll out of reach.
+
+**Every page now loads it** (`<script src="/js/hivv-nav.js"></script>`) and
+**every hand-written nav was deleted**, so there is exactly one inventory to
+maintain and nothing can be missing from it. The homepage keeps its own header
+shell (the brand logo + the live tok/s badge) and mounts the link row into it.
+
+**Tests**: `api/tests/nav.test.js` (8) — the component holds the only
+inventory; the inventory lists **every** page the site serves; every href
+**resolves** (no dead links); no page carries a hand-written nav; no page
+links to `/hivv.html`; the pill is never a typed count.
+
 ### The AGENT FLEET was a fiction (2026-11-26)
 
 Migration 003 ended with `SEED DATA: Sample Agents for Testing` and left **15

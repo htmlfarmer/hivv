@@ -318,6 +318,7 @@
   "api/tests/locked-llm.test.js": [
    "api/lib/locked-llm.js"
   ],
+  "api/tests/nav.test.js": [],
   "api/tests/node-auth.test.js": [],
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
