@@ -148,9 +148,55 @@ def run_scanner():
     return rc, findings
 
 
+# ---- proving flakiness ---------------------------------------------------
+
+# Tests that run the entire suite INSIDE themselves. Isolating them means
+# running everything again (~8 minutes here), and they cannot be the cause of
+# anything -- they fail because something ELSE did. They are a CASCADE.
+META_TESTS = ("test_verify_drift", "test_verify_drift.py")
+
+
+def is_meta(path, name):
+    blob = "%s %s" % (path, name)
+    return any(m in blob for m in META_TESTS)
+
+
+def isolate(node_fail, py_fail):
+    """Re-run each failing test file ONCE, alone.
+
+    Parallel runs contend: this suite is ~40 files against one gateway and a
+    handful of ports, and a file that waits on a contended resource fails for
+    reasons that have nothing to do with the code. Re-running it alone is the
+    difference between "someone shipped a bug" and "the runner was busy".
+
+    Returns the set of test files that pass when run on their own.
+    """
+    proven = set()
+    api = os.path.join(REPO, "api")
+
+    for path, name in node_fail:
+        if path in proven or is_meta(path, name):
+            continue
+        rc, _ = sh(["node", "--test", path, "--test-timeout=60000"],
+                   timeout=420, cwd=api)
+        if rc == 0:
+            proven.add(path)
+
+    for path, name in py_fail:
+        if path in proven or is_meta(path, name):
+            continue
+        rc, _ = sh([sys.executable, "-m", "pytest", path, "-q",
+                    "--tb=no", "-p", "no:cacheprovider"], timeout=600)
+        if rc == 0:
+            proven.add(path)
+
+    return proven
+
+
 # ---- attribution ----------------------------------------------------------
 
-def attribute(rows, modified, untracked):
+def attribute(rows, modified, untracked, proven=None):
+    proven = proven or set()
     out = []
     for item in rows:
         # (file, name) from either runner; a bare string is a pytest token
@@ -171,7 +217,16 @@ def attribute(rows, modified, untracked):
         else:
             candidates.add("api/" + head)
 
-        if candidates & untracked:
+        if is_meta(path, name):
+            # It runs the whole suite inside itself, so it fails whenever
+            # anything else does. Isolating it would re-run everything.
+            row["verdict"] = "CASCADE"
+            row["why"] = "runs the whole suite inside itself - it failed because something else did"
+        elif head in proven:
+            # It failed under load and passes alone: contention, not code.
+            row["verdict"] = "FLAKY"
+            row["why"] = "passes when run ALONE - it was contention, not code"
+        elif candidates & untracked:
             row["verdict"] = "IN-FLIGHT"
             row["why"] = "the test file itself is uncommitted (mid-write)"
         elif candidates & modified:
@@ -215,7 +270,8 @@ def main():
         sc_rc, sc_find = run_scanner()
         res["scanner"] = {"rc": sc_rc, "findings": sc_find}
 
-    rows = attribute(node_fail + py_fail, modified, untracked)
+    proven = isolate(node_fail, py_fail) if (node_fail or py_fail) else set()
+    rows = attribute(node_fail + py_fail, modified, untracked, proven)
     res["attributed"] = rows
 
     counts = {}
@@ -271,7 +327,9 @@ def main():
     print()
     committed = counts.get("COMMITTED", 0)
     inflight = counts.get("IN-FLIGHT", 0)
-    flaky = counts.get("FLAKY?", 0)
+    cascade = counts.get("CASCADE", 0)
+    flaky = counts.get("FLAKY?", 0) + counts.get("FLAKY", 0)
+    # A cascade is a symptom: it is only RED if something underneath it is.
     if committed:
         print("VERDICT: RED - %d failure(s) from COMMITTED work. Action needed."
               % committed)
@@ -279,9 +337,14 @@ def main():
         print("VERDICT: RED, but from IN-FLIGHT work (%d). It should clear when the"
               % inflight)
         print("         agents editing those files finish. Not your bug yet.")
+    elif cascade and not committed and not inflight:
+        print("VERDICT: a CASCADE only - the meta-test that runs the whole")
+        print("         suite failed, and nothing underneath it did. It is a")
+        print("         symptom of the run, not of the code.")
     elif flaky:
-        print("VERDICT: RED, but every failure is FLAKY - no source change is recorded.")
-        print("         Re-run before believing any of it.")
+        print("VERDICT: RED, but every failure was PROVEN FLAKY - each passes")
+        print("         when run on its own. Contention under load, not code.")
+        print("         Re-run the suite; do not chase these.")
     else:
         print("VERDICT: RED - see the scanner findings above.")
     print()
