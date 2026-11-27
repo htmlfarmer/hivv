@@ -25,7 +25,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/crypto-utils.js` | `api/tests/crypto-utils.test.js` |
 | `api/lib/degenerate.js` | `api/tests/degenerate.test.js` |
 | `api/lib/fast-scan.js` | `api/tests/fast-scan.test.js`, `tests/test_fast_scan_parity.py` |
-| `api/lib/github-relay.js` | `api/tests/proposal-funnel.test.js` |
+| `api/lib/github-relay.js` | `api/tests/github-relay.test.js`, `api/tests/proposal-funnel.test.js` |
 | `api/lib/hive-clients.js` | `api/tests/interop.test.js` |
 | `api/lib/horizon.js` | `api/tests/horizon.test.js` |
 | `api/lib/identity.js` | `api/tests/identity.test.js`, `api/tests/proposal-funnel.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
@@ -35,7 +35,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/mcp-client.js` | `api/tests/interop.test.js` |
 | `api/lib/moon.js` | `api/tests/ritual.test.js` |
 | `api/lib/orchestrator.js` | `api/tests/quarantine-recovery.test.js`, `api/tests/traffic-count.test.js`, `tests/test_resume_not_reregister.py` |
-| `api/lib/policy.js` | `api/tests/proposal-funnel.test.js` |
+| `api/lib/policy.js` | `api/tests/github-relay.test.js`, `api/tests/proposal-funnel.test.js` |
 | `api/lib/polite.js` | `api/tests/polite.test.js` |
 | `api/lib/proposal-funnel.js` | `api/tests/proposal-funnel.test.js` |
 | `api/lib/proposal.js` | `api/tests/proposal-funnel.test.js`, `api/tests/proposal.test.js` |
@@ -100,6 +100,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/degenerate.test.js` | `api/lib/degenerate.js` |
 | `api/tests/fast-scan.test.js` | `api/lib/fast-scan.js` |
 | `api/tests/file-permissions.test.js` | *(no static source reference — part of the full suite)* |
+| `api/tests/github-relay.test.js` | `api/lib/github-relay.js`, `api/lib/policy.js` |
 | `api/tests/horizon.test.js` | `api/lib/horizon.js` |
 | `api/tests/identity.test.js` | `api/lib/attest.js`, `api/lib/identity.js` |
 | `api/tests/integration.test.js` | *(no static source reference — part of the full suite)* |
