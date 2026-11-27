@@ -215,7 +215,7 @@ decidable by the parts being decided.**
 |---|---|---|
 | the state machine, the gate order, the evidence checks | `api/lib/proposal.js` | **new** |
 | the HTTP surface (intake, study, authorize, test, approve, merge, verify) | `api/routes/proposal-routes.js` | **new** |
-| the durable record | `api/migrations/033_hivv_proposals.sql` | **new** |
+| the durable record | `api/migrations/034_hivv_proposals.sql` | **new** |
 | the capability key `source.modify` | `api/lib/capabilities.js` | edit |
 | the signed gate receipt | `api/lib/identity.js` (`proposalReceipt`) | edit |
 | authorization (G2) | `api/lib/policy.js` | reuse |
@@ -348,7 +348,7 @@ one rather than aspirational:
   classification, the receipt chain, the chain hash.
 - **`api/routes/proposal-routes.js`** — intake, study, authorize, test,
   approve, merge, deployed, reject, list, get, stats, and chain verification.
-- **`api/migrations/033_hivv_proposals.sql`** — the durable record + the
+- **`api/migrations/034_hivv_proposals.sql`** — the durable record + the
   `source.modify` capability seed.
 - **`identity.proposalReceipt()`** — the signed gate receipt (a different
   statement kind from a route receipt, same key, same canonical JSON, same

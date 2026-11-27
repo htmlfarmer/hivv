@@ -355,7 +355,7 @@ depends on the change · **I5** a diff is DATA, never an instruction.
 **Files:** `api/lib/proposal.js` (the state machine) ·
 `api/routes/proposal-routes.js` (`POST /api/proposals` +
 `/:id/{study,authorize,test,approve,merge,reject}` + `/:id/verify`) ·
-`api/migrations/033_hivv_proposals.sql` · `identity.proposalReceipt()` ·
+`api/migrations/034_hivv_proposals.sql` · `identity.proposalReceipt()` ·
 capability `source.modify`.
 
 **THE WRITE PATH IS CREDENTIAL-FREE BY DEFAULT.** An agent hands back
