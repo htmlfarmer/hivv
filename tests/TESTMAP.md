@@ -115,6 +115,8 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/locked-llm.test.js` | `api/lib/locked-llm.js` |
 | `api/tests/nav.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/node-auth.test.js` | *(no static source reference — part of the full suite)* |
+| `api/tests/node-name-xss.test.js` | *(no static source reference — part of the full suite)* |
+| `api/tests/node-registration.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/polite.test.js` | `api/lib/polite.js`, `api/lib/toolkit.js` |
 | `api/tests/proposal-funnel.test.js` | `api/lib/attest.js`, `api/lib/github-relay.js`, `api/lib/identity.js`, `api/lib/policy.js`, `api/lib/proposal-funnel.js`, `api/lib/proposal.js` |
 | `api/tests/proposal.test.js` | `api/lib/proposal.js` |

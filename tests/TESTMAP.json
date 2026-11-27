@@ -374,6 +374,8 @@
   ],
   "api/tests/nav.test.js": [],
   "api/tests/node-auth.test.js": [],
+  "api/tests/node-name-xss.test.js": [],
+  "api/tests/node-registration.test.js": [],
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
