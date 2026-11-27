@@ -162,8 +162,18 @@ def shim(tmp_path):
                 pytest.fail(f"shim exited early rc={proc.returncode}\n--- shim output ---\n{_tail()}")
             time.sleep(0.2)
         else:
+            # READ BEFORE KILL. SIGKILL discards anything still in a buffer,
+            # so killing first and reading second returns an empty file even
+            # when the shim said something. Report what the process was doing
+            # (alive? how long?) alongside it, so the next failure is data and
+            # not another shrug.
+            tail = _tail()
+            alive = proc.poll() is None
             proc.kill()
-            pytest.fail("shim never became healthy\n--- shim output ---\n" + _tail())
+            pytest.fail(
+                "shim never became healthy "
+                f"(alive={alive} pid={proc.pid} waited=10s, "
+                f"log_bytes={len(tail)})\n--- shim output ---\n" + tail)
         yield port
     finally:
         proc.terminate()
