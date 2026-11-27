@@ -92,6 +92,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/dashboard.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/degenerate.test.js` | `api/lib/degenerate.js` |
 | `api/tests/fast-scan.test.js` | `api/lib/fast-scan.js` |
+| `api/tests/file-permissions.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/horizon.test.js` | `api/lib/horizon.js` |
 | `api/tests/identity.test.js` | `api/lib/attest.js`, `api/lib/identity.js` |
 | `api/tests/integration.test.js` | *(no static source reference — part of the full suite)* |

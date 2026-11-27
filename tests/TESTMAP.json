@@ -295,6 +295,7 @@
   "api/tests/fast-scan.test.js": [
    "api/lib/fast-scan.js"
   ],
+  "api/tests/file-permissions.test.js": [],
   "api/tests/horizon.test.js": [
    "api/lib/horizon.js"
   ],
