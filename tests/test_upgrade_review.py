@@ -2512,6 +2512,78 @@ class TestLiveParityFixes:
         assert "n_ctx_slot" in body and "Reply with exactly: OK" in body
 
 
+class TestLocalAskSaysWhy:
+    """('', 0) cannot tell "the server is dead" from "the server was busy".
+
+    The doctor reported the second as the first ("round-trip: empty/no
+    reply from :0") and told the operator to restart a perfectly healthy
+    server, because the one slot was busy with a 4.7k-token prompt
+    (yalla 2026-11-27)."""
+
+    def test_a_timeout_is_reported_as_a_timeout(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [8080])
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: True)
+
+        def _timeout(req, *a, **k):
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr("urllib.request.urlopen", _timeout)
+        why: dict = {}
+        reply, port = hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert (reply, port) == ("", 0)
+        assert why["kind"] == "timeout", why
+        assert why["port"] == 8080, why
+        assert "busy" in why["reason"], why
+
+    def test_a_closed_port_is_reported_as_refused(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [1234])
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: False)
+        why: dict = {}
+        reply, port = hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert (reply, port) == ("", 0)
+        assert why["kind"] == "refused", why
+        assert why["port"] == 1234, why
+
+    def test_a_busy_port_is_not_masked_by_a_closed_one(self, monkeypatch):
+        # :8080 is busy (a timeout) and :1234 is closed. The interesting port
+        # is the one that HAD a server.
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [8080, 1234])
+        monkeypatch.setattr(hivv, "_tcp_ok",
+                            lambda ip, port, timeout=0.4: port == 8080)
+
+        def _timeout(req, *a, **k):
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr("urllib.request.urlopen", _timeout)
+        why: dict = {}
+        hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert why["kind"] == "timeout", why
+        assert why["port"] == 8080, why
+
+
+class TestDoctorFloorCoversAnAgentSession:
+    def test_the_floor_covers_an_opencode_session(self):
+        # hivv's own toolkit is ~2.9k tokens; an OpenCode session (system
+        # prompt + the full tool catalog) measured 4702 on yalla 2026-11-27.
+        # A floor that only knew hivv's own tools called a 1024-token slot
+        # "fine" -- which is how every OpenCode request on that box died with
+        # HTTP 400 while the doctor said everything was healthy.
+        assert hivv._AGENT_TOOLKIT_FLOOR >= 4700
+
+    def test_the_doctor_uses_the_floor_and_says_both_halves(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_doctor")[1].split("\ndef ")[0]
+        assert "_AGENT_TOOLKIT_FLOOR" in body
+        # np=1 gives the slot the WHOLE context, so ctx must ALSO be raised:
+        # "np=1 (→ 4096/slot)" alone left a 4096 slot under a 4700-token
+        # request, which is how the advice kept not fixing it.
+        assert "--set np=1" in body and "--set ctx=" in body
+
+    def test_a_timeout_is_never_reported_as_a_dead_server(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_doctor")[1].split("\ndef ")[0]
+        assert "the server is BUSY, not broken" in body
+        assert "empty/no reply from :" not in body
+
+
 class TestReachOffLanAdvice:
     def test_private_ip_failure_suggests_relay_not_just_firewall(self):
         src = CLI_PATH.read_text()
