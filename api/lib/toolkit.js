@@ -49,6 +49,9 @@ const fileExtract = require('./file-extract');
 const memoryLib = require('./memory');
 const textParse = require('./textparse');
 const sandbox = require('./sandbox');
+// Place → IANA zone, so a model can ask for "Uganda" instead of having to
+// know "Africa/Kampala". See api/lib/place-tz.js for why that matters.
+const placeTz = require('./place-tz');
 
 // ── limits (callers may lower these, never raise them) ─────────────────────
 const LIMITS = {
@@ -259,9 +262,49 @@ async function _webSearch(args) {
 }
 
 // 2 ─ current time ───────────────────────────────────────────────────────────
+//
+// THE RULE: never answer in UTC for a zone we failed to honour.
+//
+// The old code did exactly that — `current_time({timezone:"Uganda"})` returned
+// ok:true with UTC and a `timezone_valid:false` buried in the JSON. A model
+// reads ok:true, takes the human-readable time, and labels it with the place
+// the user asked for. That is precisely how
+// "what time is it now in jinja uganda" answered three hours wrong.
+//
+// A tool that cannot do what was asked must SAY SO. Silent degradation is a
+// lie with a green receipt.
+//
+function _resolveZone(raw) {
+    if (!raw) return { zone: 'UTC', from: null };
+    if (_isValidTz(raw)) return { zone: raw, from: null };
+    // Not an IANA name — but it may be a PLACE, which is what models (and
+    // people) actually reach for: "Uganda", "Jinja", "Karachi".
+    const place = placeTz.resolvePlace(String(raw));
+    if (place) return { zone: place.zone, from: place.label };
+    return null;
+}
+
+/**
+ * Is this datetime argument just saying "the current moment"?
+ *
+ * "now" / "current" / "present" are how a model spells "omit this argument"
+ * — the slip that produced the original bug report.
+ */
+function _isNowToken(v) {
+    const s = String(v == null ? '' : v).trim().toLowerCase();
+    return s === 'now' || s === 'current' || s === 'present';
+}
+
+const _ZONE_HINT = 'Pass an IANA zone like "Africa/Kampala", or a place name this hive can locate '
+    + '(city or country) like "Jinja" or "Uganda".';
+
 async function _currentTime(args) {
-    const tz = args.timezone || args.tz;
-    const useTz = _isValidTz(tz) ? tz : 'UTC';
+    const raw = args.timezone || args.tz;
+    const resolved = _resolveZone(raw);
+    if (!resolved) {
+        return { ok: false, error: `'${raw}' is not a valid IANA timezone or a place this hive can locate. ${_ZONE_HINT}` };
+    }
+    const useTz = resolved.zone;
     const now = new Date();
     const p = _fmtDate(now, useTz);
     const offsetMin = _offsetMinutes(now, useTz);
@@ -278,8 +321,12 @@ async function _currentTime(args) {
             utc_offset: _formatOffset(offsetMin),
             day_of_week: p.weekday,
             is_dst: _isDst(now, useTz),
-            requested_timezone: tz || null,
-            timezone_valid: tz ? _isValidTz(tz) : true,
+            requested_timezone: raw || null,
+            // Non-null when we translated a PLACE into a zone, so the answer
+            // can say "Uganda → Africa/Kampala" instead of pretending the
+            // caller named the zone itself.
+            resolved_from: resolved.from,
+            timezone_valid: true,
         },
     };
 }
@@ -661,21 +708,51 @@ async function _textParser(args) {
 
 // 11 ─ timezone converter ────────────────────────────────────────────────────
 async function _timezoneConvert(args) {
-    const to = args.timezone || args.to || args.tz;
-    if (!to) return { ok: false, error: 'a target timezone is required (IANA name, e.g. "Asia/Karachi")' };
-    if (!_isValidTz(to)) {
-        let sample = [];
-        try { sample = Intl.supportedValuesOf('timeZone').slice(0, 40); } catch (_e) { void _e; }
-        return { ok: false, error: `'${to}' is not a valid IANA timezone` + (sample.length ? ` (e.g. ${sample.slice(0, 8).join(', ')})` : '') };
+    const rawTo = args.timezone || args.to || args.tz;
+    if (!rawTo) return { ok: false, error: 'a target timezone is required — an IANA zone like "Asia/Karachi", or a place like "Karachi".' };
+
+    // Accept a PLACE as happily as a zone: models reach for "Jinja" and
+    // "Uganda", not for "Africa/Kampala".
+    const toRes = _resolveZone(rawTo);
+    if (!toRes) {
+        return { ok: false, error: `'${rawTo}' is not a valid IANA timezone or a place this hive can locate. ${_ZONE_HINT}` };
     }
-    const from = args.from_timezone || args.from || null;
-    if (from && !_isValidTz(from)) return { ok: false, error: `'${from}' is not a valid IANA timezone` };
+    const to = toRes.zone;
+
+    // from_timezone is OPTIONAL and must never destroy the answer that was
+    // actually asked for. Observed live: a model passed from_timezone:"now",
+    // got a hard failure, and then invented a time for London out of thin air.
+    // Report the bad argument, but still deliver the target.
+    const rawFrom = args.from_timezone || args.from || null;
+    let from = null;
+    let fromError = null;
+    if (rawFrom) {
+        const fromRes = _resolveZone(rawFrom);
+        if (fromRes) {
+            from = fromRes.zone;
+        } else {
+            fromError = `'${rawFrom}' is not a valid IANA timezone or a place this hive can locate. `
+                + 'from_timezone is only for converting BETWEEN two zones — to ask for the current time in a place, OMIT it and pass just the target zone.';
+        }
+    }
 
     let when;
     if (args.datetime) {
-        const parsed = new Date(args.datetime);
-        if (Number.isNaN(parsed.getTime())) return { ok: false, error: `'${args.datetime}' is not a parseable date-time` };
-        when = parsed;
+        // "datetime":"now" is the single most common tool-call slip — the
+        // original report was a model apologising that 'now' could not be
+        // parsed, then inventing a reason and answering from memory. The
+        // intent is unambiguous, so HONOUR it rather than spending a round
+        // trip teaching a small model to reword its call.
+        if (_isNowToken(args.datetime)) {
+            when = new Date();
+        } else {
+            const parsed = new Date(args.datetime);
+            if (Number.isNaN(parsed.getTime())) {
+                // Everything else still gets a repair instruction, not a bare refusal.
+                return { ok: false, error: `'${args.datetime}' is not a parseable date-time. OMIT the datetime argument entirely to mean "the current moment"; only pass it for a specific instant, ISO-8601 like 2026-11-28T07:00:00Z.` };
+            }
+            when = parsed;
+        }
     } else {
         when = new Date();
     }
@@ -694,6 +771,9 @@ async function _timezoneConvert(args) {
         day_of_week: target.weekday,
         utc_offset: _formatOffset(offsetMin),
         is_dst: _isDst(when, to),
+        // Non-null when the caller passed a PLACE ("Uganda") rather than a
+        // zone — the answer should be able to name both.
+        resolved_from: toRes.from,
     };
     if (from) {
         const fromOffset = _offsetMinutes(when, from);
@@ -703,8 +783,12 @@ async function _timezoneConvert(args) {
         out.from_is_dst = _isDst(when, from);
         const diffMin = offsetMin - fromOffset;
         out.difference = `${diffMin >= 0 ? '+' : ''}${(diffMin / 60).toFixed(2)} hours`;
+    } else if (fromError) {
+        out.from_timezone_error = fromError;
     }
-    if (!args.datetime) out.is_now = true;
+    // "now" can arrive as an argument too — the moment is still the present,
+    // and the field must say so either way.
+    if (!args.datetime || _isNowToken(args.datetime)) out.is_now = true;
     return { ok: true, data: out };
 }
 
@@ -830,12 +914,13 @@ const TOOLS = [
     },
     {
         name: 'current_time',
-        schema_description: "Today's date and time: unix, ISO-8601, day of week, UTC offset. Pass an IANA timezone (e.g. Asia/Karachi).",
+        schema_description: "Today's date and time: unix, ISO-8601, day of week, UTC offset. Pass an IANA timezone (Asia/Karachi) OR a place name (Uganda, Jinja, Karachi).",
         aliases: ['time', 'get_time', 'now', 'datetime'],
         capability: 'local.computation',
         description: "Know today's date and time. Returns the unix timestamp, ISO-8601, the "
-            + 'human-readable local time, the day of week and the UTC offset. Optionally in a '
-            + 'specific IANA timezone (e.g. "Asia/Karachi").',
+            + 'human-readable local time, the day of week and the UTC offset. Pass an IANA '
+            + 'timezone ("Asia/Karachi") or just a place ("Uganda", "Jinja", "Karachi") and the '
+            + 'hive resolves the zone for you.',
         parameters: {
             type: 'object',
             properties: {
@@ -1025,12 +1110,13 @@ const TOOLS = [
     },
     {
         name: 'timezone_convert',
-        schema_description: 'Convert a moment between IANA timezones (DST-correct), or ask for the time in a zone.',
+        schema_description: 'Convert a moment between timezones (DST-correct), or ask for the time in a zone or a place — IANA names and place names both work.',
         aliases: ['tz', 'convert_time', 'time_zone'],
         capability: 'local.computation',
-        description: 'Understand time across countries. Convert a moment in time from one IANA timezone '
-            + 'to another (DST-correct), or ask for the current time in a timezone. Returns the local '
-            + 'date and time, the day of week and the UTC offset of each zone.',
+        description: 'Understand time across countries. Convert a moment in time from one timezone to '
+            + 'another (DST-correct), or ask for the current time in a zone. Both IANA names '
+            + '("Africa/Kampala") and place names ("Uganda", "Jinja") are accepted. Returns the '
+            + 'local date and time, the day of week and the UTC offset of each zone.',
         parameters: {
             type: 'object',
             properties: {

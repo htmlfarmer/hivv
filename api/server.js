@@ -25,6 +25,7 @@ const { createAuthRoutes } = require('./lib/routes');
 const lockedLlm = require('./lib/locked-llm');
 const keyDonation = require('./lib/key-donation');   // K2: donor guard-rails + spend caps
 const nodeAuth = require('./lib/node-auth');         // K2: prove the CLI's node identity
+const placeTzLib = require('./lib/place-tz');        // place → IANA zone + the measured clock
 
 const cache = createCache({ ttl: 30000, localTtl: 300000 });
 
@@ -42,6 +43,53 @@ const HIVV_IDENTITY_MSG = {
 // to use web_search it was not given. Pass the resolved schema list.
 function toolSystemMessage(attached) {
     return { role: 'system', content: toolkitLib.toolBriefing(attached) };
+}
+
+/**
+ * The last thing the user actually said, as plain text.
+ *
+ * Content may be a string or an array of content parts (the OpenAI shape),
+ * so both are unwrapped — otherwise a client that sends parts gets an empty
+ * clock line and the whole point is lost.
+ */
+function lastUserText(messages) {
+    if (!Array.isArray(messages)) {
+        return '';
+    }
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (!m || m.role !== 'user') {
+            continue;
+        }
+        const c = m.content;
+        if (typeof c === 'string') {
+            return c;
+        }
+        if (Array.isArray(c)) {
+            return c.map((p) => (p && p.text) || '').join(' ');
+        }
+    }
+    return '';
+}
+
+/**
+ * The measured clock, for questions about time ONLY.
+ *
+ * WHY THIS EXISTS — "hivv what time is it now in jinja uganda" answered
+ * "2026-11-28 07:08:13 UTC" labelled as Uganda. Uganda is UTC+03:00. The
+ * model had to resolve the place itself, got it wrong, and had no ground
+ * truth in the prompt to catch the mistake — so it just stamped the UTC
+ * value with the place the user named.
+ *
+ * Now the HUB resolves the place and states the measured local time, so the
+ * model only has to repeat a number it can see. It returns [] for everything
+ * that is not about time on purpose: a system message that changes every
+ * second would rewrite the prompt prefix and throw away the prefix cache
+ * (a warm run reports ~2,560 cached tokens).
+ */
+function timeSystemMessages(messages) {
+    const ctx = placeTzLib.timeContext(lastUserText(messages));
+    return ctx ? [{ role: 'system', content: ctx }] : [];
 }
 
 /**
@@ -2410,7 +2458,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     // its own tools keeps them.
     const effectiveTools = resolveToolAttachment(req, tools);
     const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
-    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
 
     const useStream = stream === true || stream === 'true' || (req.headers.accept && req.headers.accept.includes('text/event-stream'));
 
@@ -3008,7 +3056,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             const localTools = req.body.local_tools === true;
             // ── Non-streaming: support tool_call loop ───────────────────────────
             const MAX_TOOL_ROUNDS = 5;
-            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages.slice()];
+            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages.slice()];
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
@@ -3098,7 +3146,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         // back, forwards content frames live, and lets the hub run the tool
         // and ask the model again. The client sees one clean answer.
         const MAX_TOOL_ROUNDS = 5;
-        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
         let result = null;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
             const interceptor = new toolStreamLib.ToolStreamInterceptor(res, { maxRounds: MAX_TOOL_ROUNDS });
@@ -3221,7 +3269,7 @@ app.post('/api/chat/continue', async (req, res) => {
     const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
 
     // Build full message list: system + user msg + assistant tool_call msg + tool result
-    const msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+    const msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
     if (assistant_message) {
         msgList.push(assistant_message);  // assistant's original tool_call message
     }
@@ -4804,7 +4852,11 @@ app.get('/api/feedback', async (req, res) => {
   const params = session?.userId ? [visitorId, session.userId] : [visitorId];
   try {
     const result = await pool.query(
-      `SELECT id, type, subject, message, status, created_at
+      // review_notes IS the reply — the maintainer's answer. It was never
+      // selected, so a submitter could see that a report was "reviewed" but
+      // never read a word back: hivv.org could reply and nobody would ever
+      // know. updated_at tells them WHEN the status last moved.
+      `SELECT id, type, subject, message, status, review_notes, created_at, updated_at
        FROM hivv_feedback
        WHERE 1=1 ${userFilter}
        ORDER BY created_at DESC
@@ -4816,6 +4868,123 @@ app.get('/api/feedback', async (req, res) => {
     console.error('[FEEDBACK] list error:', e.message);
     res.status(500).json({ error: 'could not retrieve feedback' });
   }
+});
+
+// ── The reply loop ──────────────────────────────────────────────────────────
+// A submitter could FILE, but for a long time could never be ANSWERED: the
+// reply column (review_notes) existed and NOTHING wrote it, and the list
+// SELECT withheld it. Three doors close that — read one, answer one, remove
+// one — and all three are pinned by tests/test_submission.py.
+//
+// The status lifecycle the schema allows and nothing used until now:
+const FB_STATUSES = ['open', 'reviewed', 'in_progress', 'resolved', 'dismissed'];
+
+// Who may answer. The same rule the control routes use: an admin session,
+// the control token, or an operator on this box (loopback). Never the
+// public — a reply is published back to the submitter, so it is spoken
+// FOR them, not BY them.
+async function _canModerateFeedback(req) {
+    if (isAdminRequest(req)) return true;
+    try {
+        const session = await getSession(req);
+        return !!(session && (session.role === 'admin' || session.role === 'owner'));
+    } catch (_e) {
+        return false;
+    }
+}
+
+// GET /api/feedback/:id — ONE report, for the person who filed it.
+// The list gives you 50; a client polling for THE answer to ITS report
+// should not have to pull the whole list to find it.
+app.get('/api/feedback/:id', async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    const visitorId = getVisitorId(req, res);
+    const session = await getSession(req);
+    const moderate = await _canModerateFeedback(req);
+    const params = [id];
+    let where = 'id = $1';
+    if (!moderate) {
+        // you see your own reports; you never see anyone else's
+        where += session?.userId
+            ? ' AND (visitor_id = $2 OR user_id = $3)'
+            : ' AND visitor_id = $2';
+        params.push(visitorId);
+        if (session?.userId) params.push(session.userId);
+    }
+    try {
+        const r = await pool.query(
+            `SELECT id, type, subject, message, status, review_notes, created_at, updated_at
+               FROM hivv_feedback
+              WHERE ${where}
+              LIMIT 1`, params);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ feedback: r.rows[0] });
+    } catch (e) {
+        console.error('[FEEDBACK] get error:', e.message);
+        res.status(500).json({ error: 'could not read feedback' });
+    }
+});
+
+// PATCH /api/feedback/:id — ANSWER a report: set the status and/or leave a
+// note. This is the write half the schema always had and nothing ever used —
+// without it review_notes is a decorative column and hivv.org cannot reply.
+app.patch('/api/feedback/:id', async (req, res) => {
+    if (!(await _canModerateFeedback(req))) {
+        return res.status(403).json({ error: 'admin access required to answer a report',
+                                      code: 'ADMIN_REQUIRED' });
+    }
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    const { status, review_notes } = req.body || {};
+    if (status === undefined && review_notes === undefined) {
+        return res.status(400).json({ error: 'send status and/or review_notes' });
+    }
+    if (status !== undefined && !FB_STATUSES.includes(status)) {
+        return res.status(400).json({
+            error: `status must be one of: ${FB_STATUSES.join(', ')}` });
+    }
+    const session = await getSession(req);
+    try {
+        const r = await pool.query(
+            `UPDATE hivv_feedback
+                SET status = COALESCE($2, status),
+                    review_notes = COALESCE($3, review_notes),
+                    reviewed_at = NOW(),
+                    reviewed_by = COALESCE($4, reviewed_by),
+                    updated_at = NOW()
+              WHERE id = $1
+              RETURNING id, type, subject, message, status, review_notes, created_at, updated_at`,
+            [id, status === undefined ? null : status,
+             review_notes === undefined ? null : review_notes,
+             session?.userId || null]);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ ok: true, feedback: r.rows[0] });
+    } catch (e) {
+        console.error('[FEEDBACK] reply error:', e.message);
+        res.status(500).json({ error: 'could not save the reply' });
+    }
+});
+
+// DELETE /api/feedback/:id — remove one (spam, an accidental test row, a
+// duplicate). Admin only: a submitter quietly erasing their own history
+// would make the ledger untrustworthy for everyone reading it.
+app.delete('/api/feedback/:id', async (req, res) => {
+    if (!(await _canModerateFeedback(req))) {
+        return res.status(403).json({ error: 'admin access required',
+                                      code: 'ADMIN_REQUIRED' });
+    }
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    try {
+        const r = await pool.query(
+            'DELETE FROM hivv_feedback WHERE id = $1 RETURNING id', [id]);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ ok: true, deleted: id });
+    } catch (e) {
+        console.error('[FEEDBACK] delete error:', e.message);
+        res.status(500).json({ error: 'could not delete' });
+    }
 });
 
 // ---- Fetch Tasks (per-node) ----

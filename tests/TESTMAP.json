@@ -22,6 +22,7 @@
   ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-auth.test.js",
    "api/tests/proposal-funnel.test.js",
    "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
@@ -35,6 +36,9 @@
   ],
   "api/lib/cache.js": [
    "api/tests/cache.test.js"
+  ],
+  "api/lib/capabilities.js": [
+   "api/tests/embed-model.test.js"
   ],
   "api/lib/circuit-breaker.js": [
    "api/tests/circuit-breaker.test.js"
@@ -64,6 +68,7 @@
   ],
   "api/lib/identity.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-auth.test.js",
    "api/tests/proposal-funnel.test.js",
    "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
@@ -85,6 +90,9 @@
   "api/lib/mcp-client.js": [
    "api/tests/interop.test.js"
   ],
+  "api/lib/model-kind.js": [
+   "api/tests/embed-model.test.js"
+  ],
   "api/lib/moon.js": [
    "api/tests/ritual.test.js"
   ],
@@ -92,6 +100,9 @@
    "api/tests/quarantine-recovery.test.js",
    "api/tests/traffic-count.test.js",
    "tests/test_resume_not_reregister.py"
+  ],
+  "api/lib/place-tz.js": [
+   "api/tests/place-tz.test.js"
   ],
   "api/lib/policy.js": [
    "api/tests/github-relay.test.js",
@@ -115,6 +126,7 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
+   "api/tests/embed-model.test.js",
    "api/tests/key-isolation.test.js",
    "api/tests/route-factors.test.js",
    "api/tests/route-prefs.test.js",
@@ -139,6 +151,7 @@
    "api/tests/telemetry.test.js"
   ],
   "api/lib/toolkit.js": [
+   "api/tests/place-tz.test.js",
    "api/tests/polite.test.js",
    "api/tests/tool-profiles.test.js"
   ],
@@ -169,6 +182,9 @@
   "api/routes/mcp-routes.js": [
    "tests/test_submission.py"
   ],
+  "api/routes/proposal-routes.js": [
+   "api/tests/proposal-auth.test.js"
+  ],
   "api/routes/tile-routes.js": [
    "api/tests/tile.test.js"
   ],
@@ -191,6 +207,7 @@
    "tests/test_bridge.py",
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
+   "tests/test_tailscale_install.py",
    "tests/test_telemetry_tasks_a2a.py",
    "tests/test_windows_install.py"
   ],
@@ -234,6 +251,7 @@
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
    "tests/test_identity_cli.py",
+   "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
@@ -247,6 +265,8 @@
    "tests/test_speeds_view.py",
    "tests/test_submission.py",
    "tests/test_sync_review.py",
+   "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py",
    "tests/test_testmap.py",
    "tests/test_tools_test_cmd.py",
    "tests/test_traffic_count.py",
@@ -266,13 +286,21 @@
    "tests/test_repo_scripts.py"
   ],
   "public_html/install-hivv.ps1": [
+   "tests/test_installer_ci.py",
    "tests/test_windows_install.py"
   ],
   "public_html/install-hivv.sh": [
    "tests/test_dev_tools.py",
    "tests/test_fallback.py",
+   "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
-   "tests/test_rescue.py"
+   "tests/test_rescue.py",
+   "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py"
+  ],
+  "public_html/install-tailscale.sh": [
+   "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py"
   ],
   "public_html/panel.html": [
    "tests/test_panel_update.py"
@@ -368,6 +396,11 @@
   "api/tests/degenerate.test.js": [
    "api/lib/degenerate.js"
   ],
+  "api/tests/embed-model.test.js": [
+   "api/lib/capabilities.js",
+   "api/lib/model-kind.js",
+   "api/lib/router.js"
+  ],
   "api/tests/fast-scan.test.js": [
    "api/lib/fast-scan.js"
   ],
@@ -414,9 +447,18 @@
   "api/tests/node-auth.test.js": [],
   "api/tests/node-name-xss.test.js": [],
   "api/tests/node-registration.test.js": [],
+  "api/tests/place-tz.test.js": [
+   "api/lib/place-tz.js",
+   "api/lib/toolkit.js"
+  ],
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
+  ],
+  "api/tests/proposal-auth.test.js": [
+   "api/lib/attest.js",
+   "api/lib/identity.js",
+   "api/routes/proposal-routes.js"
   ],
   "api/tests/proposal-funnel.test.js": [
    "api/lib/attest.js",
@@ -592,6 +634,12 @@
    "api/lib/identity.js",
    "public_html/hivv-cli.py"
   ],
+  "tests/test_installer_ci.py": [
+   "github/workflows/installers.yml",
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.ps1",
+   "public_html/install-hivv.sh"
+  ],
   "tests/test_llm_build_tools.py": [
    "api/routes/control-routes.js",
    "public_html/hivv-cli.py",
@@ -694,6 +742,17 @@
   ],
   "tests/test_sync_review.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_tailscale_install.py": [
+   "public_html",
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "public_html/install-tailscale.sh"
+  ],
+  "tests/test_tailscale_ladder.py": [
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "public_html/install-tailscale.sh"
   ],
   "tests/test_telemetry_tasks_a2a.py": [
    "api",

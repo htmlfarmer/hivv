@@ -399,17 +399,32 @@ def test_raaz_is_refused_and_actually_fresh() -> None:
 
 
 def test_raaz_differs_between_runs() -> None:
-    """Two independent runs must not agree.
+    """Two independent runs must not KEEP agreeing.
 
-    Pinned by seeding from the clock: if this ever collides, the generator
-    has collapsed back to a constant and RAAZ is theatre.
+    MEASURED 2026-11-28: a single pair collides about 1 run in 100 (3/300),
+    because the pool is small — one collision is ordinary randomness, not
+    collapse. The old assertion demanded ONE pair differ, so it failed at
+    random and turned a REQUIRED CI check into a coin flip: it red-lit
+    `unit tests (macos-latest)` on PR #19 for a change that never touched
+    this file.
+
+    The property actually under test is that the generator has not become a
+    constant. A constant agrees EVERY time, so: draw independent pairs and
+    pass on the first that differs; only if they NEVER differ is it theatre.
     """
-    a = _raaz(random.Random(f"a-{time.time_ns()}"))
-    b = _raaz(random.Random(f"b-{time.time_ns()}"))
-    # Different seeds across a nanosecond clock — if these match, the pool
-    # has one member left in it.
-    assert a != b or len(_PRIVATE_V6) + len(_BAD_SCHEMES) < 2, (
-        f"RAAZ produced the same payload from two seeds: {a}"
+    if len(_PRIVATE_V6) + len(_BAD_SCHEMES) < 2:
+        return   # nothing left to distinguish — not a collapse we can detect
+    a = b = ""
+    for i in range(16):
+        a = _raaz(random.Random(f"a{i}-{time.time_ns()}"))
+        b = _raaz(random.Random(f"b{i}-{time.time_ns()}"))
+        if a != b:
+            return                       # fresh — the property holds
+    raise AssertionError(
+        "RAAZ produced the same payload from 16 independent seed pairs — "
+        "the generator has collapsed to a constant.\n"
+        f"  payload : {a}\n"
+        "  A constant wearing a costume is a fixed test, not a secret."
     )
 
 

@@ -237,7 +237,105 @@ class TestRemoveSafetyRails:
         assert not victim.exists()
 
 
+class TestSmartDefaultDispatch:
+    """A quoted SENTENCE must reach the hive; a lone typo must not.
+
+    THE BUG THIS GUARDS (reported from a MacBook Air, 2026-11-28)
+    ──────────────────────────────────────────────────────────────
+    The rule counted ARGUMENTS, not words — and the shell folds a quoted
+    phrase into ONE element. So the natural thing to type
+
+        hivv "whats up in pakistan"
+
+    was rejected with "isn't an hivv command", while the SAME words
+    unquoted (four arguments) chatted fine. Quoting broke it; not quoting
+    worked. Exactly backwards.
+
+    Both halves still hold: a lone typo (hivv frobnicate) fails loud and
+    never spends a call, and greetings/questions still go to the hive.
+    """
+
+    def _load(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("hivv_cli_dispatch_test", CLI)
+        mod = importlib.util.module_from_spec(spec)
+        saved = sys.argv
+        sys.argv = ["hivv"]
+        try:
+            spec.loader.exec_module(mod)
+        except SystemExit:
+            pass
+        finally:
+            sys.argv = saved
+        return mod
+
+    # ── the predicate, in isolation ────────────────────────────────────
+
+    def test_a_quoted_sentence_is_not_a_stray_word(self):
+        mod = self._load()
+        # the reported case, and its longer sibling
+        assert mod._is_stray_command_word(["whats up"]) is False
+        assert mod._is_stray_command_word(["whats up in pakistan"]) is False
+
+    def test_a_lone_typo_still_fails_loud(self):
+        mod = self._load()
+        for word in ("frobnicate", "if", "when", "blorb", "statuss"):
+            assert mod._is_stray_command_word([word]) is True, word
+
+    def test_greetings_and_questions_still_chat(self):
+        mod = self._load()
+        assert mod._is_stray_command_word(["hello"]) is False
+        assert mod._is_stray_command_word(["whats up?"]) is False
+
+    def test_several_arguments_are_always_a_sentence(self):
+        mod = self._load()
+        assert mod._is_stray_command_word(["whats", "up"]) is False
+        assert mod._is_stray_command_word([]) is False   # bare hivv -> help
+
+    # ── end to end, against the REAL CLI ───────────────────────────────
+    # The hub is pointed at a dead port so the chat path fails fast (~0.3s)
+    # with no network and no tools server — we are asserting WHICH branch
+    # the dispatch took, not what the model said.
+
+    def _dead_hub_env(self, tmp_path):
+        env = _tmp_env(tmp_path)
+        env["HIVV_HUB"] = "http://127.0.0.1:1"
+        return env
+
+    def test_quoted_question_reaches_chat_not_the_rejector(self, tmp_path):
+        r = _run(["whats up in pakistan"],
+                 env_extra=self._dead_hub_env(tmp_path))
+        out = r.stdout + r.stderr
+        assert "isn't an hivv command" not in out, (
+            "a quoted SENTENCE was rejected as a stray word:\n" + out)
+        assert "asking the hive instead" in out, (
+            "a quoted question must go to the hive:\n" + out)
+
+    def test_the_reported_two_word_question_reaches_chat(self, tmp_path):
+        r = _run(["whats up"], env_extra=self._dead_hub_env(tmp_path))
+        out = r.stdout + r.stderr
+        assert "isn't an hivv command" not in out, out
+        assert "asking the hive instead" in out, out
+
+    def test_stray_word_still_exits_2_with_the_hint(self, tmp_path):
+        r = _run(["frobnicate"], env_extra=self._dead_hub_env(tmp_path))
+        out = r.stdout + r.stderr
+        assert r.returncode == 2, f"expected exit 2, got {r.returncode}\n{out}"
+        assert "isn't an hivv command" in out, out
+        # and it must point at the door it refused to open
+        assert 'hivv chat "' in out, out
+
+    def test_a_real_command_is_never_mistaken_for_chat(self, tmp_path):
+        # regression guard for the other direction: the new space check must
+        # not swallow actual commands (they are dispatched BEFORE this rule).
+        r = _run(["status"], env_extra=self._dead_hub_env(tmp_path))
+        out = r.stdout + r.stderr
+        assert "asking the hive instead" not in out, out
+        assert "isn't an hivv command" not in out, out
+
+
 if __name__ == "__main__":
     import pytest
 
     sys.exit(pytest.main([__file__, "-v"]))
+

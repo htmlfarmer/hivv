@@ -7,6 +7,9 @@ const { looksDegenerate } = require('./degenerate');
 // The scoring vector: every candidate gets the same factors, a mode is a
 // weight table over them. See HIVV_ROUTING_PLAN.md §7.
 const routeFactors = require('./route-factors');
+// ONE definition of "what kind of model is this" — shared with capabilities,
+// so a bee the router refuses to offer is also one that cannot CLAIM the cap.
+const modelKind = require('./model-kind');
 const trustLib = require('./trust');
 const identityLib = require('./identity');
 const horizonLib = require('./horizon');
@@ -449,17 +452,84 @@ class AIRouter {
         return `${this._routeLabel(t)}::${AIRouter._prettyModel(t.model || 'local')}`;
     }
 
+    // The parameter count in a model NAME, in billions. 0 = not stated.
+    //
+    // A FAMILY is not a size. "qwen" covers 0.5B and 72B; "gemma" covers 1B
+    // and 27B. The tier table is per family, so it is a statement about the
+    // family's FLAGSHIP, not about every model wearing its name.
+    static _paramBillions(modelStr) {
+        const s = String(modelStr || '').toLowerCase();
+        // MoE ("235b-a22b"): the ACTIVE count is what runs per token.
+        const moe = s.match(/a(\d+(?:\.\d+)?)b/);
+        if (moe) return Number(moe[1]);
+        // "e2b" (effective 2B -- Gemma 3n) beats the family number.
+        const eff = s.match(/e(\d+(?:\.\d+)?)b/);
+        if (eff) return Number(eff[1]);
+        const m = s.match(/(\d+(?:\.\d+)?)b(?![a-z0-9])/);
+        return m ? Number(m[1]) : 0;
+    }
+
+    // The tier a model of THIS SIZE can honestly hold. Only ever caps: a
+    // size we cannot read leaves the family tier alone.
+    //
+    // Why this exists: quality carries the heaviest weight in quality mode
+    // (6 of 11.3), and the family table gave "qwen" 8 - so a Qwen2.5-0.5B
+    // outranked a 4.6B gemma in EVERY mode. OpenCode was served by the 0.5B
+    // model while a gemma-4-E2B sat idle on the same LAN (yalla
+    // 2026-11-27). A tier is a claim about capability, and a 0.5B model
+    // cannot carry the claim of a 72B one.
+    static _sizeCapTier(params) {
+        if (!(params > 0)) return 10;   // size not stated: no cap
+        if (params < 1) return 4;
+        if (params < 2) return 5;
+        if (params < 4) return 6;
+        if (params < 8) return 7;
+        if (params < 16) return 8;
+        if (params < 32) return 9;
+        return 10;
+    }
+
     _qualityOf(modelStr) {
         const s = String(modelStr || '').toLowerCase();
         let best = 5;
         for (const [k, v] of Object.entries(this._routeCfg.quality_weights || {})) {
             if (s.includes(k)) best = Math.max(best, v);
         }
-        return best;
+        // Then the size: a small model may not keep a tier that is really a
+        // statement about its family's flagship.
+        return Math.min(best, AIRouter._sizeCapTier(AIRouter._paramBillions(modelStr)));
     }
 
     // Model families known to emit OpenAI tool_calls through /v1/chat/completions.
     static TOOL_CAPABLE_RE = /(gpt-|gpt-?oss|\bo[134]\b|claude|gemini|gemma|qwen|llama-?3|llama3|mistral|ministral|codestral|devstral|command-r|nemo|granite|codellama|starcoder|deepseek|phi-?[34]|glm|kimi|minicpm|aya)/i;
+
+    // An EMBEDDING model turns text into vectors — it can never answer a chat.
+    // A heartbeat advertises whatever the box actually runs, and ashy runs
+    // nomic-embed-text:latest beside qwen2.5:0.5b, so a candidate built from
+    // local_models could BE an embedder: the server then answers HTTP 400
+    // "does not support chat" and we have spent a round-trip to learn nothing.
+    // Not a candidate at all. Same families as the CLI's `_is_embed_model`
+    // — two implementations, so a parity test pins the lists together
+    // (api/tests/embed-model.test.js reads _EMBED_NAME_HINTS out of the CLI).
+    // No chat model ships "embed" in its tag, so this cannot take an answer
+    // away; a name we cannot identify stays eligible.
+    // Delegates to api/lib/model-kind.js — the ONE family list, shared with
+    // capabilities.js. Kept as statics so callers (and tests) read naturally.
+    static EMBED_MODEL_RE = modelKind.EMBED_MODEL_RE;
+
+    static isEmbedModel(name) {
+        return modelKind.isEmbedModel(name);
+    }
+
+    // The first model on this bee that can actually CHAT — what a relay job
+    // should name. Heartbeats carry `model` (`_detect_local_ai`) while some
+    // fixtures use `name`, so read BOTH; and skip embedders, which can no
+    // more answer a relay job than a direct one. Falls back to 'local'
+    // (llama.cpp tolerates it) when nothing usable is advertised.
+    static firstChatModel(models) {
+        const first = modelKind.chatModels(models)[0];
+        return (first && (first.model || first.name)) || 'local';
+    }
 
     // ── target introspection (feeds the factor vector) ──────────────────────
     // The registered node behind a target. Capacity, queue and geography all
@@ -555,6 +625,37 @@ class AIRouter {
         return false;
     }
 
+    // The window a BEE can really hold, as published in its heartbeat.
+    //
+    // A model NAME is not a context window. llama.cpp divides its context
+    // across parallel slots, so "-c 4096 -np 4" is FOUR 1024-token slots
+    // behind a model name the table below calls 32768. The hub guessed
+    // (CONTEXT_WINDOWS) and routed a 5k-token OpenCode prompt into a
+    // 1024-token slot, which answered HTTP 400 "request (4702 tokens)
+    // exceeds the available context size (1024 tokens)" -- and the router
+    // reported every candidate as fine (yalla 2026-11-27).
+    //
+    // The bee knows the real number (llama-server /props); it is published
+    // as local_models[].ctx_slot. Use it whenever it is there.
+    _publishedCtxSlot(t) {
+        const node = this._nodeForTarget(t);
+        const models = Array.isArray(node?.local_models) ? node.local_models : [];
+        if (!models.length) return 0;
+        const want = AIRouter._prettyModel(t.model || '').toLowerCase();
+        let only = 0;
+        for (const m of models) {
+            const ctx = Number(m?.ctx_slot) || 0;
+            if (!(ctx > 0)) continue;
+            const name = String(m?.model || '').toLowerCase();
+            if (want && name && (name === want || name.includes(want) || want.includes(name))) {
+                return ctx;
+            }
+            if (!only) only = ctx;
+        }
+        // ONE model on the bee: its window is the only one that matters.
+        return models.length === 1 ? only : 0;
+    }
+
     // What does THIS request need from a candidate? Tri-state: null = not
     // applicable, so an ordinary chat message scores capability NEUTRAL rather
     // than a meaningless 1.0. Tools stay a hard filter upstream too — this is
@@ -563,7 +664,10 @@ class AIRouter {
         let contextOk = null;
         const promptEst = Number(options.promptEst) || 0;
         if (promptEst > 0) {
-            const ctx = contextWindowFor(t.model || '', options.contextWindow);
+            // The bee's PUBLISHED window beats a guess from the model name:
+            // the name is identical on every box, the window is not.
+            const published = this._publishedCtxSlot(t);
+            const ctx = published || contextWindowFor(t.model || '', options.contextWindow);
             // prompt + room to actually answer: a model that cannot hold it will
             // 413 anyway, so prefer one that can instead of discovering it late.
             contextOk = ctx >= promptEst + 512;
@@ -1357,6 +1461,9 @@ class AIRouter {
                 for (const m of (node.local_models || [])) {
                     if (m.locked) continue; // keyed LLM (api-key) — visible in
                     // `hivv nodes` but unusable: peers can't auth either
+                    // An embedder answers vectors, not chats — never a
+                    // chat/completions target (nomic-embed-text on ashy).
+                    if (AIRouter.isEmbedModel(m.model || m.name)) continue;
                     const ip = node.lan_ip || node.ip;
                     if (!ip) continue;
                     const port = m.port || 8080;
@@ -1999,7 +2106,13 @@ class AIRouter {
         let cands = Array.from(this.orchestrator.nodes.values()).filter(n =>
             n.status === 'online' &&
             (n.volunteer === true || n.volunteer?.on === true) &&
-            (n.local_models || []).some(m => !m.locked) &&   // locked (keyed) LLMs can't serve relay jobs
+            // A servable model: NOT keyed (peers can't auth a locked LLM) and
+            // NOT an embedder (nomic-embed-text answers vectors, not chats —
+            // it would be picked, firstChatModel would fall back to 'local',
+            // and the job would come back HTTP 400 "does not support chat").
+            // Same predicate the direct path and capabilities already use.
+            (n.local_models || []).some(m =>
+                !m.locked && !modelKind.isEmbedModel(m.model || m.name)) &&
             this.relay.activeForNode(n.node_id) < (relayCfg.maxActivePerNode || 2));
         // K4: privacy 'self' — relay crosses NAT to ANOTHER machine, so under
         // 'self' it may only reach the caller's own bees.
@@ -2030,7 +2143,13 @@ class AIRouter {
             const created = this.relay.createJob({
                 nodeId: node.node_id,
                 request: {
-                    model: options.model || node.local_models[0]?.name || 'local',
+                    // First model this bee can actually CHAT with. The old
+                    // code took the FIRST entry's `name` field — but heartbeats
+                    // carry `model` (`_detect_local_ai`), so that read was
+                    // always undefined and every relay job said 'local', which
+                    // ollama 404s. Also skips embedders: nomic-embed-text
+                    // cannot answer a relay job any more than a direct one.
+                    model: options.model || AIRouter.firstChatModel(node.local_models),
                     messages: relayMessages,
                     max_tokens: options.gen?.max_tokens || (relayCfg.defaultTokens || 700),
                     temperature: options.gen?.temperature,

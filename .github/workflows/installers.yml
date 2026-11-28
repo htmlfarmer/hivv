@@ -1,0 +1,169 @@
+name: installers
+
+# Runs the ONE-LINE installers for real, on every OS we ship them for.
+#
+# local-install.yml proves the CLONE path (setup-local.sh/.ps1 from a git
+# checkout). This proves the path a visitor ACTUALLY pastes:
+#
+#   macOS / Linux:  curl -sSL https://hivv.org/install-hivv.sh | bash
+#   Windows:        iwr -useb https://hivv.org/install-hivv.ps1 | iex
+#
+# Neither installer had ever been executed by CI before this file — the
+# Windows tab's "+LLM" command shipped calling a function that does not
+# exist in the installer and nothing noticed.
+#
+# THE TWO RULES THIS JOB KEEPS:
+#   1. THE HUB IS THIS CHECKOUT (HIVV_HUB=http://127.0.0.1:8123) — a PR is
+#      tested against ITS OWN files, never against production hivv.org.
+#   2. NOTHING MAY JOIN THE HIVE — -NoService / --no-service mean no agent
+#      ever starts, so a CI runner can never register as a bee against the
+#      real hub. No LLM downloads either (hermetic + fast).
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'public_html/install-hivv.sh'
+      - 'public_html/install-hivv.ps1'
+      - 'public_html/hivv'
+      - 'public_html/hivv.cmd'
+      - 'public_html/hivv-cli.py'
+      # a change to this file must re-run the gate it defines
+      - '.github/workflows/installers.yml'
+  pull_request:
+    paths:
+      - 'public_html/install-hivv.sh'
+      - 'public_html/install-hivv.ps1'
+      - 'public_html/hivv'
+      - 'public_html/hivv.cmd'
+      - 'public_html/hivv-cli.py'
+      - '.github/workflows/installers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    name: ${{ matrix.os }} · install-hivv.sh
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    # a HANGING job (an installer waiting on a prompt with nobody behind it)
+    # burns GitHub's 6-hour default — 10 minutes is generous for a ~1 MB CLI.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: curl | bash — install, then run hivv
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # THIS checkout is the hub for this run (rule 1).
+          python3 -m http.server 8123 --bind 127.0.0.1 --directory public_html &
+          SRV=$!
+          trap 'kill $SRV 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:8123/hivv-cli.py && break
+            sleep 0.25
+          done
+
+          # Pre-create the user-local dirs: writable dirs keep auto mode
+          # user-local, which is what lets --no-service survive (the
+          # sudo-available branch would otherwise force the service on).
+          mkdir -p "$HOME/.local/bin" "$HOME/.local/lib"
+
+          # The exact line a visitor pastes — piped, so the installer's
+          # non-interactive fallbacks are exercised too (rule 2: no service).
+          curl -sSf http://127.0.0.1:8123/install-hivv.sh \
+            | HIVV_HUB=http://127.0.0.1:8123 bash -s -- \
+              --prefix="$HOME/.local" --yes --no-llm --no-git --no-service
+
+          # The whole point of an installer: it runs from the command line.
+          "$HOME/.local/bin/hivv" --version
+
+          # ...and PATH is wired for the visitor's FUTURE shells — the
+          # EFFECT, not one mechanism: --yes writes the export line into
+          # whichever shell rc it detected (macOS: NEEDS_PATH=1), but if the
+          # bin dir is ALREADY on PATH there is correctly nothing to write
+          # (ubuntu runners: NEEDS_PATH=0 — run 2 died demanding an rc line
+          # that should not exist). grep only files that EXIST: a missing
+          # .zshrc makes grep exit 2 (an ERROR), which set -e turns red.
+          rcs=""
+          for f in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.config/fish/config.fish"; do
+            if [ -f "$f" ]; then rcs="$rcs $f"; fi
+          done
+          resolved=0
+          if command -v hivv >/dev/null 2>&1; then resolved=1; fi
+          if [ -n "$rcs" ] && grep -q "$HOME/.local/bin" $rcs; then resolved=1; fi
+          if [ "$resolved" -ne 1 ]; then
+            echo "hivv is neither on PATH nor written to any shell rc" >&2
+            exit 1
+          fi
+
+  windows:
+    name: windows-latest · install-hivv.ps1
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: iwr | iex — install, then run hivv
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # THIS checkout is the hub for this run (rule 1).
+          $srv = Start-Process python -ArgumentList @(
+            '-m', 'http.server', '8123', '--bind', '127.0.0.1', '--directory', 'public_html'
+          ) -PassThru -WindowStyle Hidden
+          try {
+            $up = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              try {
+                Invoke-WebRequest 'http://127.0.0.1:8123/hivv-cli.py' -UseBasicParsing -TimeoutSec 2 | Out-Null
+                $up = $true; break
+              } catch { Start-Sleep -Milliseconds 250 }
+            }
+            if (-not $up) { throw 'the local hub never answered' }
+
+            $env:HIVV_HUB = 'http://127.0.0.1:8123'
+
+            # The documented flags form: downloaded with iwr exactly like a
+            # visitor's "iwr -useb ... | iex" (same transport, same file),
+            # then run non-interactively. -Yes answers every prompt, -NoLlm
+            # and -NoService keep the runner hermetic (rule 2).
+            #
+            # Download to a FILE first: python's http.server serves .ps1 as
+            # application/octet-stream, so (iwr ...).Content comes back as a
+            # BYTE ARRAY — scriptblock::Create received "35 32 105 110 ..."
+            # (the ASCII codes of "# in...") and refused to parse. Run 1
+            # died exactly there. Get-Content -Raw is a string, always.
+            $dl = Join-Path $env:RUNNER_TEMP 'install-hivv.ps1'
+            Invoke-WebRequest 'http://127.0.0.1:8123/install-hivv.ps1' -OutFile $dl -UseBasicParsing
+            & ([scriptblock]::Create((Get-Content -Raw $dl))) -Yes -NoLlm -NoService
+
+            # The whole point of an installer: it runs from the command line.
+            hivv --version
+            if ($LASTEXITCODE -ne 0) { throw "hivv --version failed: exit $LASTEXITCODE" }
+
+            # ...and PATH really persisted — a visitor's NEXT terminal reads
+            # it from the registry, so assert the registry, not this session.
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            if ($userPath -notlike '*\.local\bin*') {
+              throw "user PATH was not updated: $userPath"
+            }
+          } finally {
+            Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue
+          }

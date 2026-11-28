@@ -159,7 +159,7 @@ Each plan below has: **Goal → Steps → Touches (files) → Done when → Effo
 
 ## 7. ☑ Measured routing — speed per node+model, "answered by" receipts
 
-**Goal:** route on *observed* tokens/sec, and tell the user who answered. (Already in AGENTS.md "What's Next" — this is the design pass.)
+**Goal:** route on *observed* tokens/sec, and tell the user who answered. (Already shipped — see [docs/SHIPPED.md](docs/SHIPPED.md); this is the design pass.)
 
 **Steps:**
 1. **Telemetry at the edges:** hub times every proxied/routed completion → `model_perf (node_id, model, window, ttfb_ms, tokens_per_sec, n)`; rolling 10-min + 24h EWMA. Relay jobs (5) and direct hops both report.

@@ -3,7 +3,9 @@ const js = require('@eslint/js');
 module.exports = [
     js.configs.recommended,
     {
-        ignores: ['ecosystem.config.js'],
+        // place-tz-data.js is GENERATED (scripts/gen-place-tz.py) in compact
+        // 2-space form — reformatting it would fight the generator on every run.
+        ignores: ['ecosystem.config.js', 'lib/place-tz-data.js'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'commonjs',

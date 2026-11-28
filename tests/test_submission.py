@@ -16,10 +16,12 @@ That is FIVE properties, and only the first two used to hold:
   3. EASY FOR AIS TO FIND     -> neither SKILL.md mentioned filing anything.
                                  An AI reads the skill; if the skill is
                                  silent, the command does not exist for it.
-  4. HIVV.ORG CAN REPLY       -> the reply COLUMN exists (review_notes) but
-                                 NOTHING writes it, and the GET does not
-                                 return it. You can file; you can never see
-                                 an answer. (Still open — see below.)
+  4. HIVV.ORG CAN REPLY       -> HALF BUILT. The reply COLUMN exists
+                                 (review_notes) and the READ side now works:
+                                 GET /api/feedback returns it and the CLI
+                                 prints it, so an answer reaches the submitter.
+                                 The WRITE side is still open — nothing sets
+                                 review_notes. (See below.)
   5. AND SOLVE                -> status lifecycle exists in the schema
                                  (open -> reviewed -> in_progress ->
                                  resolved) but no transition is driven by
@@ -40,6 +42,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -319,14 +324,33 @@ class TestReplyPath:
         block = block[:block.index("\n}") + 3]
         assert "review_notes" in block
 
-    def test_the_reply_write_path(self):
-        """THE OPEN GAP — named, not quietly green.
+    def test_the_http_read_path_returns_the_reply(self):
+        """The CLI's list door reads GET /api/feedback. If the SELECT omits
+        review_notes, hivv.org can answer a report and the submitter never
+        sees a word of it — the reply column exists and is invisible."""
+        src = (REPO / "api" / "server.js").read_text(encoding="utf-8",
+                                                     errors="replace")
+        start = src.index("app.get('/api/feedback'")
+        block = src[start:start + 900]
+        assert "FROM hivv_feedback" in block, "could not find the feedback SELECT"
+        select = block[block.index("SELECT"):block.index("FROM hivv_feedback")]
+        assert "review_notes" in select, (
+            "GET /api/feedback withholds review_notes — the reply would be "
+            "written and never read")
+        assert "updated_at" in select
 
-        Nothing updates hivv_feedback: no endpoint sets status or
-        review_notes. So today hivv.org can RECEIVE a report but cannot
-        ANSWER one. Marked xfail (expected) so it documents the gap without
-        blocking the suite — and it turns into a real assertion the moment
-        somebody builds the write side.
+    def test_the_cli_prints_the_reply(self):
+        """…and the CLI must show it, or the endpoint's answer reaches nobody."""
+        src = CLI.read_text(encoding="utf-8", errors="replace")
+        assert "review_notes" in src
+        assert "↳ reply:" in src or "reply:" in src
+
+    def test_the_reply_write_path_exists(self):
+        """R1 - the writer exists.
+
+        This used to be an xfail: nothing updated hivv_feedback, so a
+        report could be filed and never answered. It is built now, so the
+        assertion is real.
         """
         hits = []
         for path in (REPO / "api").rglob("*.js"):
@@ -335,10 +359,156 @@ class TestReplyPath:
             text = path.read_text(encoding="utf-8", errors="replace")
             if re.search(r"UPDATE[ \t\n]+hivv_feedback", text, re.I):
                 hits.append(path)
-        if not hits:
-            pytest.xfail("OPEN GAP: nothing writes a reply to hivv_feedback "
-                         "yet — when you build it, make this assert the round trip")
-        # Built! now prove it can set a status AND leave a note.
+        assert hits, "nothing writes a reply to hivv_feedback - R1 is not built"
         joined = "\n".join(p.read_text(encoding="utf-8", errors="replace")
                             for p in hits)
         assert "review_notes" in joined, "the writer updates status but never a reply"
+        # and it validates against the schema OWN lifecycle (R2): a free-form
+        # status would be rejected by the CHECK constraint at INSERT time,
+        # i.e. after the maintainer thought they had answered.
+        assert "FB_STATUSES" in joined, "the writer does not validate the status"
+        for state in ("open", "reviewed", "in_progress", "resolved", "dismissed"):
+            assert state in joined
+
+    @pytest.mark.skipif(not _gateway_up(), reason="no local gateway running")
+    def test_the_reply_round_trip(self):
+        """R1-R4, end to end: file, read, answer, read, clean up.
+
+        Writes ONE row with a unique visitor id and DELETES it, so the
+        ledger stays clean - a test that litters production is a test
+        nobody dares run.
+        """
+        base = "http://127.0.0.1:3011/api/feedback"
+        vid = f"pytest-{os.getpid()}-{int(time.time())}"
+
+        def call(method, path, body=None, who=vid):
+            data = json.dumps(body).encode() if body is not None else None
+            req = urllib.request.Request(
+                base + path, data=data, method=method,
+                headers={"Content-Type": "application/json",
+                         "x-visitor-id": who})
+            try:
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    return r.status, json.loads(r.read() or b"{}")
+            except urllib.error.HTTPError as e:
+                try:
+                    return e.code, json.loads(e.read() or b"{}")
+                except Exception:
+                    return e.code, {}
+
+        code, d = call("POST", "", {"type": "bug",
+                                    "message": "round trip for R1-R4"})
+        fid = (d.get("feedback") or {}).get("id")
+        assert code in (200, 201) and fid, f"could not file: {code} {d}"
+
+        try:
+            # the submitter sees their own report
+            code, d = call("GET", f"/{fid}")
+            fb = d.get("feedback") or {}
+            assert code == 200, f"the owner cannot read their own: {code} {d}"
+            assert fb.get("status") == "open"
+            assert fb.get("review_notes") is None
+
+            # answer it (loopback == operator, which this test is)
+            code, d = call("PATCH", f"/{fid}",
+                           {"status": "resolved",
+                            "review_notes": "fixed by the test suite"})
+            assert code == 200, f"could not answer: {code} {d}"
+
+            # read it back - the reply must survive the round trip
+            code, d = call("GET", f"/{fid}")
+            fb = d.get("feedback") or {}
+            assert code == 200
+            assert fb.get("status") == "resolved", "the status did not stick"
+            assert fb.get("review_notes") == "fixed by the test suite", (
+                "the reply did not survive the round trip")
+
+            # a status outside the lifecycle is REFUSED, not stored
+            code, d = call("PATCH", f"/{fid}", {"status": "banana"})
+            assert code == 400, f"a bogus status was accepted: {code} {d}"
+
+            # answering with nothing to say is refused too
+            code, d = call("PATCH", f"/{fid}", {})
+            assert code == 400
+        finally:
+            call("DELETE", f"/{fid}")
+
+        # and it is really gone
+        code, _ = call("GET", f"/{fid}")
+        assert code == 404, "the cleanup did not remove the row"
+
+    @pytest.mark.skipif(not _gateway_up(), reason="no local gateway running")
+    def test_a_stranger_cannot_read_or_answer_your_report(self):
+        """R3: the owner sees their report; nobody else does - and a stranger
+        can neither answer it nor delete it.
+
+        This has to go through the PUBLIC door. From loopback every caller
+        is an operator (isAdminRequest trusts 127.0.0.1), so a local
+        request physically cannot exercise the visibility rule - which is
+        also why an X-Forwarded-For spoof is worth probing here: the app
+        sets trust proxy, so a client-controlled header influences req.ip.
+        """
+        import urllib.error
+        base = "https://hivv.org/api/feedback"
+        vid = f"vis-{os.getpid()}-{int(time.time())}"
+        stranger = "someone-else-not-the-owner"
+        ua = "Mozilla/5.0 (hivv-visibility-test)"
+
+        def call(method, path, body=None, who=vid, extra=None):
+            data = json.dumps(body).encode() if body is not None else None
+            headers = {"Content-Type": "application/json",
+                       "x-visitor-id": who, "User-Agent": ua}
+            if extra:
+                headers.update(extra)
+            req = urllib.request.Request(base + path, data=data, method=method,
+                                         headers=headers)
+            try:
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    return r.status, json.loads(r.read() or b"{}")
+            except urllib.error.HTTPError as e:
+                try:
+                    return e.code, json.loads(e.read() or b"{}")
+                except Exception:
+                    return e.code, {}
+            except Exception:
+                return 0, {}
+
+        code, d = call("POST", "", {"type": "bug", "message": "visibility"})
+        if code == 0:
+            pytest.skip("the public door is not reachable from here")
+        fid = (d.get("feedback") or {}).get("id")
+        assert code in (200, 201) and fid, f"could not file publicly: {code} {d}"
+
+        try:
+            code, d = call("GET", f"/{fid}", who=vid)
+            assert code == 200, "the owner cannot read their own report"
+
+            # a stranger cannot even SEE it
+            code, d = call("GET", f"/{fid}", who=stranger)
+            assert code == 404, f"a stranger read another report (HTTP {code})"
+
+            # and cannot answer it
+            code, d = call("PATCH", f"/{fid}", {"status": "resolved"},
+                           who=stranger)
+            assert code == 403, f"a stranger answered a report (HTTP {code})"
+
+            # nor delete it
+            code, d = call("DELETE", f"/{fid}", who=stranger)
+            assert code == 403, f"a stranger deleted a report (HTTP {code})"
+
+            # and cannot become an operator by claiming to be loopback
+            code, d = call("PATCH", f"/{fid}", {"review_notes": "owned"},
+                           who=stranger, extra={"X-Forwarded-For": "127.0.0.1"})
+            assert code == 403, (
+                "X-Forwarded-For: 127.0.0.1 was trusted as admin - that is "
+                "a privilege escalation")
+        finally:
+            # admin cleanup (loopback is an operator)
+            req = urllib.request.Request(
+                "http://127.0.0.1:3011/api/feedback/" + str(fid),
+                data=b"{}", method="DELETE",
+                headers={"x-visitor-id": vid})
+            try:
+                urllib.request.urlopen(req, timeout=15).read()
+            except Exception:
+                pass

@@ -258,3 +258,109 @@ def test_direct_path_preflights_tcp(cli):
     src = CLI.read_text()
     fn = src.split("def cmd_node_chat(")[1].split("\ndef ")[0]
     assert "_tcp_ok" in fn
+
+
+# ── an EMBEDDER is not a chat candidate ─────────────────────────────────────
+#
+# THE REPORT (ashy → a Mac, 2026-11-28): `hivv chat` offered
+# nomic-embed-text:latest as a chat partner, the server correctly answered
+# HTTP 400 "does not support chat" — and the hint beneath it blamed slot
+# config, sending the user to `hivv llm config --set np=1` on a box with no
+# llama.cpp installed at all. Two bugs, one request.
+
+def test_embedder_names_are_recognised(cli):
+    for name in ("nomic-embed-text:latest", "nomic-embed-text",
+                 "mxbai-embed-latest", "bge-small-en-v1.5",
+                 "all-minilm-l6-v2", "text-embedding-ada-002",
+                 "snowflake-arctic-embed-m",
+                 "sentence-transformers/all-MiniLM-L6-v2",
+                 "Nomic-Embed-Text:latest"):
+        assert cli._is_embed_model(name) is True, name
+
+
+def test_chat_models_are_never_mistaken_for_embedders(cli):
+    """The filter must not take a real answer away from anyone."""
+    for name in ("gemma-4-E2B-it-Q4_K_M.gguf", "qwen2.5:0.5b",
+                 "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+                 "unsloth/gemma-4-E2B-it-GGUF",
+                 "llama-3.2-3b-instruct", "phi-4", "mistral:7b",
+                 "deepseek-r1:8b", "google_gemma-3-4b-it-Q4_K_M.gguf",
+                 "local"):
+        assert cli._is_embed_model(name) is False, name
+
+
+def test_a_name_we_cannot_identify_stays_eligible(cli):
+    """Unknown != embedder: an empty or odd name must never be dropped."""
+    assert cli._is_embed_model(None) is False
+    assert cli._is_embed_model("") is False
+    assert cli._is_embed_model("   ") is False
+
+
+def _fake_tags(names):
+    """A context-managed /api/tags response carrying exactly `names`."""
+    body = ("{" + '"models":[' + ",".join(
+        '{"name":%s}' % __import__("json").dumps(n) for n in names) + "]}").encode()
+
+    class _Resp:
+        def read(self):
+            return body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    return _Resp()
+
+
+def test_real_model_skips_the_embedder_first_in_the_list(cli, monkeypatch):
+    """ollama lists models in PULL order — ashy pulled nomic-embed-text first.
+
+    `_real_model` feeds every path that names a model (_chat_local_only,
+    `hivv ask`, relay jobs, the test probe), so returning names[0] handed
+    ALL of them an embedder.
+    """
+    monkeypatch.setattr(cli.urllib.request, "urlopen",
+                        lambda *a, **k: _fake_tags(
+                            ["nomic-embed-text:latest", "qwen2.5:0.5b"]))
+    assert cli._real_model("http://127.0.0.1:11434") == "qwen2.5:0.5b"
+
+
+def test_real_model_keeps_a_sane_first_choice(cli, monkeypatch):
+    monkeypatch.setattr(cli.urllib.request, "urlopen",
+                        lambda *a, **k: _fake_tags(["gemma-4-E2B", "qwen"]))
+    assert cli._real_model("http://127.0.0.1:8080") == "gemma-4-E2B"
+
+
+def test_real_model_on_an_embedder_only_box_names_the_real_model(cli, monkeypatch):
+    """No chat model exists → naming the embedder is still better than
+    'local', which ollama 404s: the server's honest 400 beats a baffling
+    'model local not found'."""
+    monkeypatch.setattr(cli.urllib.request, "urlopen",
+                        lambda *a, **k: _fake_tags(["nomic-embed-text:latest"]))
+    assert cli._real_model("http://127.0.0.1:11434") == "nomic-embed-text:latest"
+
+
+def test_real_model_still_falls_back_to_local(cli, monkeypatch):
+    def _boom(*a, **k):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(cli.urllib.request, "urlopen", _boom)
+    assert cli._real_model("http://127.0.0.1:9") == "local"
+
+
+def test_do_chat_never_offers_an_embedder_as_a_candidate(cli):
+    """The direct loop must skip an embedder BEFORE spending a TCP probe."""
+    src = CLI.read_text()
+    fn = src.split("def _do_chat(")[1].split("\ndef ")[0]
+    assert "_is_embed_model" in fn, (
+        "_do_chat still offers every local_model as a chat candidate")
+    # and it must be checked before the probe, so a bee whose only model is
+    # an embedder is never marked FAILED
+    assert fn.index("_is_embed_model") < fn.index("_tcp_ok(ip, port)"), (
+        "the embedder check must come before the TCP probe")
+
+def test_the_real_model_helper_is_shared_not_duplicated(cli):
+    """One definition — the CLI must not grow a second, divergent copy."""
+    assert CLI.read_text().count("def _is_embed_model(") == 1

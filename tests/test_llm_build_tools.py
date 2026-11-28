@@ -51,6 +51,7 @@ import ast
 import importlib.util
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -137,6 +138,7 @@ class TestCliBuildToolPreflight:
 
         class Args:
             auto = True
+            no_prebuilt = True
 
         raised = None
         code = None
@@ -807,6 +809,7 @@ class TestInstallLlamaResilientClone:
         try:
             class Auto:
                 auto = True
+                no_prebuilt = True
             try:
                 mod.cmd_llm_install_llama(Auto())
             except SystemExit as e:
@@ -863,6 +866,7 @@ class TestInstallLlamaResilientClone:
         try:
             class Args:
                 auto = True
+                no_prebuilt = True
             mod.cmd_llm_install_llama(Args())
         finally:
             mod.subprocess.call = real_call
@@ -898,6 +902,7 @@ class TestInstallLlamaResilientClone:
         try:
             class Args:
                 auto = True
+                no_prebuilt = True
             try:
                 mod.cmd_llm_install_llama(Args())
             except SystemExit as e:
@@ -939,6 +944,7 @@ class TestInstallLlamaResilientClone:
         try:
             class Args:
                 auto = True
+                no_prebuilt = True
             try:
                 mod.cmd_llm_install_llama(Args())
             except SystemExit as e:
@@ -1459,6 +1465,250 @@ class TestOllamaFamilyResolution:
         out2 = r2.stdout + r2.stderr
         assert "over this box's fast budget" in out2, out2[:500]
         assert "curl -fsSL https://ollama.com/install.sh" in out2  # printed the chooser, did NOT run it
+
+
+
+class TestMacosPrebuilt:
+    """macOS must install llama.cpp WITHOUT a compiler, cmake or Homebrew.
+
+    THE FAILURE THIS GUARDS AGAINST (a MacBook Air, 2026-11-28)
+    ────────────────────────────────────────────────────────────
+    `hivv install llm` wanted to COMPILE llama.cpp, so it demanded cmake
+    first. On a Mac with no Homebrew there is no package manager to name, so
+    the hint fell back to the Linux line — "install git, cmake, a C++
+    compiler and make with your package manager" — listing three tools the
+    Mac already had (Xcode Command Line Tools) and naming no way to get the
+    one it lacked. The install died before it ever looked at llama.cpp.
+
+    THE FIX: llama.cpp SHIPS prebuilt macOS binaries (16.9 MB arm64 /
+    12.7 MB x64). Download, unpack into ~/llama.cpp/build/bin — precisely
+    where _llama_tree_state looks — and a later run reads "built". The
+    build-tool preflight is now attempted only AFTER the prebuilt, because
+    asking for cmake first is asking the wrong question.
+
+    Every test here is OFFLINE: the release list is a fixture, never a live
+    GitHub call (the suite runs with "no network, no $HOME writes").
+    """
+
+    ARCH_MATRIX = [
+        ('darwin', 'arm64', 'macos-arm64'),
+        ('darwin', 'arm64e', 'macos-arm64'),   # Apple Silicon
+        ('darwin', 'x86_64', 'macos-x64'),     # Intel
+        ('darwin', 'i386', ''),                # no prebuilt published
+        ('linux', 'x86_64', ''),               # macOS-only feature
+        ('linux', 'aarch64', ''),
+        ('win32', 'AMD64', ''),
+    ]
+
+    def test_prebuilt_arch_matrix(self, monkeypatch):
+        mod = _load_cli()
+        for plat, mach, want in self.ARCH_MATRIX:
+            monkeypatch.setattr(mod.sys, 'platform', plat)
+            monkeypatch.setattr(mod.platform, 'machine', lambda m=mach: m)
+            got = mod._llama_prebuilt_arch()
+            assert got == want, f'{plat}/{mach} -> {got!r}, want {want!r}'
+
+    @staticmethod
+    def _fake_releases(payload):
+        """A urlopen stand-in returning `payload` as JSON."""
+        class _Resp:
+            def read(self):
+                import json as _j
+                return _j.dumps(payload).encode()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        return lambda *a, **k: _Resp()
+
+    def test_asset_picks_the_newest_tag_matching_this_arch(self, monkeypatch):
+        mod = _load_cli()
+        monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+        monkeypatch.setattr(mod.platform, 'machine', lambda: 'arm64')
+        # newest first, as the API returns it; b1 has no arm64 asset at all
+        payload = [
+            {'tag_name': 'b1', 'assets': [
+                {'name': 'llama-b1-bin-macos-x64.tar.gz',
+                 'browser_download_url': 'https://x/b1-x64'}]},
+            {'tag_name': 'b2', 'assets': [
+                {'name': 'llama-b2-bin-macos-arm64.tar.gz',
+                 'browser_download_url': 'https://x/b2-arm64'},
+                {'name': 'llama-b2-bin-macos-x64.tar.gz',
+                 'browser_download_url': 'https://x/b2-x64'}]},
+        ]
+        monkeypatch.setattr(mod.urllib.request, 'urlopen',
+                            self._fake_releases(payload))
+        tag, url = mod._llama_prebuilt_asset()
+        assert (tag, url) == ('b2', 'https://x/b2-arm64')
+
+    def test_asset_is_none_when_the_platform_has_no_prebuilt(self, monkeypatch):
+        mod = _load_cli()
+        monkeypatch.setattr(mod.sys, 'platform', 'linux')
+        # a live call must never happen: linux returns before any request
+        def _boom(*a, **k):
+            raise AssertionError('linux must not query the releases API')
+        monkeypatch.setattr(mod.urllib.request, 'urlopen', _boom)
+        assert mod._llama_prebuilt_asset() == (None, None)
+
+    def test_a_network_failure_is_not_a_dead_end(self, monkeypatch, tmp_path):
+        mod = _load_cli()
+        monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+        monkeypatch.setattr(mod.platform, 'machine', lambda: 'arm64')
+        # point the tree at tmp so a real ~/llama.cpp cannot decide the result
+        monkeypatch.setattr(mod, '_LLAMA_CPP_DIR', str(tmp_path / 'llama.cpp'))
+        def _boom(*a, **k):
+            raise OSError('offline')
+        monkeypatch.setattr(mod.urllib.request, 'urlopen', _boom)
+        assert mod._llama_prebuilt_asset() == (None, None)
+        # the install must RETURN False, never raise — the caller then falls
+        # back to a source build instead of dying on a flaky network
+        assert mod._llama_prebuilt_install() is False
+
+    def test_prebuilt_download_extract_and_verify_offline(self, monkeypatch,
+                                                          tmp_path):
+        """The WHOLE prebuilt path, with no network: fake archive in,
+        executable llama-server out, and _llama_tree_state reading "built".
+
+        The download step is intercepted and handed a tarball built here, so
+        the real extract / place / chmod / verify code runs for real."""
+        import tarfile
+        mod = _load_cli()
+
+        # ── a release archive, built locally ────────────────────────────
+        staging = tmp_path / 'staging'
+        inner = staging / 'llama-bTEST'
+        inner.mkdir(parents=True)
+        (inner / 'llama-server').write_text(
+            '#!/bin/sh\necho "llama-server (fake) $*"\nexit 0\n')
+        (inner / 'llama-server').chmod(0o644)   # NOT executable on disk:
+        # the installer must chmod it, or the next run rebuilds forever
+        (inner / 'libggml-metal.dylib').write_bytes(b'\xcf\xfa\xed\xfe')
+        (inner / 'LICENSE').write_text('MIT')
+        archive = tmp_path / 'llama-fake.tar.gz'
+        with tarfile.open(archive, 'w:gz') as tf:
+            tf.add(staging, arcname='.')
+
+        # ── where it must land ──────────────────────────────────────────
+        tree = tmp_path / 'llama.cpp'
+        monkeypatch.setattr(mod, '_LLAMA_CPP_DIR', str(tree))
+        monkeypatch.setattr(mod, '_LLAMA_CPP_BIN', str(tree / 'build' / 'bin'))
+        monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+        monkeypatch.setattr(mod.platform, 'machine', lambda: 'arm64')
+        monkeypatch.setattr(mod, '_llama_prebuilt_asset',
+                            lambda: ('bTEST', 'https://example.invalid/fake.tar.gz'))
+
+        # ── intercept only the DOWNLOAD; tar and the verify run for real ─
+        import subprocess as real_subprocess
+        real_call = mod.subprocess.call
+
+        def fake_call(cmd, *a, **kw):
+            if cmd and os.path.basename(str(cmd[0])) in ('curl', 'wget'):
+                # the download: -o <path> (curl) or -O <path> (wget)
+                if '-o' in cmd:
+                    dest = cmd[cmd.index('-o') + 1]
+                else:
+                    dest = cmd[cmd.index('-O') + 1]
+                shutil.copyfile(archive, dest)
+                return 0
+            return real_call(cmd, *a, **kw)
+
+        monkeypatch.setattr(mod.subprocess, 'call', fake_call)
+
+        ok = mod._llama_prebuilt_install()
+        assert ok is True, 'the prebuilt install should have succeeded'
+
+        server = tree / 'build' / 'bin' / 'llama-server'
+        assert server.is_file(), 'llama-server did not land where the CLI looks'
+        assert os.access(str(server), os.X_OK), 'the installer must chmod +x'
+        assert (tree / 'build' / 'bin' / 'libggml-metal.dylib').is_file()
+        assert (tree / 'build' / 'bin' / 'LICENSE').is_file()
+        # ...and that is exactly what the NEXT run must see
+        assert mod._llama_tree_state(str(tree)) == 'built'
+
+        # a second run is a no-op, not a re-download
+        monkeypatch.setattr(mod.subprocess, 'call',
+                            lambda *a, **k: (_ for _ in ()).throw(
+                                AssertionError('must not download again')))
+        assert mod._llama_prebuilt_install() is True
+
+    def test_tree_state_reads_a_prebuilt_layout_as_built(self, tmp_path):
+        """Unpacking into build/bin must satisfy _llama_tree_state — that is
+        what stops the next run from asking for a compiler again."""
+        mod = _load_cli()
+        tree = tmp_path / 'llama.cpp'
+        assert mod._llama_tree_state(str(tree)) == 'missing'
+        bindir = tree / 'build' / 'bin'
+        bindir.mkdir(parents=True)
+        # no CMakeLists.txt anywhere: this is NOT a source tree
+        assert mod._llama_tree_state(str(tree)) != 'source'
+        server = bindir / 'llama-server'
+        server.write_text('#!/bin/sh\necho ok\n')
+        server.chmod(0o755)
+        assert mod._llama_tree_state(str(tree)) == 'built'
+
+    def test_macos_hint_names_only_cmake_and_offers_prebuilt(self, monkeypatch,
+                                                             capsys):
+        """THE REPORTED BUG: no Homebrew -> the Linux dead end.
+
+        The Mac already has git, clang++ and make; only cmake is missing.
+        The hint must say exactly that, and must offer the path that needs
+        neither Homebrew nor a compiler."""
+        mod = _load_cli()
+        monkeypatch.setattr(mod.sys, 'platform', 'darwin')
+        monkeypatch.setattr(mod.platform, 'machine', lambda: 'arm64')
+        monkeypatch.setattr(
+            mod.shutil, 'which',
+            lambda n: ('/usr/bin/' + n)
+            if n in ('git', 'clang', 'clang++', 'c++', 'make') else None)
+        ok = mod._ensure_build_tools(['git', 'cmake', 'cxx', 'make'])
+        err = capsys.readouterr().err
+        assert ok is False
+        assert 'cmake' in err
+        assert 'missing build tool(s): cmake' in err, err
+        # it must NOT ask for tools the Mac already has
+        assert 'with your package manager' not in err, err
+        # and it must name the way forward
+        assert 'Homebrew' in err, err
+        assert 'brew install cmake' in err, err
+        assert 'install-llama --auto' in err, err
+        assert 'prebuilt' in err.lower(), err
+
+    def test_prebuilt_is_attempted_before_the_build_tool_preflight(self):
+        """Asking for cmake FIRST is what stopped the Mac."""
+        src = CLI.read_text(encoding='utf-8', errors='replace')
+        body = src.split('def cmd_llm_install_llama(')[1]
+        body = body.split('\ndef ')[0]
+        pre = body.find('_llama_prebuilt_install()')
+        gate = body.find('_ensure_build_tools(')
+        assert pre != -1, 'the install never tries the prebuilt'
+        assert gate != -1, 'the source path lost its preflight'
+        assert pre < gate, (
+            'the build-tool preflight runs before the prebuilt — a Mac dies'
+            ' at cmake before the download is ever tried')
+
+    def test_no_prebuilt_flag_is_wired(self):
+        src = CLI.read_text(encoding='utf-8', errors='replace')
+        assert 'no-prebuilt' in src, 'no escape hatch to force a source build'
+        # a declared-but-unread flag would silently do nothing
+        assert 'getattr(args, "no_prebuilt", False)' in src, (
+            '--no-prebuilt is declared but never read')
+
+    def test_shell_installers_carry_the_darwin_hint(self):
+        """The same dead end existed in both shell surfaces."""
+        installer = (REPO / 'public_html' / 'install-hivv.sh').read_text(
+            encoding='utf-8', errors='replace')
+        deps = (REPO / 'scripts' / 'lib' / 'deps.sh').read_text(
+            encoding='utf-8', errors='replace')
+        for name, text in (('install-hivv.sh', installer),
+                           ('deps.sh', deps)):
+            assert 'Darwin' in text, name
+            assert 'raw.githubusercontent.com/Homebrew/install' in text, (
+                name + ' still has no Homebrew instructions for a Mac')
+            assert 'install-llama --auto' in text, (
+                name + ' does not offer the prebuilt path')
 
 if __name__ == "__main__":
     import pytest
