@@ -165,3 +165,28 @@ gate in the active `hivv dial` codepath (other session), don't fork — see plan
 | J3 | ✅ DONE 2026-11-27: **K3 — per-principal route defaults SHIPPED** (no migration needed — storage is `gateway_config.routing.principal_defaults`, riding the SAME `loadConfig` merge the weight tables use). Applied in `routeWithFailover` **per-field**: a stored default fills ONLY fields the request left out — an explicit `--mode` always wins, and your stored `privacy` safety-net SURVIVES an explicit mode. Identity = verified scopes only (session · signed cookie · proven node secret). API `GET/PUT /api/prefs` (403 `NO_IDENTITY` without a verified scope; PUT validates mode/privacy before touching storage) + CLI **`hivv prefs [show|set MODE|privacy P|self BEE…|clear]`** (dispatched, help-table entry, dies loud on unknown action). CORS gained `PUT` (policy PUT needed it too). Tests: `api/tests/route-prefs.test.js` (12: default lookup incl. strongest-first + garbage-ignored, **routeWithFailover application + explicit-wins**, 4 LIVE: NO_IDENTITY, signed-cookie round-trip set→read→clear, 400-without-body, self dry-run) + `tests/test_prefs_cli.py` (10: dispatch, offline help, every action's exact body, NO_IDENTITY hint, unknown-action dies with usage and NEVER chats). LIVE: `hivv prefs` show/set/clear through https://hivv.org as `node:ashy` | `api/lib/router.js` routeDefaultFor, `api/routes/prefs-routes.js` (new), `server.js`, `capability-routes.js`, `hivv-cli.py` | 🟡 | P6 / K3 | ✅ |
 | J4 | ✅ DONE 2026-11-27: **K4 — `privacy: 'self'` SHIPPED — the "only when I talk" switch.** Accepted everywhere privacy is (route body, client override list, dry-run preview + order). Enforced at THREE points: `tryLocalAI` (filter applied AFTER the preferred-name pin so a pin can't reach around it), `_tryRelay` (relay crosses NAT → own bees only), cloud (the existing `privacy !== 'any'` gate). Ownership = **proven `node:<id>` scope** (x-node-secret) ∪ **claims via `PUT /api/prefs {self_nodes}`** (`routing.self_owners`, claims must name an existing bee — typos 404); no verified scopes → hub-local only, NEVER "everything". Dry-run `routePreview` takes `keyScopes` (capability-routes injects `keyScopesOf`) so `?privacy=self` shows exactly the caller's allowed world. **LIVE PROOF**: cookie-scoped `privacy=self` pref → chat answered `localhost/gemma-4-E2B (direct)` instead of the usual masjid → pref cleared. Tests: `route-prefs.test.js` K4 units (node scope, claims incl. not-mine, filter keeps hub-local + mine, anonymous = local-only) + preview contrast (self vs any) + LIVE dry-run | `api/lib/router.js` selfAllowedNodes/filterSelfTargets, `prefs-routes.js`, `capability-routes.js` | 🟡 | P6 / K4 | ✅ |
 | J5 | **Policy decision:** direct routing ignores `volunteer` (router.js:1248–1274) and the public roster exposes `ip`/`lan_ip`/models (control-routes.js:156) — decide: volunteer-gate `getAllEndpoints`? honour `visibility: private` in the roster? (Relay is already gated; this is the direct-path half) | `api/lib/router.js`, `api/routes/control-routes.js` | 🟡 | P5 | 2h + call |
+
+## R. Feedback reply loop (2026-11-27 — the READ side shipped, the WRITE side is open)
+
+The submission surface landed (`tests/test_submission.py`, 41): an AI can file a bug from
+OpenCode via the MCP `feedback` tool, both skills document the doors, and `hivv feedback`
+is the obvious alias. **The read side of the reply is done too** — `GET /api/feedback` now
+SELECTs `review_notes` + `updated_at` and both CLI listings print `↳ reply:`.
+
+**What is still missing is the ability to ANSWER.** Today nothing on this box ever writes
+`hivv_feedback.review_notes` or moves its `status`, so a report can be filed and read but
+never answered. Pinned as an xfail in `tests/test_submission.py::test_the_reply_write_path`
+— it becomes a real assertion the moment somebody builds the write side.
+
+| # | Task | Where | Pri | Notes | Est |
+|---|------|-------|-----|-------|-----|
+| R1 | **The reply writer.** An admin-gated `PATCH /api/feedback/:id` that sets `status` + `review_notes` (and `reviewed_at`/`reviewed_by`). Admin = localhost / control token / admin session, the same rule as the other control routes. Without this the column is decorative. | `api/server.js` or `api/routes/` | 🔴 | needs: admin auth pattern already exists | 1h |
+| R2 | **Drive the status lifecycle.** The schema allows `open → reviewed → in_progress → resolved → dismissed` and nothing transitions it. Wire R1's `status` to that CHECK, and surface the move (the CLI already prints the status; the submitter should see it change). | `api/server.js` + CLI | 🟠 | depends on R1 | 1h |
+| R3 | **A submitter-visible reply door.** `GET /api/feedback/:id` for ONE report (currently only a list of 50), so a client can poll one item instead of the whole list. | `api/server.js` | 🟡 | depends on R1 | 20m |
+| R4 | **Delete the xfail.** `tests/test_submission.py::test_the_reply_write_path` flips from `pytest.xfail` to a real round-trip assertion once R1 lands — file → reply → read back. | `tests/test_submission.py` | 🟡 | after R1 | 10m |
+
+**Also open (small):** `hivv bug` *searches* the live error log — it does not file anything.
+If `hivv bugs` should mean "file a bug", that is a one-line dispatch change to route it at
+`cmd_submit` instead of the log search; today the filing doors are `hivv submit` and
+`hivv feedback`.
+

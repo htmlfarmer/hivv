@@ -4804,7 +4804,11 @@ app.get('/api/feedback', async (req, res) => {
   const params = session?.userId ? [visitorId, session.userId] : [visitorId];
   try {
     const result = await pool.query(
-      `SELECT id, type, subject, message, status, created_at
+      // review_notes IS the reply — the maintainer's answer. It was never
+      // selected, so a submitter could see that a report was "reviewed" but
+      // never read a word back: hivv.org could reply and nobody would ever
+      // know. updated_at tells them WHEN the status last moved.
+      `SELECT id, type, subject, message, status, review_notes, created_at, updated_at
        FROM hivv_feedback
        WHERE 1=1 ${userFilter}
        ORDER BY created_at DESC

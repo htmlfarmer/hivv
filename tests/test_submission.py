@@ -16,10 +16,12 @@ That is FIVE properties, and only the first two used to hold:
   3. EASY FOR AIS TO FIND     -> neither SKILL.md mentioned filing anything.
                                  An AI reads the skill; if the skill is
                                  silent, the command does not exist for it.
-  4. HIVV.ORG CAN REPLY       -> the reply COLUMN exists (review_notes) but
-                                 NOTHING writes it, and the GET does not
-                                 return it. You can file; you can never see
-                                 an answer. (Still open — see below.)
+  4. HIVV.ORG CAN REPLY       -> HALF BUILT. The reply COLUMN exists
+                                 (review_notes) and the READ side now works:
+                                 GET /api/feedback returns it and the CLI
+                                 prints it, so an answer reaches the submitter.
+                                 The WRITE side is still open — nothing sets
+                                 review_notes. (See below.)
   5. AND SOLVE                -> status lifecycle exists in the schema
                                  (open -> reviewed -> in_progress ->
                                  resolved) but no transition is driven by
@@ -318,6 +320,27 @@ class TestReplyPath:
         block = src[src.index("async function _toolFeedback"):]
         block = block[:block.index("\n}") + 3]
         assert "review_notes" in block
+
+    def test_the_http_read_path_returns_the_reply(self):
+        """The CLI's list door reads GET /api/feedback. If the SELECT omits
+        review_notes, hivv.org can answer a report and the submitter never
+        sees a word of it — the reply column exists and is invisible."""
+        src = (REPO / "api" / "server.js").read_text(encoding="utf-8",
+                                                     errors="replace")
+        start = src.index("app.get('/api/feedback'")
+        block = src[start:start + 900]
+        assert "FROM hivv_feedback" in block, "could not find the feedback SELECT"
+        select = block[block.index("SELECT"):block.index("FROM hivv_feedback")]
+        assert "review_notes" in select, (
+            "GET /api/feedback withholds review_notes — the reply would be "
+            "written and never read")
+        assert "updated_at" in select
+
+    def test_the_cli_prints_the_reply(self):
+        """…and the CLI must show it, or the endpoint's answer reaches nobody."""
+        src = CLI.read_text(encoding="utf-8", errors="replace")
+        assert "review_notes" in src
+        assert "↳ reply:" in src or "reply:" in src
 
     def test_the_reply_write_path(self):
         """THE OPEN GAP — named, not quietly green.
