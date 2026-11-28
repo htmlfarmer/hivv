@@ -172,3 +172,33 @@ class TestThePointAndTheGuardrails:
             for step in job.get("steps", []):
                 if "uses" in step:
                     assert "@" in step["uses"], f"{name}: unpinned action"
+
+
+class TestTheLessonsRunOneTaught:
+    """Both real failures of the first GitHub run, pinned so they stay fixed."""
+
+    def test_windows_downloads_to_a_file_not_a_byte_array(self):
+        # python's http.server serves .ps1 as application/octet-stream, so
+        # (iwr ...).Content comes back as a BYTE ARRAY — scriptblock::Create
+        # received "35 32 105 110 ..." (ASCII codes) and refused to parse.
+        # Run 1 died exactly there; -OutFile + Get-Content -Raw is a string,
+        # always.
+        run = _runs(_load()["jobs"]["windows"])
+        assert "-OutFile" in run, "download to a file — .Content is bytes"
+        assert "Get-Content -Raw" in run, "read it as a string before Create"
+        # code lines only — the comments are ALLOWED (and required) to say
+        # ".Content" while explaining the byte-array trap
+        code = "\n".join(
+            line for line in run.splitlines()
+            if not line.strip().startswith("#")
+        )
+        assert ".Content" not in code, (
+            "no bare .Content into scriptblock::Create — it is a byte array")
+
+    def test_unix_rc_grep_only_reads_existing_files(self):
+        # grep over TWO rc files where one does not exist exits 2 (an ERROR,
+        # not "no match"), and set -e turns that into a red job. Run 1: ubuntu
+        # died here, macOS passed (both its files existed).
+        run = _runs(_load()["jobs"]["unix"])
+        assert 'if [ -f "$f" ]' in run, "only grep files that exist"
+        assert "[ -n \"$rcs\" ]" in run, "and fail loudly if there are none"

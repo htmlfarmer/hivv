@@ -90,8 +90,16 @@ jobs:
           "$HOME/.local/bin/hivv" --version
 
           # ...and PATH was wired for the visitor's FUTURE shells (--yes
-          # writes the export line into the shell rc it detected).
-          grep -q "$HOME/.local/bin" "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null
+          # writes the export line into whichever shell rc it detected).
+          # grep only files that EXIST: a missing .zshrc makes grep exit 2
+          # (not 1), and set -e turns that into a red job — run 1 died here
+          # on ubuntu while macOS passed.
+          rcs=""
+          for f in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.config/fish/config.fish"; do
+            if [ -f "$f" ]; then rcs="$rcs $f"; fi
+          done
+          [ -n "$rcs" ]
+          grep -q "$HOME/.local/bin" $rcs
 
   windows:
     name: windows-latest · install-hivv.ps1
@@ -129,9 +137,15 @@ jobs:
             # visitor's "iwr -useb ... | iex" (same transport, same file),
             # then run non-interactively. -Yes answers every prompt, -NoLlm
             # and -NoService keep the runner hermetic (rule 2).
-            & ([scriptblock]::Create(
-              (Invoke-WebRequest 'http://127.0.0.1:8123/install-hivv.ps1' -UseBasicParsing).Content
-            )) -Yes -NoLlm -NoService
+            #
+            # Download to a FILE first: python's http.server serves .ps1 as
+            # application/octet-stream, so (iwr ...).Content comes back as a
+            # BYTE ARRAY — scriptblock::Create received "35 32 105 110 ..."
+            # (the ASCII codes of "# in...") and refused to parse. Run 1
+            # died exactly there. Get-Content -Raw is a string, always.
+            $dl = Join-Path $env:RUNNER_TEMP 'install-hivv.ps1'
+            Invoke-WebRequest 'http://127.0.0.1:8123/install-hivv.ps1' -OutFile $dl -UseBasicParsing
+            & ([scriptblock]::Create((Get-Content -Raw $dl))) -Yes -NoLlm -NoService
 
             # The whole point of an installer: it runs from the command line.
             hivv --version
