@@ -209,10 +209,10 @@ function _validateStudy(e) {
     // A RISKY vote does NOT block. The review is a MODEL's opinion, and the
     // small local models are harsh — one of them called a two-line function
     // an undocumented, potentially unused function and voted RISKY, which
-    // would have made the whole project unmergeable. So a RISKY vote is a
-    // SIGNAL: it raises the bar (a human must sign) instead of killing the
-    // change. Only the deterministic findings — hard_danger and secrets —
-    // block.
+    // would have made the whole project unmergeable by its own reviewers.
+    // So a RISKY vote is a SIGNAL: it raises the bar (a human must sign)
+    // instead of killing the change. Only the deterministic findings —
+    // hard_danger and secrets — block.
     const votes = e.votes;
     if (!Array.isArray(votes)) {
         problems.push('votes must be an array');
@@ -437,7 +437,12 @@ function _public(p) {
         issue_number: p.issue_number || null,
         filed_at: p.filed_at || null,
         filed_via: p.filed_via || null,
+        red_team: !!p.red_team,
         patch_sha256: p.patch_sha256,
+        // Size, never the bytes: a 400 KB diff must not ride along on every
+        // list read, but a reader needs to know a proposal HAS a patch (and
+        // that it survived the restart that used to empty it).
+        patch_bytes: (p.patch || '').length,
         files_changed: p.files_changed,
         protected_hit: p.protected_hit,
         protected_paths: p.protected_paths,
@@ -479,7 +484,7 @@ function create({
     // ── the intake funnel's fields (035) ──
     type, body, evidence, node_id, dedupe_key, votes, verdict,
     screen, reviews, issue_url, issue_number, filed_via,
-    needs_human,
+    needs_human, red_team,
 } = {}) {
     // A proposal is about THIS hive's source. The route and the CLI both
     // default it; requiring it here made every caller re-state the obvious.
@@ -539,6 +544,7 @@ function create({
         issue_number: Number.isFinite(issue_number) ? issue_number : null,
         filed_at: issue_url ? now : null,
         filed_via: filed_via ? String(filed_via).slice(0, 40) : null,
+        red_team: !!red_team,
         status: 'open',
         created_at: now,
         updated_at: now,
@@ -920,9 +926,10 @@ function _persist(p) {
              protected_hit, high_risk, gates, receipts, chain_hash,
              created_at, updated_at, expires_at, merged_at, deployed_at,
              type, body, evidence, node_id, dedupe_key, votes, verdict,
-             screen, reviews, issue_number, issue_url, filed_at, filed_via)
+             screen, reviews, issue_number, issue_url, filed_at, filed_via,
+             patch, red_team)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-                $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
+                $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
         ON CONFLICT (id) DO UPDATE SET
             state=EXCLUDED.state, gates=EXCLUDED.gates, receipts=EXCLUDED.receipts,
             chain_hash=EXCLUDED.chain_hash, updated_at=EXCLUDED.updated_at,
@@ -938,7 +945,8 @@ function _persist(p) {
             JSON.stringify(p.votes || []), p.verdict,
             p.screen ? JSON.stringify(p.screen) : null,
             JSON.stringify(p.reviews || []),
-            p.issue_number, p.issue_url, p.filed_at, p.filed_via])
+            p.issue_number, p.issue_url, p.filed_at, p.filed_via,
+            p.patch || null, !!p.red_team])
         .catch((err) => console.warn('[PROPOSAL] persist failed:', err.message));
 }
 
@@ -955,7 +963,8 @@ async function init(pgPool) {
                     id: row.id,
                     principal: row.principal, repo: row.repo,
                     base_ref: null, base_sha: row.base_sha, branch: row.branch,
-                    title: row.title, summary: '', patch: '', patch_sha256: row.patch_sha256,
+                    title: row.title, summary: '', patch: row.patch || '',
+                    patch_sha256: row.patch_sha256,
                     // ── intake (035) ──
                     type: row.type || null,
                     body: row.body || null,
@@ -970,6 +979,7 @@ async function init(pgPool) {
                     issue_url: row.issue_url || null,
                     filed_at: row.filed_at ? Number(row.filed_at) : null,
                     filed_via: row.filed_via || null,
+                    red_team: !!row.red_team,
                     files_changed: [], baseline_suite_digest: null,
                     protected_hit: !!row.protected_hit, protected_paths: [],
                     high_risk: !!row.high_risk, high_risk_paths: [],

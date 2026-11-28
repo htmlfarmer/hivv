@@ -168,6 +168,15 @@ async function _gh(method, p, body) {
 
 // Find an existing artifact carrying our marker. This is the idempotency
 // check: a retry must find the FIRST post, not create a second.
+// A marker only counts when it is its OWN line. `withMarker` always appends
+// one on its own, so a real hit passes; a marker quoted in the middle of a
+// paragraph does not. Defense in depth — intake already neutralises markers
+// a proposer tries to plant (funnel.sanitizeMarkers).
+function isOwnMarkerLine(id, body) {
+  const m = marker(id);
+  return String(body || '').split(/\r?\n/).some(l => l.trim() === m);
+}
+
 // WHY THE LIST ENDPOINT AND NOT /search/issues
 // ─────────────────────────────────────────────
 // GitHub's search index is EVENTUALLY CONSISTENT. An issue that was just
@@ -186,6 +195,9 @@ async function _gh(method, p, body) {
 // Default sort is created DESC, so the artifact a retry wants is on page one;
 // we still walk a few pages, BOUNDED, so a large repo cannot turn an
 // idempotency check into a rate-limit bill.
+//
+// The match still requires an OWN-LINE marker (isOwnMarkerLine): a marker
+// quoted in someone's prose must not count as our artifact.
 const LIST_PAGES = 3;
 const LIST_PER_PAGE = 100;
 
@@ -195,7 +207,7 @@ async function _findByMarker(id) {
       const batch = await _gh('GET',
         `/repos/${REPO}/issues?state=all&per_page=${LIST_PER_PAGE}&page=${page}`);
       if (!Array.isArray(batch) || batch.length === 0) return null;
-      const hit = batch.find(i => hasMarker(id, i.body));
+      const hit = batch.find(i => isOwnMarkerLine(id, i.body));
       if (hit) return hit;
       if (batch.length < LIST_PER_PAGE) return null;   // ran out of issues
     }
@@ -480,5 +492,5 @@ module.exports = {
   token, isStub, status, stubDir,
   createIssue, ensurePR, comment, close,
   // exported for the tests
-  _patchFiles, _applyOneFile, _findByMarker,
+  _patchFiles, _applyOneFile, _findByMarker, isOwnMarkerLine,
 };

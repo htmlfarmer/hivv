@@ -234,6 +234,7 @@
    "tests/test_nodes_table.py",
    "tests/test_prefs_cli.py",
    "tests/test_propose_cli.py",
+   "tests/test_propose_funnel_cli.py",
    "tests/test_resume_not_reregister.py",
    "tests/test_rollback.py",
    "tests/test_salah_cli.py",
@@ -592,6 +593,9 @@
    "public_html/hivv-cli.py"
   ],
   "tests/test_propose_cli.py": [
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_propose_funnel_cli.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_repo_scripts.py": [

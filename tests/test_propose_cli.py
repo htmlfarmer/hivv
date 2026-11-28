@@ -186,18 +186,29 @@ class TestTheHublessPath:
 
 
 class TestThePushIsGated:
-    """--push must come AFTER the gates. Pushing an unauthorized change is the
-    whole failure mode this pipeline exists to prevent."""
+    """THE DESIGN LAW: nodes never hold a GitHub credential.
 
-    def test_the_push_block_is_after_the_gates(self):
+    The older shape GATED --push behind the gates — the node still pushed,
+    just later. The funnel design refuses it outright: a node that could
+    push a branch could push anything, so the hub's relay is the only
+    writer and it sits behind the github.write policy gate. Ordering is no
+    longer the control — the credential is.
+    """
+
+    def test_push_is_refused_outright(self):
         src = CLI.read_text(encoding="utf-8", errors="replace")
         body = src.split("def cmd_propose(")[1]
-        g_study = body.index("/study")
-        g_auth = body.index("/authorize")
-        g_test = body.index("/test")
-        push = body.index("_propose_push(")
-        assert g_study < g_auth < g_test < push, (
-            "the push must sit after study, authorize and test")
+        assert "never hold a GitHub credential" in body, (
+            "cmd_propose must refuse --push and say why")
+        assert "_propose_push(" not in body, (
+            "cmd_propose must never push a branch itself")
+
+    def test_the_refusal_happens_before_anything_is_sent(self):
+        src = CLI.read_text(encoding="utf-8", errors="replace")
+        body = src.split("def cmd_propose(")[1]
+        refuse = body.index("never hold a GitHub credential")
+        send = body.index('http("POST"')
+        assert refuse < send, "the law must be checked before we talk to the hub"
 
 
 class TestTheBaselineDigest:
