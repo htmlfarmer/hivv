@@ -16,7 +16,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/ecosystem.config.js` | `tests/test_location_independence.py` |
 | `api/lib/a2a-client.js` | `api/tests/interop.test.js` |
 | `api/lib/attendance.js` | `api/tests/salah.test.js` |
-| `api/lib/attest.js` | `api/tests/identity.test.js`, `api/tests/proposal-funnel.test.js`, `api/tests/proposal-sign.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
+| `api/lib/attest.js` | `api/tests/identity.test.js`, `api/tests/proposal-auth.test.js`, `api/tests/proposal-funnel.test.js`, `api/tests/proposal-sign.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
 | `api/lib/bee-identity.js` | `api/tests/ritual.test.js` |
 | `api/lib/brainboard.js` | `api/tests/brainboard.test.js` |
 | `api/lib/cache.js` | `api/tests/cache.test.js` |
@@ -28,7 +28,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/github-relay.js` | `api/tests/github-relay.test.js`, `api/tests/proposal-funnel.test.js` |
 | `api/lib/hive-clients.js` | `api/tests/interop.test.js` |
 | `api/lib/horizon.js` | `api/tests/horizon.test.js` |
-| `api/lib/identity.js` | `api/tests/identity.test.js`, `api/tests/proposal-funnel.test.js`, `api/tests/proposal-sign.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
+| `api/lib/identity.js` | `api/tests/identity.test.js`, `api/tests/proposal-auth.test.js`, `api/tests/proposal-funnel.test.js`, `api/tests/proposal-sign.test.js`, `api/tests/trust.test.js`, `tests/test_identity_cli.py` |
 | `api/lib/key-donation.js` | `api/tests/key-donation.test.js`, `api/tests/key-isolation.test.js` |
 | `api/lib/licenses.js` | `api/tests/licenses.test.js` |
 | `api/lib/local-mode.js` | `api/tests/local-mode.test.js` |
@@ -58,6 +58,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/routes/control-routes.js` | `tests/test_llm_build_tools.py` |
 | `api/routes/honey-routes.js` | `tests/test_failure_diagnostics.py` |
 | `api/routes/mcp-routes.js` | `tests/test_submission.py` |
+| `api/routes/proposal-routes.js` | `api/tests/proposal-auth.test.js` |
 | `api/routes/tile-routes.js` | `api/tests/tile.test.js` |
 | `api/server.js` | `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_repo_scripts.py`, `tests/test_scan_secrets.py` |
 | `docs/HELP.md` | `tests/test_fallback.py` |
@@ -126,6 +127,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/node-name-xss.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/node-registration.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/polite.test.js` | `api/lib/polite.js`, `api/lib/toolkit.js` |
+| `api/tests/proposal-auth.test.js` | `api/lib/attest.js`, `api/lib/identity.js`, `api/routes/proposal-routes.js` |
 | `api/tests/proposal-funnel.test.js` | `api/lib/attest.js`, `api/lib/github-relay.js`, `api/lib/identity.js`, `api/lib/policy.js`, `api/lib/proposal-funnel.js`, `api/lib/proposal.js` |
 | `api/tests/proposal-page.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/proposal-sign.test.js` | `api/lib/attest.js`, `api/lib/identity.js` |
@@ -261,7 +263,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/routes/party-routes.js`
 - `api/routes/policy-routes.js`
 - `api/routes/prefs-routes.js`
-- `api/routes/proposal-routes.js`
 - `api/routes/provenance-routes.js`
 - `api/routes/purpose-routes.js`
 - `api/routes/relay-routes.js`

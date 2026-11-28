@@ -42,7 +42,23 @@ router.inject = (aiRouter, pool) => {
   funnel.inject(aiRouter, pool);
 };
 
-const CONTROL_TOKEN = process.env.HIVV_CONTROL_TOKEN || '';
+// The operator credential: env first, then the 0600 file the operator
+// generates — the SAME fallback control-routes.js and ecosystem.config.js
+// already use. proposal-routes was the only file that read the env alone, so
+// wherever the token lived in the file and not the env, token auth here
+// silently never worked and LOOPBACK was the only way to be an operator.
+// control-routes.js documents that exact production state ("it was an empty
+// string, so token auth simply never worked").
+function _loadControlToken() {
+    if (process.env.HIVV_CONTROL_TOKEN) return process.env.HIVV_CONTROL_TOKEN;
+    try {
+        const t = require('fs').readFileSync(
+            require('path').join(__dirname, '..', '.control-token'), 'utf8').trim();
+        return t || '';
+    } catch (_e) { return ''; }
+}
+const CONTROL_TOKEN = _loadControlToken();
+let _warnedNoToken = false;
 
 // ── rate limits ─────────────────────────────────────────────────────────────
 const CREATE_WINDOW_MS = 60 * 1000;
@@ -68,6 +84,28 @@ function _requester(req) {
     return String(req.headers['x-visitor-id'] || req.ip || 'anon').slice(0, 128);
 }
 
+// WHO is asking — VERIFIED, never claimed.
+//
+// This used to fall back to the raw `x-visitor-id` header. That header is
+// documented at server.js:540 as spoofable — "rate-limiting wants a cheap
+// label, not an identity" — and `p.principal` is PUBLIC: it comes back from
+// GET /api/proposals/:id and is printed into the GitHub issue provenance.
+// Put those together and anyone who could READ a proposal could CLAIM to be
+// its author:
+//
+//     POST /api/proposals/<id>/reject  (no identity)          → 403
+//     ... + x-visitor-id: <the public principal>              → 200, rejected
+//
+// Reproduced against the live gateway before this change.
+//
+// Two ways in now, both verified:
+//   1. a session — getSession() is the server's own, so it is not claimable;
+//   2. a FRESH signed statement, verified exactly the way intake verifies
+//      one. verifyIncoming() refuses a REPLAYED nonce as fatal, so the block
+//      that created the proposal cannot be reused to act on it — the node
+//      signs this action separately, which is the whole point of a nonce.
+//
+// Anything else is null, and null is not an owner.
 async function _principal(req) {
     try {
         const serverPath = require.resolve('../server');
@@ -76,8 +114,23 @@ async function _principal(req) {
             if (s && s.userId) return 'user:' + s.userId;
         }
     } catch (_e) { /* fall through */ }
-    const v = req.headers['x-visitor-id'];
-    return v ? String(v).slice(0, 128) : null;
+
+    const body = req.body || {};
+    const block = body.identity;
+    const nodeId = _cleanId(body.node_id || req.headers['x-hivv-node']);
+    if (block && nodeId) {
+        try {
+            // _mayWrite needs WHO, not WHAT — the action is a separate
+            // decision made by the route. 'proposal.create' is the kind the
+            // identity system already knows how to sign, so a bee can mint
+            // one with the signing code it already has.
+            const v = require('../lib/identity').verifyIncoming({
+                nodeId, identity: block, kind: 'proposal.create',
+            });
+            if (v && v.ok && v.principal) return v.principal;
+        } catch (_e) { /* fail closed */ }
+    }
+    return null;
 }
 
 // node_id is attacker-influenced (a signed statement may carry any string).
@@ -98,11 +151,31 @@ function timingSafeEq(a, b) {
     try { return crypto.timingSafeEqual(x, y); } catch (_e) { return false; }
 }
 
+// OPERATOR — a credential, never an address.
+//
+// Loopback used to grant admin here. Two ways in, and both are bad:
+//
+//   * SSRF. Any service on this box that can be talked into fetching
+//     http://127.0.0.1:3011/... inherits operator rights, because the
+//     request really does arrive from 127.0.0.1.
+//   * X-Forwarded-For. server.js sets `trust proxy = 1`, so for a request
+//     that reaches the origin WITHOUT the proxy, req.ip is the rightmost
+//     X-Forwarded-For entry — a client can send
+//     `X-Forwarded-For: 127.0.0.1` and become the operator outright.
+//
+// An address is not a credential. Fail closed (CONTRIBUTING rule #2): with
+// no token configured nobody is an operator, and the fix is to generate
+// api/.control-token — not to fall back to trusting the network.
 function _isAdmin(req) {
-    const ip = req.ip || (req.connection && req.connection.remoteAddress) || '';
-    if (ip.includes('127.0.0.1') || ip.includes('::1')) return true;
     const t = req.headers['x-control-token'];
-    return Boolean(CONTROL_TOKEN && t && timingSafeEq(t, CONTROL_TOKEN));
+    if (CONTROL_TOKEN && t && timingSafeEq(t, CONTROL_TOKEN)) return true;
+    if (!CONTROL_TOKEN && !_warnedNoToken) {
+        _warnedNoToken = true;
+        console.error('[PROPOSAL] no control token configured — operator ' +
+            'actions (merge/approve) are refused for everyone. Generate ' +
+            'api/.control-token (0600) or set HIVV_CONTROL_TOKEN.');
+    }
+    return false;
 }
 
 // Ownership: the author may read and advance their own proposal. An admin
@@ -949,3 +1022,8 @@ router.post('/:id/reject', express.json({ limit: '64kb' }), async (req, res) => 
 });
 
 module.exports = router;
+
+// Exported for the tests ONLY — never call these from a route. They are the
+// two functions that decide who may act on a proposal, so they are the two
+// that must be pinned (api/tests/proposal-auth.test.js).
+router._auth = { _isAdmin, _principal, _mayWrite };
