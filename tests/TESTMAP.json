@@ -265,6 +265,7 @@
    "tests/test_submission.py",
    "tests/test_sync_review.py",
    "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py",
    "tests/test_testmap.py",
    "tests/test_tools_test_cmd.py",
    "tests/test_traffic_count.py",
@@ -741,6 +742,9 @@
    "public_html/hivv-cli.py",
    "public_html/install-hivv.sh",
    "public_html/install-tailscale.sh"
+  ],
+  "tests/test_tailscale_ladder.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_telemetry_tasks_a2a.py": [
    "api",
