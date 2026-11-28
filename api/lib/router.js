@@ -7,6 +7,9 @@ const { looksDegenerate } = require('./degenerate');
 // The scoring vector: every candidate gets the same factors, a mode is a
 // weight table over them. See HIVV_ROUTING_PLAN.md §7.
 const routeFactors = require('./route-factors');
+// ONE definition of "what kind of model is this" — shared with capabilities,
+// so a bee the router refuses to offer is also one that cannot CLAIM the cap.
+const modelKind = require('./model-kind');
 const trustLib = require('./trust');
 const identityLib = require('./identity');
 const horizonLib = require('./horizon');
@@ -471,10 +474,12 @@ class AIRouter {
     // (api/tests/embed-model.test.js reads _EMBED_NAME_HINTS out of the CLI).
     // No chat model ships "embed" in its tag, so this cannot take an answer
     // away; a name we cannot identify stays eligible.
-    static EMBED_MODEL_RE = /embed|bge-|all-minilm|sentence-transformers|gte-/i;
+    // Delegates to api/lib/model-kind.js — the ONE family list, shared with
+    // capabilities.js. Kept as statics so callers (and tests) read naturally.
+    static EMBED_MODEL_RE = modelKind.EMBED_MODEL_RE;
 
     static isEmbedModel(name) {
-        return AIRouter.EMBED_MODEL_RE.test(String(name || ''));
+        return modelKind.isEmbedModel(name);
     }
 
     // The first model on this bee that can actually CHAT — what a relay job
@@ -483,8 +488,8 @@ class AIRouter {
     // more answer a relay job than a direct one. Falls back to 'local'
     // (llama.cpp tolerates it) when nothing usable is advertised.
     static firstChatModel(models) {
-        const names = (models || []).map(m => (m && (m.model || m.name)) || '');
-        return names.find(n => n && !AIRouter.isEmbedModel(n)) || 'local';
+        const first = modelKind.chatModels(models)[0];
+        return (first && (first.model || first.name)) || 'local';
     }
 
     // ── target introspection (feeds the factor vector) ──────────────────────

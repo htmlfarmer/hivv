@@ -200,6 +200,103 @@ describe('getAllEndpoints — embedders are never candidates', () => {
     });
 });
 
+describe('deriveNodeCaps — a bee may only CLAIM what it could ANSWER', () => {
+    // capability is a HARD routing gate, so this is the gate that decides
+    // whether chat may be sent to a bee at all. Before this, any model
+    // granted reasoning/coding/translation — an embedder-only bee claimed
+    // them, was selected, and answered HTTP 400.
+    const { deriveNodeCaps } = require('../lib/capabilities');
+
+    const capsOf = models => deriveNodeCaps({ status: 'online', local_models: models });
+
+    it('an embedder-only bee claims NO answer capability', () => {
+        const caps = capsOf([{ provider: 'ollama', model: 'nomic-embed-text:latest',
+                              port: 11434 }]);
+        for (const c of ['reasoning', 'coding', 'translation', 'vision']) {
+            assert.ok(!caps.includes(c),
+                `an embedder-only bee claimed ${c}`);
+        }
+    });
+
+    it('a bee with a chat model keeps every capability it had', () => {
+        // the filter must not take anything away from a healthy bee
+        const caps = capsOf([
+            { provider: 'llama.cpp:8090', model: 'gemma-4-E2B-it-Q4_K_M.gguf', port: 8090 },
+            { provider: 'ollama', model: 'nomic-embed-text:latest', port: 11434 },
+        ]);
+        for (const c of ['reasoning', 'coding', 'translation']) {
+            assert.ok(caps.includes(c), `lost ${c}`);
+        }
+    });
+
+    it('a chat model listed AFTER the embedder still counts', () => {
+        const caps = capsOf([
+            { provider: 'ollama', model: 'nomic-embed-text:latest', port: 11434 },
+            { provider: 'ollama', model: 'qwen2.5:0.5b', port: 11434 },
+        ]);
+        assert.ok(caps.includes('reasoning'));
+    });
+
+    it('vision comes from a VISION model, not from an embedder', () => {
+        // VISION_RE contains 'gemini', so gemini-embed-* would otherwise
+        // claim vision from a model that produces vectors
+        assert.ok(!capsOf([{ model: 'gemini-embed-001', provider: 'ollama' }])
+            .includes('vision'));
+        assert.ok(capsOf([{ model: 'llava:7b', provider: 'ollama' }])
+            .includes('vision'));
+    });
+
+    it('tools and volunteering are NOT gated on having a chat model', () => {
+        // a bee may share tools (search, fetch) without serving chat — the
+        // filter must narrow the MODEL claim only, never the whole profile
+        const caps = deriveNodeCaps({
+            status: 'online',
+            local_models: [{ model: 'nomic-embed-text:latest' }],
+            tools: ['search', 'fetch'],
+            volunteer: true,
+        });
+        assert.ok(caps.includes('web.search'), caps.join(','));
+        assert.ok(caps.includes('web.fetch'), caps.join(','));
+        assert.ok(caps.includes('compute.donated'), caps.join(','));
+        assert.ok(!caps.includes('reasoning'));
+    });
+
+    it('a bee with no models at all is unchanged', () => {
+        assert.deepStrictEqual(deriveNodeCaps({ status: 'online' }).sort(),
+                               deriveNodeCaps({ status: 'online', local_models: [] }).sort());
+        assert.ok(!deriveNodeCaps({ status: 'online' }).includes('reasoning'));
+    });
+
+    it('tolerates a node with no model list', () => {
+        // (a null NODE is unreachable: capability-routes 404s first and
+        // hiveSummary walks Map values — so only the shape we do meet here)
+        assert.ok(Array.isArray(deriveNodeCaps({})));
+        assert.ok(Array.isArray(deriveNodeCaps({ local_models: [] })));
+        assert.ok(Array.isArray(deriveNodeCaps({ local_models: [null] })));
+    });
+});
+
+describe('one predicate, not two', () => {
+    it('the router delegates to model-kind instead of keeping its own copy', () => {
+        const modelKind = require('../lib/model-kind');
+        // same object — not a second regex that can drift
+        assert.strictEqual(AIRouter.EMBED_MODEL_RE, modelKind.EMBED_MODEL_RE);
+        for (const n of ['nomic-embed-text:latest', 'qwen2.5:0.5b', '', null]) {
+            assert.strictEqual(AIRouter.isEmbedModel(n),
+                               modelKind.isEmbedModel(n), String(n));
+        }
+    });
+
+    it('capabilities uses the same predicate as the router', () => {
+        const src = require('fs').readFileSync(
+            require('path').join(__dirname, '..', 'lib', 'capabilities.js'), 'utf8');
+        assert.ok(src.includes("require('./model-kind')"),
+            'capabilities.js has its own copy of the family list again');
+        assert.ok(!/EMBED_MODEL_RE\s*=\s*\//.test(src),
+            'capabilities.js redeclared the regex');
+    });
+});
+
 describe('wiring — the guards are actually in the source', () => {
     const fs = require('fs');
     const path = require('path');

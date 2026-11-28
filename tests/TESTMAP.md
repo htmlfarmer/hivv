@@ -20,6 +20,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/bee-identity.js` | `api/tests/ritual.test.js` |
 | `api/lib/brainboard.js` | `api/tests/brainboard.test.js` |
 | `api/lib/cache.js` | `api/tests/cache.test.js` |
+| `api/lib/capabilities.js` | `api/tests/embed-model.test.js` |
 | `api/lib/circuit-breaker.js` | `api/tests/circuit-breaker.test.js` |
 | `api/lib/contributors.js` | `tests/test_contributors.py` |
 | `api/lib/crypto-utils.js` | `api/tests/crypto-utils.test.js` |
@@ -34,6 +35,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/local-mode.js` | `api/tests/local-mode.test.js` |
 | `api/lib/locked-llm.js` | `api/tests/locked-llm.test.js` |
 | `api/lib/mcp-client.js` | `api/tests/interop.test.js` |
+| `api/lib/model-kind.js` | `api/tests/embed-model.test.js` |
 | `api/lib/moon.js` | `api/tests/ritual.test.js` |
 | `api/lib/orchestrator.js` | `api/tests/quarantine-recovery.test.js`, `api/tests/traffic-count.test.js`, `tests/test_resume_not_reregister.py` |
 | `api/lib/policy.js` | `api/tests/github-relay.test.js`, `api/tests/proposal-funnel.test.js` |
@@ -106,7 +108,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/crypto-utils.test.js` | `api/lib/crypto-utils.js` |
 | `api/tests/dashboard.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/degenerate.test.js` | `api/lib/degenerate.js` |
-| `api/tests/embed-model.test.js` | `api/lib/router.js` |
+| `api/tests/embed-model.test.js` | `api/lib/capabilities.js`, `api/lib/model-kind.js`, `api/lib/router.js` |
 | `api/tests/fast-scan.test.js` | `api/lib/fast-scan.js` |
 | `api/tests/file-permissions.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/github-relay.test.js` | `api/lib/github-relay.js`, `api/lib/policy.js` |
@@ -208,7 +210,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 
 - `api/eslint.config.js`
 - `api/lib/attestation-contract.js`
-- `api/lib/capabilities.js`
 - `api/lib/code-analysis.js`
 - `api/lib/context-manager.js`
 - `api/lib/dream.js`

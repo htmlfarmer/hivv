@@ -13,6 +13,11 @@ const REGISTRY_TTL_MS = 60000;
 // the hub-side mirror so a tool called by ANY name — canonical, alias, or a
 // name a bee invented — lands on the right capability. Unknown tools still
 // fall through to `tool.<name>` → MAYBE (see toolToCap below).
+// "could this bee actually ANSWER?" — shared with the router, so the gate that
+// decides whether chat may be offered and the gate that decides what a bee may
+// CLAIM are the same decision.
+const { chatModels } = require('./model-kind');
+
 const TOOL_CAPS = {
   time: 'local.computation',
   calculate: 'local.computation',
@@ -139,11 +144,20 @@ function toolToCap(tool) { return TOOL_CAPS[tool] || `tool.${String(tool || 'unk
 function deriveNodeCaps(node) {
   const caps = new Set();
   const models = node.local_models || [];
-  if (models.length) {
+  // A model is only evidence of a CAPABILITY if it could ANSWER. The old test
+  // was `models.length`, which counted embedders too: a bee running only
+  // nomic-embed-text claimed reasoning/coding/translation — and capability is
+  // a HARD routing gate, so chat would be routed straight into the HTTP 400
+  // "does not support chat" that the router now refuses to send. One shared
+  // predicate decides both (api/lib/model-kind.js).
+  // The vision check runs over the same set: VISION_RE contains 'gemini', so
+  // a gemini-embed-* model would otherwise claim vision from an embedder.
+  const answerers = chatModels(models);
+  if (answerers.length) {
     caps.add('reasoning');
     caps.add('coding');
     caps.add('translation');
-    if (models.some(m => VISION_RE.test(`${m.model || m.name || ''} ${m.provider || ''}`))) caps.add('vision');
+    if (answerers.some(m => VISION_RE.test(`${m.model || m.name || ''} ${m.provider || ''}`))) caps.add('vision');
   }
   for (const t of (node.tools || [])) caps.add(toolToCap(t));
   if (node.volunteer === true || node.volunteer?.on === true) caps.add('compute.donated'); // relay-tier spare cycles
