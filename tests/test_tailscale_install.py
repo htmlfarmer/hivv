@@ -137,6 +137,27 @@ class TestInstallTailscaleDoor:
         assert "parser failed" not in combined, (
             "a healthy CLI must not claim its own parser failed")
 
+    def test_help_can_find_the_new_command(self):
+        """`hivv help tailscale` must lead with it, not with firewall.
+
+        `install` is the ONE top-level command dispatch rewrites BEFORE
+        argparse sees it, so parser introspection cannot find it — the
+        search returned firewall+local and never the command the four hints
+        tell you to run. A hint nobody can look up is half a hint."
+        """
+        r = run([sys.executable, str(CLI), "help", "tailscale"])
+        out = r.stdout
+        assert "install tailscale" in out, (
+            "hivv help tailscale must surface install tailscale:\n" + out)
+        # and it must be the FIRST/best match, not buried
+        first = out.splitlines()[1] if len(out.splitlines()) > 1 else ""
+        assert "install tailscale" in first, (
+            f"install tailscale should lead the results, got: {first!r}")
+
+    def test_help_install_lists_the_tailscale_path(self):
+        r = run([sys.executable, str(CLI), "help", "install"])
+        assert "install tailscale" in r.stdout, r.stdout
+
     def test_the_four_broken_hints_are_repointed(self):
         """doctor + firewall told you to run the command that cannot work."""
         src = read(CLI)
