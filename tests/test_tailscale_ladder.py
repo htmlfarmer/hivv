@@ -478,3 +478,121 @@ class TestStepOneIsTheDoorThatWorks:
         src = CLI.read_text(encoding="utf-8")
         assert '"install tailscale"' in src or "'install tailscale'" in src
         assert "install-tailscale.sh" in src
+# ── 6. the installer shows the same ladder ────────────────────────────────
+INSTALLER = REPO / "public_html" / "install-hivv.sh"
+
+
+class TestInstallerLadder:
+    """install-hivv.sh is the actual "installing tailscale" path.
+
+    It printed two lines — "run: sudo tailscale up" / "then: hivv
+    firewall ..." — and stopped, skipping the auth URL you must OPEN and
+    the address check entirely. Same gap, second surface.
+    """
+
+    def test_installer_defines_the_ladder(self):
+        src = INSTALLER.read_text(encoding="utf-8")
+        assert "_ts_ladder()" in src and "_ts_next_step()" in src
+
+    @staticmethod
+    def _ladder_body() -> str:
+        """Just the _ts_ladder() function — the whole file also mentions
+        these commands in unrelated warn messages, so ordering asserts
+        must be scoped to the ladder itself."""
+        src = INSTALLER.read_text(encoding="utf-8")
+        start = src.index("_ts_ladder() {")
+        end = src.index("\n}", start) + 2
+        return src[start:end]
+
+    def test_installer_ladder_is_the_same_four_steps(self):
+        body = self._ladder_body()
+        assert body.index("install.sh | sh") < body.index("sudo tailscale up")
+        assert body.index("sudo tailscale up") < body.index("tailscale ip -4")
+        assert body.index("tailscale ip -4") < body.index(
+            "hivv firewall --apply --mode tailscale")
+
+    def test_installer_marks_the_next_step_not_just_the_current(self):
+        """'do this NEXT' is the whole point — a finished step must name
+        what follows it, or the user stops at the one they just ran."""
+        src = INSTALLER.read_text(encoding="utf-8")
+        assert "do this NEXT" in src
+        assert "then OPEN the URL it prints" in src, (
+            "the auth URL is the step the old two-liner never mentioned")
+
+    def test_installer_calls_the_ladder_after_install_and_when_inactive(self):
+        src = INSTALLER.read_text(encoding="utf-8")
+        assert "_ts_ladder 2" in src, "after installing, point at step 2"
+        # the already-up branch derives its step, so a configured box is
+        # told it is done instead of being nagged to redo step 4
+        assert '_ts_ladder "$(_ts_next_step)"' in src, (
+            "when already up, derive what is actually left")
+        # the old two-liner is gone
+        assert "then: %shivv firewall --apply --mode tailscale" not in src
+
+    def test_ladder_is_defined_before_it_is_called(self):
+        """bash resolves functions at CALL time, but a helper defined
+        after the only exit path that needs it would still be a landmine.
+        experiment() runs and exits before the definitions."""
+        src = INSTALLER.read_text(encoding="utf-8")
+        assert src.index("_ts_ladder() {") < src.index("_ts_ladder 2")
+        assert src.index("_ts_next_step() {") < src.index("_ts_ladder() {")
+
+    def test_installer_is_valid_shell(self):
+        import subprocess
+        r = subprocess.run(["bash", "-n", str(INSTALLER)],
+                           capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr
+
+    def _next_step_with(self, monkeypatch, *, tailscale=None, ufw=None):
+        """Run the real _ts_next_step with fake binaries on PATH.
+
+        The step number is DERIVED, not hardcoded — a box that already
+        opened the port must read 5 (done) instead of being nagged to redo
+        step 4 forever. That only holds if the derivation is actually
+        exercised, so: fake tailscale, fake ufw, real shell.
+        """
+        import os as _os
+        import subprocess
+        import tempfile
+        d = tempfile.mkdtemp(prefix="tsladder-")
+        if tailscale is not None:
+            p = Path(d) / "tailscale"
+            p.write_text("#!/bin/sh\n" + tailscale + "\n")
+            p.chmod(0o755)
+        if ufw is not None:
+            p = Path(d) / "ufw"
+            p.write_text("#!/bin/sh\n" + ufw + "\n")
+            p.chmod(0o755)
+        env = dict(_os.environ)
+        env["PATH"] = d + ":" + env.get("PATH", "")
+        script = (
+            'GRN=""; RST=""; YLW=""; DIM=""; BLD="";\n'
+            'eval "$(sed -n "/^_ts_next_step()/,/^}/p" "$1")"\n'
+            'printf "%s" "$(_ts_next_step)"\n'
+        )
+        r = subprocess.run(["bash", "-c", script, "_", str(INSTALLER)],
+                           capture_output=True, text=True, env=env, timeout=60)
+        assert r.returncode == 0, r.stderr
+        return r.stdout.strip()
+
+    def test_step_one_when_tailscale_is_absent(self, monkeypatch):
+        assert self._next_step_with(monkeypatch, tailscale=None) == "1"
+
+    def test_step_two_when_installed_but_not_logged_in(self, monkeypatch):
+        # `tailscale ip -4` fails -> not logged in yet
+        assert self._next_step_with(
+            monkeypatch, tailscale='echo "not logged in" >&2; exit 1') == "2"
+
+    def test_step_four_when_up_but_port_rule_unconfirmed(self, monkeypatch):
+        # logged in with an address, but ufw cannot confirm the rule
+        assert self._next_step_with(
+            monkeypatch,
+            tailscale='case "$*" in *ip*) echo 100.64.244.93;; *) exit 0;; esac',
+            ufw='echo "ERROR: You need to be root" >&2; exit 1') == "4"
+
+    def test_step_five_only_when_the_rule_is_actually_read(self, monkeypatch):
+        """The one case that must NOT nag: rule confirmed present."""
+        assert self._next_step_with(
+            monkeypatch,
+            tailscale='case "$*" in *ip*) echo 100.64.244.93;; *) exit 0;; esac',
+            ufw='printf "Status: active\\n100.64.0.0/10 ALLOW IN Anywhere\\n"') == "5"
