@@ -126,7 +126,8 @@
   ],
   "api/lib/ssrf.js": [
    "api/tests/interop.test.js",
-   "api/tests/key-donation.test.js"
+   "api/tests/key-donation.test.js",
+   "tests/test_muhasabah.py"
   ],
   "api/lib/suggestions.js": [
    "api/tests/suggestions.test.js"
@@ -225,6 +226,8 @@
    "tests/test_failure_diagnostics.py",
    "tests/test_fallback.py",
    "tests/test_fast_scan_parity.py",
+   "tests/test_fleet.py",
+   "tests/test_git_verbs.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
    "tests/test_identity_cli.py",
@@ -252,6 +255,9 @@
   "public_html/hivv-gui-setup.py": [
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py"
+  ],
+  "public_html/hivv-tools.py": [
+   "tests/test_muhasabah.py"
   ],
   "public_html/index.html": [
    "tests/test_repo_scripts.py"
@@ -287,6 +293,9 @@
   "scripts/emergency-update.py": [
    "tests/test_upgrade_review.py"
   ],
+  "scripts/fleet-probe.py": [
+   "tests/test_fleet.py"
+  ],
   "scripts/health-watchdog.sh": [
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
@@ -300,6 +309,12 @@
    "tests/test_setup_prompts.py",
    "tests/test_setup_scripts.py",
    "tests/test_testmap.py"
+  ],
+  "scripts/portability/centre-parity.sh": [
+   "tests/test_portability.py"
+  ],
+  "scripts/portability/node-state.sh": [
+   "tests/test_portability.py"
   ],
   "scripts/scan_secrets.py": [
    "tests/test_location_independence.py",
@@ -544,6 +559,13 @@
    "api/lib/fast-scan.js",
    "public_html/hivv-cli.py"
   ],
+  "tests/test_fleet.py": [
+   "public_html/hivv-cli.py",
+   "scripts/fleet-probe.py"
+  ],
+  "tests/test_git_verbs.py": [
+   "public_html/hivv-cli.py"
+  ],
   "tests/test_gui_e2e.py": [
    "public_html/hivv-cli.py",
    "public_html/hivv-gui-setup.py"
@@ -574,6 +596,10 @@
    "scripts/scan_secrets.py",
    "scripts/secretz-hivv.sh"
   ],
+  "tests/test_muhasabah.py": [
+   "api/lib/ssrf.js",
+   "public_html/hivv-tools.py"
+  ],
   "tests/test_nodes_offline.py": [
    "api/server.js",
    "public_html/hivv-cli.py",
@@ -588,6 +614,10 @@
   "tests/test_personas.py": [
    "public_html/chat/app.js",
    "public_html/chat/index.html"
+  ],
+  "tests/test_portability.py": [
+   "scripts/portability/centre-parity.sh",
+   "scripts/portability/node-state.sh"
   ],
   "tests/test_prefs_cli.py": [
    "public_html/hivv-cli.py"

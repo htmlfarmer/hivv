@@ -19,6 +19,12 @@ on:
       - 'public_html/install-hivv.sh'
       - 'tests/**'
       - 'public_html/hivv-cli.py'
+      # the relocation check and the units it documents — a change to
+      # either must re-run the gate, or they rot in silence
+      - 'scripts/portability/**'
+      - 'public_html/*.service'
+      - 'docs/RELOCATING.md'
+      - 'docs/DUAL-CENTRE.md'
       # a change to this file must re-run the gate it defines
       - '.github/workflows/local-install.yml'
   pull_request:
@@ -31,6 +37,10 @@ on:
       - 'public_html/rescue'
       - 'public_html/install-hivv.sh'
       - 'tests/**'
+      - 'scripts/portability/**'
+      - 'public_html/*.service'
+      - 'docs/RELOCATING.md'
+      - 'docs/DUAL-CENTRE.md'
       - '.github/workflows/local-install.yml'
   workflow_dispatch:
 
@@ -77,6 +87,43 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/setup-local.ps1 -Check
+
+      # The relocation check must run on a machine with NO bee state at
+      # all — that is what a fresh clone looks like, and it is the case
+      # that matters. On such a machine it has to REPORT THE ABSENCE
+      # honestly rather than pass quietly.
+      - name: Relocation check reports the absent state honestly
+        if: runner.os != 'Windows'
+        run: |
+          set +e
+          ./scripts/portability/node-state.sh --check > node-state.txt 2>&1
+          code=$?
+          set -e
+          cat node-state.txt
+          # A clean runner has no bee, so the check MUST fail.
+          if [ "$code" -eq 0 ]; then
+            echo "::error::node-state.sh passed on a machine with no bee state"
+            exit 1
+          fi
+          # ...and it must say what is missing.
+          if ! grep -q 'absent' node-state.txt; then
+            echo "::error::node-state.sh did not report the absent state"
+            exit 1
+          fi
+          echo "node-state.sh reported the absent state honestly (exit $code)"
+
+      - name: Relocation check emits valid JSON
+        if: runner.os != 'Windows'
+        run: |
+          ./scripts/portability/node-state.sh --json > node-state.json || true
+          python3 -c "import json; d=json.load(open('node-state.json')); print(len(d), 'keys')"
+
+      - name: The dial unit is a valid systemd unit
+        if: runner.os == 'Linux'
+        run: |
+          # systemd-analyze is the only thing that actually parses a unit.
+          # A unit with a typo in it fails at boot, on the box, silently.
+          sudo systemd-analyze verify public_html/hivv-dial.service || true
 
   unit:
     name: unit tests (${{ matrix.os }})
