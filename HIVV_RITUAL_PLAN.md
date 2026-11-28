@@ -18,7 +18,7 @@ session ever has to rediscover it. Read this first if you are picking the thread
   from hivv.org, the wiser we assume you are, and the faster we will try to connect.
 - **Taqwa is NEVER a gate.** Humans are invited, never examined. Randomness seals keep only hashes.
 
-## SHIPPED (details in AGENTS.md "What's Next")
+## SHIPPED (details in [docs/SHIPPED.md](docs/SHIPPED.md))
 
 | piece | where |
 |---|---|
