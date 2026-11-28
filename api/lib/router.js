@@ -449,13 +449,52 @@ class AIRouter {
         return `${this._routeLabel(t)}::${AIRouter._prettyModel(t.model || 'local')}`;
     }
 
+    // The parameter count in a model NAME, in billions. 0 = not stated.
+    //
+    // A FAMILY is not a size. "qwen" covers 0.5B and 72B; "gemma" covers 1B
+    // and 27B. The tier table is per family, so it is a statement about the
+    // family's FLAGSHIP, not about every model wearing its name.
+    static _paramBillions(modelStr) {
+        const s = String(modelStr || '').toLowerCase();
+        // MoE ("235b-a22b"): the ACTIVE count is what runs per token.
+        const moe = s.match(/a(\d+(?:\.\d+)?)b/);
+        if (moe) return Number(moe[1]);
+        // "e2b" (effective 2B -- Gemma 3n) beats the family number.
+        const eff = s.match(/e(\d+(?:\.\d+)?)b/);
+        if (eff) return Number(eff[1]);
+        const m = s.match(/(\d+(?:\.\d+)?)b(?![a-z0-9])/);
+        return m ? Number(m[1]) : 0;
+    }
+
+    // The tier a model of THIS SIZE can honestly hold. Only ever caps: a
+    // size we cannot read leaves the family tier alone.
+    //
+    // Why this exists: quality carries the heaviest weight in quality mode
+    // (6 of 11.3), and the family table gave "qwen" 8 - so a Qwen2.5-0.5B
+    // outranked a 4.6B gemma in EVERY mode. OpenCode was served by the 0.5B
+    // model while a gemma-4-E2B sat idle on the same LAN (yalla
+    // 2026-11-27). A tier is a claim about capability, and a 0.5B model
+    // cannot carry the claim of a 72B one.
+    static _sizeCapTier(params) {
+        if (!(params > 0)) return 10;   // size not stated: no cap
+        if (params < 1) return 4;
+        if (params < 2) return 5;
+        if (params < 4) return 6;
+        if (params < 8) return 7;
+        if (params < 16) return 8;
+        if (params < 32) return 9;
+        return 10;
+    }
+
     _qualityOf(modelStr) {
         const s = String(modelStr || '').toLowerCase();
         let best = 5;
         for (const [k, v] of Object.entries(this._routeCfg.quality_weights || {})) {
             if (s.includes(k)) best = Math.max(best, v);
         }
-        return best;
+        // Then the size: a small model may not keep a tier that is really a
+        // statement about its family's flagship.
+        return Math.min(best, AIRouter._sizeCapTier(AIRouter._paramBillions(modelStr)));
     }
 
     // Model families known to emit OpenAI tool_calls through /v1/chat/completions.
