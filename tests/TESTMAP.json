@@ -203,6 +203,7 @@
    "tests/test_bridge.py",
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
+   "tests/test_tailscale_install.py",
    "tests/test_telemetry_tasks_a2a.py",
    "tests/test_windows_install.py"
   ],
@@ -259,6 +260,7 @@
    "tests/test_speeds_view.py",
    "tests/test_submission.py",
    "tests/test_sync_review.py",
+   "tests/test_tailscale_install.py",
    "tests/test_testmap.py",
    "tests/test_tools_test_cmd.py",
    "tests/test_traffic_count.py",
@@ -286,7 +288,11 @@
    "tests/test_fallback.py",
    "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
-   "tests/test_rescue.py"
+   "tests/test_rescue.py",
+   "tests/test_tailscale_install.py"
+  ],
+  "public_html/install-tailscale.sh": [
+   "tests/test_tailscale_install.py"
   ],
   "public_html/panel.html": [
    "tests/test_panel_update.py"
@@ -721,6 +727,12 @@
   ],
   "tests/test_sync_review.py": [
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_tailscale_install.py": [
+   "public_html",
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh",
+   "public_html/install-tailscale.sh"
   ],
   "tests/test_telemetry_tasks_a2a.py": [
    "api",

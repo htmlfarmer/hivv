@@ -632,12 +632,127 @@ class TestUnitValidatorPredicate:
         assert hivv._unit_broken(True, True, True) is False
 
 
+
+class TestNoUndefinedNames:
+    """A name that is READ but never BOUND anywhere -> NameError at runtime.
+
+    THE CRASH THIS GUARDS (yalla 2026-11-27)
+    ----------------------------------------
+        $ hivv firewall --apply --mode tailscale
+        ...
+          File "hivv-cli.py", line 15997, in cmd_firewall
+            content = _r(f"cat {s} 2>/dev/null").stdout
+        NameError: name '_r' is not defined
+
+    The command that turns ON the tailscale mode was the one command that
+    crashed. `_r` is a lambda bound inside OTHER functions (cmd_up,
+    _run_health_checks, cmd_doctor, ...); cmd_firewall binds `_run`. A
+    name local to function A is simply not visible inside function B, and
+    nothing in the file's syntax is wrong -- so AST parsing and `py_compile`
+    both pass while the command still dies.
+
+    Two more of the same class shipped alongside it, both latent:
+
+      * `_fix_llama_script` was defined NESTED inside cmd_firewall but
+        called from cmd_doctor -- so `hivv doctor --fix` raised NameError
+        exactly on a box with a broken llama startup script to repair.
+      * `_watch_probe_tools` was never defined ANYWHERE; the real prober is
+        `_tools_probe`. It fires on the detached tools-start path (no
+        systemd, no pm2) -- i.e. the very boxes that path exists for.
+
+    All three are invisible to the existing guards: those catch names bound
+    locally-but-too-late (UnboundLocalError). This catches the other half
+    -- never bound at all.
+    """
+
+    @staticmethod
+    def _undefined_names() -> list[tuple[str, str]]:
+        """(function, name) read as a global but bound nowhere in the file."""
+        import builtins
+        import symtable
+
+        src = read(CLI_PATH)
+        table = symtable.symtable(src, str(CLI_PATH), "exec")
+
+        known: set[str] = set(dir(builtins))
+        known |= {"__file__", "__name__", "__builtins__", "__doc__",
+                  "__package__", "__loader__", "__spec__", "__cached__"}
+        # module-level bindings: assignments, imports, and def/class names
+        for sym in table.get_symbols():
+            if sym.is_assigned() or sym.is_imported() or sym.is_parameter():
+                known.add(sym.get_name())
+        for child in table.get_children():
+            if child.get_type() in ("function", "class"):
+                known.add(child.get_name())
+
+        found: list[tuple[str, str]] = []
+
+        def walk(tbl, path: str) -> None:
+            for sym in tbl.get_symbols():
+                name = sym.get_name()
+                # is_global: read here, not local to this scope.
+                # is_assigned: bound somewhere in THIS scope -- skip.
+                if sym.is_global() and not sym.is_assigned() and name not in known:
+                    found.append((path, name))
+            for child in tbl.get_children():
+                walk(child, path + "/" + (child.get_name() or child.get_type()))
+
+        for child in table.get_children():
+            walk(child, child.get_name() or child.get_type())
+        return sorted(set(found))
+
+    def test_no_name_is_read_without_a_binding(self):
+        offenders = self._undefined_names()
+        assert not offenders, (
+            "these names are READ but never bound anywhere in the file -- "
+            "each is a NameError waiting on the path that reaches it: "
+            + repr(offenders)
+        )
+
+    def test_the_three_reported_crashes_are_fixed(self):
+        """Pin the exact incidents, so a revert of any one fails loudly."""
+        bad = dict(self._undefined_names())
+        for fn, name in (("cmd_firewall", "_r"),
+                         ("cmd_doctor", "_fix_llama_script"),
+                         ("_watch_start_tools_detached", "_watch_probe_tools")):
+            assert (fn, name) not in bad, (
+                f"{fn} reads undefined {name} again -- "
+                "hivv firewall --apply --mode tailscale / doctor --fix / "
+                "tools-on will crash"
+            )
+        # and the correct names must actually exist
+        assert callable(getattr(hivv, "_fix_llama_script", None)), (
+            "_fix_llama_script must be module level so cmd_doctor can see it"
+        )
+        assert callable(getattr(hivv, "_tools_probe", None))
+
+    def test_fix_llama_script_is_module_level(self):
+        """cmd_doctor calls it; a def nested in ANOTHER function is invisible."""
+        import inspect
+        # module-level: reachable from the module namespace, not a closure
+        fn = getattr(hivv, "_fix_llama_script", None)
+        assert fn is not None, "_fix_llama_script must live at module level"
+        assert fn.__qualname__.startswith("_fix_llama_script"), (
+            f"expected a module-level def, got {fn.__qualname__} -- "
+            "a nested def is invisible to cmd_doctor"
+        )
+        # and it must not still be nested inside cmd_firewall
+        src = read(CLI_PATH)
+        fw = src[src.index("def cmd_firewall"):]
+        fw = fw[:fw.index("\ndef cmd_")] if "\ndef cmd_" in fw else fw
+        assert "def _fix_llama_script" not in fw, (
+            "_fix_llama_script is still nested inside cmd_firewall"
+        )
+        assert inspect.signature(fn).parameters.keys() == {"script_path"}
+
+
 if __name__ == "__main__":
     print("\nHIVV — CLI install / source-protection regression tests\n")
     rc = 0
     for cls_name in ("TestInstallLayout", "TestSetupInstallsTheCommand",
                      "TestUpdateNeverOverwritesSource",
                      "TestDoctorFixDoesNotCrash",
+                     "TestNoUndefinedNames",
                      "TestUnitValidatorPredicate"):
         cls = globals()[cls_name]
         for meth in sorted(m for m in dir(cls) if m.startswith("test_")):
