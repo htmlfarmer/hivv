@@ -180,10 +180,10 @@ never answered. Pinned as an xfail in `tests/test_submission.py::test_the_reply_
 
 | # | Task | Where | Pri | Notes | Est |
 |---|------|-------|-----|-------|-----|
-| R1 | **The reply writer.** An admin-gated `PATCH /api/feedback/:id` that sets `status` + `review_notes` (and `reviewed_at`/`reviewed_by`). Admin = localhost / control token / admin session, the same rule as the other control routes. Without this the column is decorative. | `api/server.js` or `api/routes/` | 🔴 | needs: admin auth pattern already exists | 1h |
-| R2 | **Drive the status lifecycle.** The schema allows `open → reviewed → in_progress → resolved → dismissed` and nothing transitions it. Wire R1's `status` to that CHECK, and surface the move (the CLI already prints the status; the submitter should see it change). | `api/server.js` + CLI | 🟠 | depends on R1 | 1h |
-| R3 | **A submitter-visible reply door.** `GET /api/feedback/:id` for ONE report (currently only a list of 50), so a client can poll one item instead of the whole list. | `api/server.js` | 🟡 | depends on R1 | 20m |
-| R4 | **Delete the xfail.** `tests/test_submission.py::test_the_reply_write_path` flips from `pytest.xfail` to a real round-trip assertion once R1 lands — file → reply → read back. | `tests/test_submission.py` | 🟡 | after R1 | 10m |
+| R1 | ✅ DONE 2026-11-27: **The reply writer.** `PATCH /api/feedback/:id` sets `status` and/or `review_notes`, plus `reviewed_at`/`reviewed_by`/`updated_at`. Admin-gated by the control-route rule (admin session · control token · loopback). Empty body → 400; a status outside the lifecycle → 400 at the door rather than a CHECK-constraint explosion at INSERT. | `api/server.js` | 🔴 | | ✅ |
+| R2 | ✅ DONE 2026-11-27: **The status lifecycle is driven.** `FB_STATUSES` (open · reviewed · in_progress · resolved · dismissed) is the same set the schema's CHECK allows, validated before the UPDATE; the CLI already prints the status and now prints the reply beside it. | `api/server.js` + CLI | 🟠 | | ✅ |
+| R3 | ✅ DONE 2026-11-27: **One-report door.** `GET /api/feedback/:id` — the owner sees their own (404 to anyone else), an operator sees any. Plus `DELETE /api/feedback/:id` (admin only) so a submitter cannot quietly erase their own history. | `api/server.js` | 🟡 | | ✅ |
+| R4 | ✅ DONE 2026-11-27: **The xfail is deleted.** `test_the_reply_write_path` became `test_the_reply_write_path_exists` (a real assertion), joined by `test_the_reply_round_trip` (file → read → answer → read → clean up, self-cleaning) and `test_a_stranger_cannot_read_or_answer_your_report` (through the PUBLIC door: 404 · 403 · 403 — and `X-Forwarded-For: 127.0.0.1` is NOT trusted as admin, which matters because the app sets `trust proxy`). 43 tests, no xfails. | `tests/test_submission.py` | 🟡 | | ✅ |
 
 **Also open (small):** `hivv bug` *searches* the live error log — it does not file anything.
 If `hivv bugs` should mean "file a bug", that is a one-line dispatch change to route it at

@@ -4822,6 +4822,123 @@ app.get('/api/feedback', async (req, res) => {
   }
 });
 
+// ── The reply loop ──────────────────────────────────────────────────────────
+// A submitter could FILE, but for a long time could never be ANSWERED: the
+// reply column (review_notes) existed and NOTHING wrote it, and the list
+// SELECT withheld it. Three doors close that — read one, answer one, remove
+// one — and all three are pinned by tests/test_submission.py.
+//
+// The status lifecycle the schema allows and nothing used until now:
+const FB_STATUSES = ['open', 'reviewed', 'in_progress', 'resolved', 'dismissed'];
+
+// Who may answer. The same rule the control routes use: an admin session,
+// the control token, or an operator on this box (loopback). Never the
+// public — a reply is published back to the submitter, so it is spoken
+// FOR them, not BY them.
+async function _canModerateFeedback(req) {
+    if (isAdminRequest(req)) return true;
+    try {
+        const session = await getSession(req);
+        return !!(session && (session.role === 'admin' || session.role === 'owner'));
+    } catch (_e) {
+        return false;
+    }
+}
+
+// GET /api/feedback/:id — ONE report, for the person who filed it.
+// The list gives you 50; a client polling for THE answer to ITS report
+// should not have to pull the whole list to find it.
+app.get('/api/feedback/:id', async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    const visitorId = getVisitorId(req, res);
+    const session = await getSession(req);
+    const moderate = await _canModerateFeedback(req);
+    const params = [id];
+    let where = 'id = $1';
+    if (!moderate) {
+        // you see your own reports; you never see anyone else's
+        where += session?.userId
+            ? ' AND (visitor_id = $2 OR user_id = $3)'
+            : ' AND visitor_id = $2';
+        params.push(visitorId);
+        if (session?.userId) params.push(session.userId);
+    }
+    try {
+        const r = await pool.query(
+            `SELECT id, type, subject, message, status, review_notes, created_at, updated_at
+               FROM hivv_feedback
+              WHERE ${where}
+              LIMIT 1`, params);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ feedback: r.rows[0] });
+    } catch (e) {
+        console.error('[FEEDBACK] get error:', e.message);
+        res.status(500).json({ error: 'could not read feedback' });
+    }
+});
+
+// PATCH /api/feedback/:id — ANSWER a report: set the status and/or leave a
+// note. This is the write half the schema always had and nothing ever used —
+// without it review_notes is a decorative column and hivv.org cannot reply.
+app.patch('/api/feedback/:id', async (req, res) => {
+    if (!(await _canModerateFeedback(req))) {
+        return res.status(403).json({ error: 'admin access required to answer a report',
+                                      code: 'ADMIN_REQUIRED' });
+    }
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    const { status, review_notes } = req.body || {};
+    if (status === undefined && review_notes === undefined) {
+        return res.status(400).json({ error: 'send status and/or review_notes' });
+    }
+    if (status !== undefined && !FB_STATUSES.includes(status)) {
+        return res.status(400).json({
+            error: `status must be one of: ${FB_STATUSES.join(', ')}` });
+    }
+    const session = await getSession(req);
+    try {
+        const r = await pool.query(
+            `UPDATE hivv_feedback
+                SET status = COALESCE($2, status),
+                    review_notes = COALESCE($3, review_notes),
+                    reviewed_at = NOW(),
+                    reviewed_by = COALESCE($4, reviewed_by),
+                    updated_at = NOW()
+              WHERE id = $1
+              RETURNING id, type, subject, message, status, review_notes, created_at, updated_at`,
+            [id, status === undefined ? null : status,
+             review_notes === undefined ? null : review_notes,
+             session?.userId || null]);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ ok: true, feedback: r.rows[0] });
+    } catch (e) {
+        console.error('[FEEDBACK] reply error:', e.message);
+        res.status(500).json({ error: 'could not save the reply' });
+    }
+});
+
+// DELETE /api/feedback/:id — remove one (spam, an accidental test row, a
+// duplicate). Admin only: a submitter quietly erasing their own history
+// would make the ledger untrustworthy for everyone reading it.
+app.delete('/api/feedback/:id', async (req, res) => {
+    if (!(await _canModerateFeedback(req))) {
+        return res.status(403).json({ error: 'admin access required',
+                                      code: 'ADMIN_REQUIRED' });
+    }
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'bad id' });
+    try {
+        const r = await pool.query(
+            'DELETE FROM hivv_feedback WHERE id = $1 RETURNING id', [id]);
+        if (!r.rows.length) return res.status(404).json({ error: 'no such report' });
+        res.json({ ok: true, deleted: id });
+    } catch (e) {
+        console.error('[FEEDBACK] delete error:', e.message);
+        res.status(500).json({ error: 'could not delete' });
+    }
+});
+
 // ---- Fetch Tasks (per-node) ----
 app.get('/api/nodes/:id/tasks', (req, res) => {
   const node = orch.nodes.get(req.params.id);
