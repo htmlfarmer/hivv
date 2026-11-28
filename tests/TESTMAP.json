@@ -191,7 +191,8 @@
    "tests/test_bridge.py",
    "tests/test_cli_install.py",
    "tests/test_cli_link.py",
-   "tests/test_telemetry_tasks_a2a.py"
+   "tests/test_telemetry_tasks_a2a.py",
+   "tests/test_windows_install.py"
   ],
   "public_html/.well-known/skills/hivv/SKILL.md": [
    "tests/test_submission.py"
@@ -261,6 +262,9 @@
   ],
   "public_html/index.html": [
    "tests/test_repo_scripts.py"
+  ],
+  "public_html/install-hivv.ps1": [
+   "tests/test_windows_install.py"
   ],
   "public_html/install-hivv.sh": [
    "tests/test_dev_tools.py",
@@ -377,6 +381,7 @@
    "api/lib/attest.js",
    "api/lib/identity.js"
   ],
+  "api/tests/install-tabs.test.js": [],
   "api/tests/integration.test.js": [],
   "api/tests/interop.test.js": [
    "api/lib/a2a-client.js",
@@ -715,6 +720,10 @@
   "tests/test_watchdog.py": [
    "public_html/hivv-cli.py",
    "scripts/health-watchdog.sh"
+  ],
+  "tests/test_windows_install.py": [
+   "public_html",
+   "public_html/install-hivv.ps1"
   ]
  }
 }

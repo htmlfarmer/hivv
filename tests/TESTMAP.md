@@ -63,7 +63,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `docs/HELP.md` | `tests/test_fallback.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
-| `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_telemetry_tasks_a2a.py` |
+| `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_telemetry_tasks_a2a.py`, `tests/test_windows_install.py` |
 | `public_html/.well-known/skills/hivv/SKILL.md` | `tests/test_submission.py` |
 | `public_html/chat/app.js` | `tests/test_personas.py`, `tests/test_testmap.py` |
 | `public_html/chat/index.html` | `tests/test_personas.py` |
@@ -72,6 +72,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
 | `public_html/hivv-tools.py` | `tests/test_muhasabah.py` |
 | `public_html/index.html` | `tests/test_repo_scripts.py` |
+| `public_html/install-hivv.ps1` | `tests/test_windows_install.py` |
 | `public_html/install-hivv.sh` | `tests/test_dev_tools.py`, `tests/test_fallback.py`, `tests/test_llm_build_tools.py`, `tests/test_rescue.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
 | `public_html/rescue` | `tests/test_fallback.py`, `tests/test_rescue.py` |
@@ -111,6 +112,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/github-relay.test.js` | `api/lib/github-relay.js`, `api/lib/policy.js` |
 | `api/tests/horizon.test.js` | `api/lib/horizon.js` |
 | `api/tests/identity.test.js` | `api/lib/attest.js`, `api/lib/identity.js` |
+| `api/tests/install-tabs.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/integration.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/interop.test.js` | `api/lib/a2a-client.js`, `api/lib/hive-clients.js`, `api/lib/mcp-client.js`, `api/lib/ssrf.js`, `api/routes/a2a-routes.js` |
 | `api/tests/key-donation.test.js` | `api/lib/key-donation.js`, `api/lib/ssrf.js` |
@@ -200,6 +202,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_user_install_cmd.py` | `public_html/hivv-cli.py` |
 | `tests/test_verify_drift.py` | `public_html/hivv-cli.py` |
 | `tests/test_watchdog.py` | `public_html/hivv-cli.py`, `scripts/health-watchdog.sh` |
+| `tests/test_windows_install.py` | `public_html`, `public_html/install-hivv.ps1` |
 
 ## code files no test references
 
@@ -279,7 +282,6 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `packaging/check_deps.py`
 - `public_html/app.js`
 - `public_html/hivv_worker.py`
-- `public_html/install-hivv.ps1`
 - `public_html/js/hivv-dashboard.js`
 - `public_html/js/hivv-live.js`
 - `public_html/js/hivv-nav.js`
