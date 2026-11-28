@@ -171,6 +171,51 @@ def main() -> int:
         check("the registry on disk has the box",
               reg["boxes"]["ashy"]["role"] == "centre", str(reg))
 
+    # ── the verbs that were added after the list bug ────────────────────
+    # 'hivv fleet list' shipped broken because it was only ever run with
+    # something in it. Every new verb is now driven on an EMPTY state too.
+    with tempfile.TemporaryDirectory(prefix="hivv-fleet-empty-") as td:
+        os.environ["HIVV_CONFIG_DIR"] = td
+        mod.CONFIG_DIR = Path(td)
+        env = {**os.environ, "HIVV_CONFIG_DIR": td}
+
+        # preview: no preview running
+        r = sp.run([sys.executable, str(CLI), "fleet", "preview"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet preview on an empty box exits 0",
+              r.returncode == 0, (r.stdout + r.stderr)[-300:])
+        check("fleet preview on an empty box says so",
+              "no preview" in r.stdout, r.stdout[-200:])
+
+        # preview stop: nothing to stop, and it must not crash
+        r = sp.run([sys.executable, str(CLI), "fleet", "preview", "stop"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet preview stop on an empty box exits 0",
+              r.returncode == 0, (r.stdout + r.stderr)[-300:])
+        check("fleet preview stop on an empty box says so",
+              "no preview" in r.stdout, r.stdout[-200:])
+
+        # preview url: there is none. Asking for a URL that does not exist
+        # is an ERROR, not a status — die() to stderr and exit 1.
+        r = sp.run([sys.executable, str(CLI), "fleet", "preview", "url"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet preview url on an empty box fails, does not crash",
+              r.returncode != 0 and "Traceback" not in (r.stdout + r.stderr),
+              (r.stdout + r.stderr)[-300:])
+        check("fleet preview url on an empty box says why",
+              "no preview" in (r.stdout + r.stderr),
+              (r.stdout + r.stderr)[-300:])
+
+        # deploy: no centre registered, and it must say so rather than crash
+        r = sp.run([sys.executable, str(CLI), "fleet", "deploy", "--dry-run"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet deploy with no centre does not crash",
+              "Traceback" not in (r.stdout + r.stderr),
+              (r.stdout + r.stderr)[-400:])
+        check("fleet deploy with no centre names the problem",
+              "centre" in (r.stdout + r.stderr),
+              (r.stdout + r.stderr)[-300:])
+
     # ── the probe ─────────────────────────────────────────────────────────
     # The probe is what the fleet asks when the CLI on a box is an old
     # version. It runs on a box with no fleet code at all, so it has to
@@ -213,7 +258,7 @@ def main() -> int:
                 choices = action.choices
         check("the verbs are the ones we ship",
               set(choices or []) == {"dashboard", "up", "check", "add", "list",
-                                     "move", "report"},
+                                     "move", "report", "deploy", "preview"},
               str(sorted(choices or [])))
 
     print()

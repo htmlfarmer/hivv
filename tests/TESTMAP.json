@@ -246,6 +246,7 @@
    "tests/test_fallback.py",
    "tests/test_fast_scan_parity.py",
    "tests/test_fleet.py",
+   "tests/test_fleet_preview.py",
    "tests/test_git_verbs.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
@@ -613,6 +614,9 @@
   "tests/test_fleet.py": [
    "public_html/hivv-cli.py",
    "scripts/fleet-probe.py"
+  ],
+  "tests/test_fleet_preview.py": [
+   "public_html/hivv-cli.py"
   ],
   "tests/test_git_verbs.py": [
    "public_html/hivv-cli.py"
