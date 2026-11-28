@@ -233,6 +233,7 @@
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
    "tests/test_identity_cli.py",
+   "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
    "tests/test_location_independence.py",
    "tests/test_nodes_offline.py",
@@ -265,11 +266,13 @@
    "tests/test_repo_scripts.py"
   ],
   "public_html/install-hivv.ps1": [
+   "tests/test_installer_ci.py",
    "tests/test_windows_install.py"
   ],
   "public_html/install-hivv.sh": [
    "tests/test_dev_tools.py",
    "tests/test_fallback.py",
+   "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
    "tests/test_rescue.py"
   ],
@@ -587,6 +590,12 @@
    "api/lib/attest.js",
    "api/lib/identity.js",
    "public_html/hivv-cli.py"
+  ],
+  "tests/test_installer_ci.py": [
+   "github/workflows/installers.yml",
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.ps1",
+   "public_html/install-hivv.sh"
   ],
   "tests/test_llm_build_tools.py": [
    "api/routes/control-routes.js",
