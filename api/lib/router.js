@@ -461,6 +461,32 @@ class AIRouter {
     // Model families known to emit OpenAI tool_calls through /v1/chat/completions.
     static TOOL_CAPABLE_RE = /(gpt-|gpt-?oss|\bo[134]\b|claude|gemini|gemma|qwen|llama-?3|llama3|mistral|ministral|codestral|devstral|command-r|nemo|granite|codellama|starcoder|deepseek|phi-?[34]|glm|kimi|minicpm|aya)/i;
 
+    // An EMBEDDING model turns text into vectors — it can never answer a chat.
+    // A heartbeat advertises whatever the box actually runs, and ashy runs
+    // nomic-embed-text:latest beside qwen2.5:0.5b, so a candidate built from
+    // local_models could BE an embedder: the server then answers HTTP 400
+    // "does not support chat" and we have spent a round-trip to learn nothing.
+    // Not a candidate at all. Same families as the CLI's `_is_embed_model`
+    // — two implementations, so a parity test pins the lists together
+    // (api/tests/embed-model.test.js reads _EMBED_NAME_HINTS out of the CLI).
+    // No chat model ships "embed" in its tag, so this cannot take an answer
+    // away; a name we cannot identify stays eligible.
+    static EMBED_MODEL_RE = /embed|bge-|all-minilm|sentence-transformers|gte-/i;
+
+    static isEmbedModel(name) {
+        return AIRouter.EMBED_MODEL_RE.test(String(name || ''));
+    }
+
+    // The first model on this bee that can actually CHAT — what a relay job
+    // should name. Heartbeats carry `model` (`_detect_local_ai`) while some
+    // fixtures use `name`, so read BOTH; and skip embedders, which can no
+    // more answer a relay job than a direct one. Falls back to 'local'
+    // (llama.cpp tolerates it) when nothing usable is advertised.
+    static firstChatModel(models) {
+        const names = (models || []).map(m => (m && (m.model || m.name)) || '');
+        return names.find(n => n && !AIRouter.isEmbedModel(n)) || 'local';
+    }
+
     // ── target introspection (feeds the factor vector) ──────────────────────
     // The registered node behind a target. Capacity, queue and geography all
     // live on the heartbeat, not on the endpoint — so a scored candidate that
@@ -1357,6 +1383,9 @@ class AIRouter {
                 for (const m of (node.local_models || [])) {
                     if (m.locked) continue; // keyed LLM (api-key) — visible in
                     // `hivv nodes` but unusable: peers can't auth either
+                    // An embedder answers vectors, not chats — never a
+                    // chat/completions target (nomic-embed-text on ashy).
+                    if (AIRouter.isEmbedModel(m.model || m.name)) continue;
                     const ip = node.lan_ip || node.ip;
                     if (!ip) continue;
                     const port = m.port || 8080;
@@ -2030,7 +2059,13 @@ class AIRouter {
             const created = this.relay.createJob({
                 nodeId: node.node_id,
                 request: {
-                    model: options.model || node.local_models[0]?.name || 'local',
+                    // First model this bee can actually CHAT with. The old
+                    // code took the FIRST entry's `name` field — but heartbeats
+                    // carry `model` (`_detect_local_ai`), so that read was
+                    // always undefined and every relay job said 'local', which
+                    // ollama 404s. Also skips embedders: nomic-embed-text
+                    // cannot answer a relay job any more than a direct one.
+                    model: options.model || AIRouter.firstChatModel(node.local_models),
                     messages: relayMessages,
                     max_tokens: options.gen?.max_tokens || (relayCfg.defaultTokens || 700),
                     temperature: options.gen?.temperature,

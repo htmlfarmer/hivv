@@ -42,7 +42,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/proposal.js` | `api/tests/proposal-funnel.test.js`, `api/tests/proposal.test.js` |
 | `api/lib/request-provenance.js` | `api/tests/provenance-schema.test.js`, `api/tests/request-provenance.test.js` |
 | `api/lib/route-factors.js` | `api/tests/route-factors.test.js` |
-| `api/lib/router.js` | `api/tests/key-isolation.test.js`, `api/tests/route-factors.test.js`, `api/tests/route-prefs.test.js`, `api/tests/traffic-count.test.js` |
+| `api/lib/router.js` | `api/tests/embed-model.test.js`, `api/tests/key-isolation.test.js`, `api/tests/route-factors.test.js`, `api/tests/route-prefs.test.js`, `api/tests/traffic-count.test.js` |
 | `api/lib/salah.js` | `api/tests/ritual.test.js`, `api/tests/salah.test.js` |
 | `api/lib/ssrf.js` | `api/tests/interop.test.js`, `api/tests/key-donation.test.js`, `tests/test_muhasabah.py` |
 | `api/lib/suggestions.js` | `api/tests/suggestions.test.js` |
@@ -106,6 +106,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/crypto-utils.test.js` | `api/lib/crypto-utils.js` |
 | `api/tests/dashboard.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/degenerate.test.js` | `api/lib/degenerate.js` |
+| `api/tests/embed-model.test.js` | `api/lib/router.js` |
 | `api/tests/fast-scan.test.js` | `api/lib/fast-scan.js` |
 | `api/tests/file-permissions.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/github-relay.test.js` | `api/lib/github-relay.js`, `api/lib/policy.js` |

@@ -2378,6 +2378,59 @@ class TestErrorTaxonomy:
         assert "loading" in hivv._http_err_hint(503)
         assert hivv._http_err_hint(418) == ""
 
+    def test_400_body_names_an_embedder_not_slot_config(self):
+        """THE REPORT (ashy → a Mac, 2026-11-28): a 400 that said
+        "nomic-embed-text:latest does not support chat" was answered with
+        "the slot is too small … fix: hivv llm config --set np=1" — advice
+        for a different problem, on a box with no llama.cpp installed."""
+        body = json.dumps({"error": {"message":
+                          '"nomic-embed-text:latest" does not support chat'}})
+        h = hivv._http_err_hint(400, body)
+        assert "EMBEDDER" in h, h
+        assert "np=1" not in h, "must not send the user to slot config"
+        assert "slot is too small" not in h, h
+
+    def test_400_context_body_keeps_the_slot_advice(self):
+        body = json.dumps({"error": {"message":
+                          "exceed_context_size_error n_prompt_tokens 4119"}})
+        h = hivv._http_err_hint(400, body)
+        assert "n_ctx_slot" in h and "np=1" in h, h
+
+    def test_400_without_a_body_keeps_the_classic_advice(self):
+        # pinned above by test_400_points_at_slot_config_not_the_model:
+        # an old server that swallows the reason gets the common answer.
+        assert "n_ctx_slot" in hivv._http_err_hint(400)
+
+    def test_400_with_an_unclassifiable_body_says_so_honestly(self):
+        # The whole point: never ASSERT a slot diagnosis the body never
+        # mentioned. An unknown refusal is reported as unknown.
+        body = json.dumps({"error": {"message": "bad field in request"}})
+        h = hivv._http_err_hint(400, body)
+        assert "n_ctx_slot" not in h and "np=1" not in h, h
+        assert "refused" in h, h
+
+    def test_400_that_merely_mentions_embeddings_is_not_misread(self):
+        # "available: chat, embedding" is a LIST, not a refusal — the embed
+        # branch requires refusal language so this can never false-positive.
+        body = json.dumps({"error": {"message": "available models: chat, embedding"}})
+        h = hivv._http_err_hint(400, body)
+        assert "EMBEDDER" not in h, h
+
+    def test_streamed_embedder_refusal_is_not_blamed_on_the_slot(self):
+        """The same lie from the streaming direction: an error smuggled into
+        content used to reach _http_err_hint(400) with NO body, so it always
+        got the slot diagnosis."""
+        body = ('{"error": "\"nomic-embed-text:latest\" does not support '
+                'chat, request was a bad request"}')
+        h = hivv._stream_error_hint(body)
+        assert "EMBEDDER" in h, h
+        assert "np=1" not in h, h
+
+    def test_streamed_context_error_keeps_the_slot_advice(self):
+        ctx = ('{"error":"request (2372 tokens) exceeds the available '
+               'context size (256 tokens)"}')
+        assert "n_ctx_slot" in hivv._stream_error_hint(ctx)
+
     def test_404_body_distinguishes_model_from_endpoint(self):
         # ollama's 404 body says WHICH model failed — the hint must use it
         # instead of blaming the port (yalla, 2026-11-25: model 'local' not

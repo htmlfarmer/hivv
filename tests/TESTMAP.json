@@ -115,6 +115,7 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
+   "api/tests/embed-model.test.js",
    "api/tests/key-isolation.test.js",
    "api/tests/route-factors.test.js",
    "api/tests/route-prefs.test.js",
@@ -361,6 +362,9 @@
   "api/tests/dashboard.test.js": [],
   "api/tests/degenerate.test.js": [
    "api/lib/degenerate.js"
+  ],
+  "api/tests/embed-model.test.js": [
+   "api/lib/router.js"
   ],
   "api/tests/fast-scan.test.js": [
    "api/lib/fast-scan.js"
