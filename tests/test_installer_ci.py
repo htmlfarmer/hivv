@@ -201,4 +201,15 @@ class TestTheLessonsRunOneTaught:
         # died here, macOS passed (both its files existed).
         run = _runs(_load()["jobs"]["unix"])
         assert 'if [ -f "$f" ]' in run, "only grep files that exist"
-        assert "[ -n \"$rcs\" ]" in run, "and fail loudly if there are none"
+        assert '[ -n "$rcs" ] && grep' in run, "never grep an empty list (stdin hang)"
+
+    def test_unix_asserts_the_effect_not_one_mechanism(self):
+        # Run 2: ubuntu runners already have .local/bin on PATH, so the
+        # installer CORRECTLY wrote no rc line (NEEDS_PATH=0) — and my
+        # assertion demanded one, failing a healthy install. The contract is
+        # the EFFECT: hivv resolves from PATH, or its line is in an rc.
+        run = _runs(_load()["jobs"]["unix"])
+        assert "command -v hivv" in run, "the already-on-PATH case"
+        assert 'grep -q "$HOME/.local/bin"' in run, "the rc-written case"
+        assert "neither on PATH nor written to any shell rc" in run, (
+            "and both failing must fail the job, loudly")

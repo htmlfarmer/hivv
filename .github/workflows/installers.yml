@@ -89,17 +89,24 @@ jobs:
           # The whole point of an installer: it runs from the command line.
           "$HOME/.local/bin/hivv" --version
 
-          # ...and PATH was wired for the visitor's FUTURE shells (--yes
-          # writes the export line into whichever shell rc it detected).
-          # grep only files that EXIST: a missing .zshrc makes grep exit 2
-          # (not 1), and set -e turns that into a red job — run 1 died here
-          # on ubuntu while macOS passed.
+          # ...and PATH is wired for the visitor's FUTURE shells — the
+          # EFFECT, not one mechanism: --yes writes the export line into
+          # whichever shell rc it detected (macOS: NEEDS_PATH=1), but if the
+          # bin dir is ALREADY on PATH there is correctly nothing to write
+          # (ubuntu runners: NEEDS_PATH=0 — run 2 died demanding an rc line
+          # that should not exist). grep only files that EXIST: a missing
+          # .zshrc makes grep exit 2 (an ERROR), which set -e turns red.
           rcs=""
           for f in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile" "$HOME/.config/fish/config.fish"; do
             if [ -f "$f" ]; then rcs="$rcs $f"; fi
           done
-          [ -n "$rcs" ]
-          grep -q "$HOME/.local/bin" $rcs
+          resolved=0
+          if command -v hivv >/dev/null 2>&1; then resolved=1; fi
+          if [ -n "$rcs" ] && grep -q "$HOME/.local/bin" $rcs; then resolved=1; fi
+          if [ "$resolved" -ne 1 ]; then
+            echo "hivv is neither on PATH nor written to any shell rc" >&2
+            exit 1
+          fi
 
   windows:
     name: windows-latest · install-hivv.ps1
