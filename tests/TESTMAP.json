@@ -226,6 +226,7 @@
    "tests/test_failure_diagnostics.py",
    "tests/test_fallback.py",
    "tests/test_fast_scan_parity.py",
+   "tests/test_git_verbs.py",
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py",
    "tests/test_identity_cli.py",
@@ -551,6 +552,9 @@
   ],
   "tests/test_fast_scan_parity.py": [
    "api/lib/fast-scan.js",
+   "public_html/hivv-cli.py"
+  ],
+  "tests/test_git_verbs.py": [
    "public_html/hivv-cli.py"
   ],
   "tests/test_gui_e2e.py": [
