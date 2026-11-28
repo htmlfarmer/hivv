@@ -576,34 +576,28 @@ class TestInstallerLadder:
             p = Path(d) / "ufw"
             p.write_text("#!/bin/sh\n" + ufw + "\n")
             p.chmod(0o755)
+        # PATH is ONLY the fake dir: this box has tailscale INSTALLED now,
+        # so appending it to the real PATH would let the script's
+        # "command -v tailscale" find the real binary and defeat the
+        # "absent" case entirely. The harness needs sed to extract the
+        # function, so link that in.
+        import shutil as _shutil
+        sed = _shutil.which("sed")
+        if sed:
+            link = Path(d) / "sed"
+            if not link.exists():
+                link.symlink_to(sed)
         env = dict(_os.environ)
-        # Simulate ABSENCE for real. Prepending an empty temp dir does NOT
-        # hide a binary sitting later on PATH: with `tailscale=None` the box's
-        # own /usr/bin/tailscale was still found, `_ts_next_step` read step 4,
-        # and this test passed only on machines that happen to have no
-        # tailscale (ubuntu CI) while failing on any box that does.
-        #
-        # Filtering whole PATH directories instead took /usr/bin out with it —
-        # which also holds bash and sed, so the harness died with
-        # FileNotFoundError. So: a MINIMAL PATH — the temp dir (our fakes)
-        # plus symlinks to the few binaries the harness and `_ts_next_step`
-        # actually invoke. Nothing else comes along, in particular no real
-        # tailscale or ufw, so `command -v tailscale` answers honestly.
-        bin_dir = tempfile.mkdtemp(prefix="tslbin-")
-        for _n in ("bash", "sh", "sed", "printf", "cat", "sudo", "grep"):
-            _src = shutil.which(_n)
-            if _src:
-                try:
-                    _os.symlink(_src, str(Path(bin_dir) / _n))
-                except (FileExistsError, OSError):
-                    pass
-        env["PATH"] = ":".join([d, bin_dir])
+        env["PATH"] = d
         script = (
             'GRN=""; RST=""; YLW=""; DIM=""; BLD="";\n'
             'eval "$(sed -n "/^_ts_next_step()/,/^}/p" "$1")"\n'
             'printf "%s" "$(_ts_next_step)"\n'
         )
-        r = subprocess.run(["bash", "-c", script, "_", str(INSTALLER)],
+        # absolute: PATH below is ONLY the fake dir, so a bare "bash"
+        # would not resolve (FileNotFoundError)
+        r = subprocess.run([_shutil.which("bash") or "/bin/bash", "-c",
+                            script, "_", str(INSTALLER)],
                            capture_output=True, text=True, env=env, timeout=60)
         assert r.returncode == 0, r.stderr
         return r.stdout.strip()
@@ -653,12 +647,14 @@ class TestTailscaleInstallerLadder:
 
     def test_already_installed_branch_lists_all_four_steps(self):
         src = TS_INSTALLER.read_text(encoding="utf-8")
-        # scope to the already-installed branch (the first ladder block)
-        i = src.index("tailscale is already installed")
-        blk = src[i:i + 1600]
+        # scope to the LADDER itself: "already installed" now appears twice
+        # (the idempotent path and the dry-run plan), and only the first
+        # one carries the steps
+        i = src.index("tailscale setup \u2014 four steps")
+        blk = src[i:i + 1400]
         for step in ("hivv install tailscale", "sudo tailscale up",
                      "tailscale ip -4", "hivv firewall --apply --mode tailscale"):
-            assert step in blk, f"the already-installed branch omits {step!r}"
+            assert step in blk, f"the ladder omits {step!r}"
 
     def test_the_auth_url_step_is_named(self):
         # "sudo tailscale up" alone is the line that stranded people —
@@ -679,6 +675,8 @@ class TestTailscaleInstallerLadder:
         assert "hivv reach <this-bee>" in src
 
     def test_step_one_names_the_three_tier_door(self):
+        # scope to the LADDER: without this the assertion passes by
+        # proximity (the idempotent branch happens to sit before one)
         src = TS_INSTALLER.read_text(encoding="utf-8")
-        i = src.index("tailscale is already installed")
-        assert "hivv install tailscale" in src[i:i + 1600]
+        i = src.index("tailscale setup \u2014 four steps")
+        assert "hivv install tailscale" in src[i:i + 1400]
