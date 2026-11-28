@@ -126,7 +126,8 @@
   ],
   "api/lib/ssrf.js": [
    "api/tests/interop.test.js",
-   "api/tests/key-donation.test.js"
+   "api/tests/key-donation.test.js",
+   "tests/test_muhasabah.py"
   ],
   "api/lib/suggestions.js": [
    "api/tests/suggestions.test.js"
@@ -251,6 +252,9 @@
   "public_html/hivv-gui-setup.py": [
    "tests/test_gui_e2e.py",
    "tests/test_gui_setup.py"
+  ],
+  "public_html/hivv-tools.py": [
+   "tests/test_muhasabah.py"
   ],
   "public_html/index.html": [
    "tests/test_repo_scripts.py"
@@ -572,6 +576,10 @@
    "scripts/health-watchdog.sh",
    "scripts/scan_secrets.py",
    "scripts/secretz-hivv.sh"
+  ],
+  "tests/test_muhasabah.py": [
+   "api/lib/ssrf.js",
+   "public_html/hivv-tools.py"
   ],
   "tests/test_nodes_offline.py": [
    "api/server.js",
