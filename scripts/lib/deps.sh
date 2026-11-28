@@ -712,7 +712,22 @@ d_build_tools_hint() {
         apk)    dcmd "sudo apk add git cmake g++ make" ;;
         zypper) dcmd "sudo zypper --non-interactive install git cmake gcc-c++ make" ;;
         brew)   dcmd "brew install git cmake" ;;
-        *)      dcmd "install git, cmake, a C++ compiler and make with your package manager" ;;
+        *)
+            if [[ "$D_OS" == "Darwin" ]]; then
+                # A Mac with NO Homebrew has no package manager to name, so the
+                # Linux line below is a dead end — and it lists git, a C++
+                # compiler and make, three things this Mac already has (Xcode
+                # Command Line Tools). Only cmake was missing, and there was no
+                # way to get it. Same wall the CLI hit (2026-11-28).
+                dinfo "this Mac needs cmake — git, your C++ compiler and make are already installed"
+                dcmd '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+                dcmd "brew install cmake"
+                dinfo "…or skip the build entirely — llama.cpp ships prebuilt macOS binaries:"
+                dcmd "hivv llm install-llama --auto"
+            else
+                dcmd "install git, cmake, a C++ compiler and make with your package manager"
+            fi
+            ;;
     esac
 }
 
