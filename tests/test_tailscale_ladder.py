@@ -598,3 +598,56 @@ class TestInstallerLadder:
             monkeypatch,
             tailscale='case "$*" in *ip*) echo 100.64.244.93;; *) exit 0;; esac',
             ufw='printf "Status: active\\n100.64.0.0/10 ALLOW IN Anywhere\\n"') == "5"
+
+# ------------------------------------------------------------------
+# 7. install-tailscale.sh — the third surface
+TS_INSTALLER = REPO / "public_html" / "install-tailscale.sh"
+
+
+class TestTailscaleInstallerLadder:
+    """install-tailscale.sh is where the new install door lands.
+
+    Its post-install block already named three of the four steps, but the
+    ALREADY-INSTALLED path printed two lines with no auth-URL detail and
+    no address check — so the same reader got a different, thinner
+    reminder depending on which branch they hit. Both now carry the whole
+    ladder and point at what is actually next.
+    """
+
+    def test_script_is_valid_posix_sh(self):
+        import subprocess
+        r = subprocess.run(["sh", "-n", str(TS_INSTALLER)],
+                           capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr
+
+    def test_already_installed_branch_lists_all_four_steps(self):
+        src = TS_INSTALLER.read_text(encoding="utf-8")
+        # scope to the already-installed branch (the first ladder block)
+        i = src.index("tailscale is already installed")
+        blk = src[i:i + 1600]
+        for step in ("hivv install tailscale", "sudo tailscale up",
+                     "tailscale ip -4", "hivv firewall --apply --mode tailscale"):
+            assert step in blk, f"the already-installed branch omits {step!r}"
+
+    def test_the_auth_url_step_is_named(self):
+        # "sudo tailscale up" alone is the line that stranded people —
+        # the URL it prints still has to be OPENED by hand.
+        src = TS_INSTALLER.read_text(encoding="utf-8")
+        assert "OPEN the URL it prints" in src
+
+    def test_next_pointer_is_derived_not_hardcoded(self):
+        # A box that already has an address must be pointed at the port
+        # rule, not told to redo "sudo tailscale up".
+        src = TS_INSTALLER.read_text(encoding="utf-8")
+        assert "tailscale ip -4 >/dev/null 2>&1" in src
+        assert 'say "  next:  sudo tailscale up"' in src
+        assert 'say "  next:  hivv firewall --apply --mode tailscale"' in src
+
+    def test_the_final_cross_machine_check_is_named(self):
+        src = TS_INSTALLER.read_text(encoding="utf-8")
+        assert "hivv reach <this-bee>" in src
+
+    def test_step_one_names_the_three_tier_door(self):
+        src = TS_INSTALLER.read_text(encoding="utf-8")
+        i = src.index("tailscale is already installed")
+        assert "hivv install tailscale" in src[i:i + 1600]
