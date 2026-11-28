@@ -282,7 +282,14 @@ test('the briefing itself is untouched — the clock is a separate message', () 
 
 // ── 5 · the generator stays honest ──────────────────────────────────────────
 
-const ZONE_TAB = process.env.HIVV_ZONE_TAB || '/usr/share/zoneinfo/zone.tab';
+// The inputs are VENDORED (scripts/tzdata/), so this check no longer
+// depends on the runner having tzdata installed — and, crucially, no longer
+// depends on the runner's tzdata MATCHING the generator's. It used to read
+// /usr/share/zoneinfo and byte-compare, so any box with a different tzdata
+// version died with exit 2: that is what red-lit this test on BOTH ubuntu
+// and macos runners (2026-11-28) for data that was never wrong.
+const SNAPSHOT = path.join(__dirname, '..', '..', 'scripts', 'tzdata', 'zone.tab');
+const ZONE_TAB = process.env.HIVV_ZONE_TAB || SNAPSHOT;
 const canRegenerate = fs.existsSync(ZONE_TAB)
     && spawnSync('python3', ['--version'], { encoding: 'utf8' }).status === 0;
 
