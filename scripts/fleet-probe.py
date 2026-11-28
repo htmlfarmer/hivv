@@ -119,9 +119,32 @@ def gateway():
 
 
 def shutil_which(cmd):
+    """Find a command, PATH first and then the usual hiding places.
+
+    pm2 is the reason this exists. It lives in the user's npm global
+    directory, which is on an interactive shell's PATH and NOT on a
+    non-interactive ssh's. So over ssh the probe found no pm2, no gateway,
+    no production tree — and a deploy check that quietly believed a dirty
+    tree was clean.
+    """
     for d in os.environ.get("PATH", "").split(os.pathsep):
         if d and os.access(os.path.join(d, cmd), os.X_OK):
             return os.path.join(d, cmd)
+    home = Path.home()
+    for extra in ("bin/pm2", "npm-global/bin/pm2", ".npm-global/bin/pm2",
+                  ".local/bin/pm2", ".nvm/current/bin/pm2"):
+        cand = home / extra
+        if cand.exists() and os.access(cand, os.X_OK):
+            return str(cand)
+    try:
+        for v in sorted((home / ".nvm" / "versions" / "node").glob("*/bin/pm2")):
+            if os.access(v, os.X_OK):
+                return str(v)
+    except Exception:
+        pass
+    for extra in ("/usr/local/bin/pm2", "/usr/bin/pm2", "/opt/homebrew/bin/pm2"):
+        if os.access(extra, os.X_OK):
+            return extra
     return None
 
 
