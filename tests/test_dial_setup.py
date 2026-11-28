@@ -352,6 +352,82 @@ class TestEnsureStop:
         assert info["running"] is True and info["how"] == "already"
         assert info["endpoint"] == f"http://127.0.0.1:{shim}/v1"
 
+    def test_a_requested_pin_is_applied_not_dropped(self, shim, monkeypatch):
+        """'dial on --pin X' must actually PIN.
+
+        THE BUG: the shim was already running, so _dial_ensure answered
+        "already running" and the --pin was dropped on the floor. The
+        command printed success while the shim kept serving the bee it had
+        already picked, and the unit file still had no --pin in it
+        (yalla 2026-11-27).
+        """
+        # a test must NEVER touch the real systemd unit
+        monkeypatch.setattr(cli, "_service_state", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_install_service",
+                            lambda *a, **k: None)
+        # The 8s budget _dial_ensure gives _dial_wait is about a COLD START
+        # on a loaded box. This test is not about that, but the wait must
+        # still POLL -- a shim that is 1s from answering is not a dead shim.
+        def _fast_wait(port=None, seconds=4.0):
+            deadline = time.time() + min(seconds, 4.0)
+            while time.time() < deadline:
+                if cli._dial_health(port, timeout=0.5):
+                    return True
+                time.sleep(0.25)
+            return cli._dial_health(port, timeout=0.5) is not None
+
+        monkeypatch.setattr(cli, "_dial_wait", _fast_wait)
+        assert cli._dial_running_pin(shim) == "", "the fixture starts unpinned"
+        try:
+            info = cli._dial_ensure(port=shim, hub=cli.HUB, pin="yalla",
+                                    install=True)
+            assert info["running"] is True, info
+            assert info.get("pin_replaced") == "", info
+            assert cli._dial_running_pin(shim) == "yalla", \
+                "the pin must be in the RUNNING shim argv"
+        finally:
+            cli._dial_stop(shim, service=False, marker=False)
+
+    def test_the_same_pin_leaves_the_shim_alone(self, shim, monkeypatch):
+        """Asking for the pin that is already in force must NOT bounce the
+        shim -- a needless restart drops the requests in flight."""
+        monkeypatch.setattr(cli, "_service_state", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_install_service",
+                            lambda *a, **k: None)
+
+        def _fast_wait(port=None, seconds=4.0):
+            deadline = time.time() + min(seconds, 4.0)
+            while time.time() < deadline:
+                if cli._dial_health(port, timeout=0.5):
+                    return True
+                time.sleep(0.25)
+            return cli._dial_health(port, timeout=0.5) is not None
+
+        monkeypatch.setattr(cli, "_dial_wait", _fast_wait)
+        try:
+            first = cli._dial_ensure(port=shim, hub=cli.HUB, pin="yalla",
+                                     install=True)
+            assert first["running"] is True, first
+            assert cli._dial_running_pin(shim) == "yalla"
+            pid_before = cli._dial_pid(shim)
+            again = cli._dial_ensure(port=shim, hub=cli.HUB, pin="yalla",
+                                     install=True)
+            assert again["how"] == "already", again
+            assert "pin_replaced" not in again, \
+                "the same pin must not restart the shim"
+            assert cli._dial_pid(shim) == pid_before, "no needless restart"
+        finally:
+            cli._dial_stop(shim, service=False, marker=False)
+
+    def test_the_pin_is_read_out_of_an_argv(self):
+        # pure: no process, no port
+        assert cli._pin_from_argv(
+            ["python", "hivv-cli.py", "dial", "--port", "3911"]) == ""
+        assert cli._pin_from_argv(
+            ["python", "hivv-cli.py", "dial", "--pin", "yalla"]) == "yalla"
+        assert cli._pin_from_argv(
+            ["python", "hivv-cli.py", "dial", "--pin=yalla"]) == "yalla"
+
     def test_spawn_and_stop_roundtrip(self, monkeypatch):
         monkeypatch.setattr(cli, "_dial_install_service",
                             lambda *a, **k: None)

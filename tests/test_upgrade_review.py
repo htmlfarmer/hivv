@@ -2565,6 +2565,78 @@ class TestLiveParityFixes:
         assert "n_ctx_slot" in body and "Reply with exactly: OK" in body
 
 
+class TestLocalAskSaysWhy:
+    """('', 0) cannot tell "the server is dead" from "the server was busy".
+
+    The doctor reported the second as the first ("round-trip: empty/no
+    reply from :0") and told the operator to restart a perfectly healthy
+    server, because the one slot was busy with a 4.7k-token prompt
+    (yalla 2026-11-27)."""
+
+    def test_a_timeout_is_reported_as_a_timeout(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [8080])
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: True)
+
+        def _timeout(req, *a, **k):
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr("urllib.request.urlopen", _timeout)
+        why: dict = {}
+        reply, port = hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert (reply, port) == ("", 0)
+        assert why["kind"] == "timeout", why
+        assert why["port"] == 8080, why
+        assert "busy" in why["reason"], why
+
+    def test_a_closed_port_is_reported_as_refused(self, monkeypatch):
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [1234])
+        monkeypatch.setattr(hivv, "_tcp_ok", lambda *a, **k: False)
+        why: dict = {}
+        reply, port = hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert (reply, port) == ("", 0)
+        assert why["kind"] == "refused", why
+        assert why["port"] == 1234, why
+
+    def test_a_busy_port_is_not_masked_by_a_closed_one(self, monkeypatch):
+        # :8080 is busy (a timeout) and :1234 is closed. The interesting port
+        # is the one that HAD a server.
+        monkeypatch.setattr(hivv, "_local_llm_ports", lambda: [8080, 1234])
+        monkeypatch.setattr(hivv, "_tcp_ok",
+                            lambda ip, port, timeout=0.4: port == 8080)
+
+        def _timeout(req, *a, **k):
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr("urllib.request.urlopen", _timeout)
+        why: dict = {}
+        hivv._local_ask("ping", max_tokens=4, timeout=1, why=why)
+        assert why["kind"] == "timeout", why
+        assert why["port"] == 8080, why
+
+
+class TestDoctorFloorCoversAnAgentSession:
+    def test_the_floor_covers_an_opencode_session(self):
+        # hivv's own toolkit is ~2.9k tokens; an OpenCode session (system
+        # prompt + the full tool catalog) measured 4702 on yalla 2026-11-27.
+        # A floor that only knew hivv's own tools called a 1024-token slot
+        # "fine" -- which is how every OpenCode request on that box died with
+        # HTTP 400 while the doctor said everything was healthy.
+        assert hivv._AGENT_TOOLKIT_FLOOR >= 4700
+
+    def test_the_doctor_uses_the_floor_and_says_both_halves(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_doctor")[1].split("\ndef ")[0]
+        assert "_AGENT_TOOLKIT_FLOOR" in body
+        # np=1 gives the slot the WHOLE context, so ctx must ALSO be raised:
+        # "np=1 (→ 4096/slot)" alone left a 4096 slot under a 4700-token
+        # request, which is how the advice kept not fixing it.
+        assert "--set np=1" in body and "--set ctx=" in body
+
+    def test_a_timeout_is_never_reported_as_a_dead_server(self):
+        body = CLI_PATH.read_text().split("def cmd_llm_doctor")[1].split("\ndef ")[0]
+        assert "the server is BUSY, not broken" in body
+        assert "empty/no reply from :" not in body
+
+
 class TestReachOffLanAdvice:
     def test_private_ip_failure_suggests_relay_not_just_firewall(self):
         src = CLI_PATH.read_text()
@@ -3042,3 +3114,50 @@ class TestSecurityAdviceIsActionable:
             assert "allow 22" in window, f"{start!r} must lead with allow 22"
             assert window.find("allow 22") < window.find("default deny"), (
                 f"{start!r} must allow 22 BEFORE default deny")
+# ── the manifest publishes the REAL per-slot context ────────────────────────
+#
+# DELIBERATELY AT THE END OF THIS FILE. scripts/scan_secrets.py ignores known
+# fixtures with a file:LINE list, and .secret-guard-ignore pins
+# "tests/test_upgrade_review.py:10*" / ":1049" for the HMAC parity fixture
+# ("parity-secret-0123456789", never sent). Any insertion BEFORE that line
+# walks the fixture out of the glob (1096 -> 1130 here) and the pre-push scan
+# blocks the branch for a secret that was never a secret. Their own comment
+# warns about this exact rot (scan_secrets.py, on server.js, 2026-11-20).
+class TestPublishedSlotWindow:
+    def _detect(self, monkeypatch, responses):
+        monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen(responses))
+        return hivv._detect_local_ai()
+
+    def test_the_real_slot_window_is_published(self, monkeypatch):
+        # llama.cpp divides its context across its parallel slots:
+        # "-c 4096 -np 4" is FOUR 1024-token slots behind a model name that
+        # says NOTHING about it. The hub used to guess from the name
+        # (gemma-4 -> 32768) and routed a 5k-token OpenCode prompt into a
+        # 1024-token slot, which answered HTTP 400 (yalla 2026-11-27).
+        monkeypatch.setattr(hivv, "_CTX_CACHE", {})   # a cold probe
+        body = json.dumps({"data": [
+            {"id": "gemma-4-E2B-it-Q4_K_M.gguf"}]}).encode()
+        props = json.dumps({
+            "default_generation_settings": {"n_ctx": 1024},
+            "total_slots": 4,
+        }).encode()
+        res = self._detect(monkeypatch, {
+            ":8080/v1/models": body,
+            ":8080/props": props,
+        })
+        hit = [m for m in res if m.get("port") == 8080]
+        assert hit, res
+        assert hit[0]["ctx_slot"] == 1024, hit[0]
+        assert hit[0]["slots"] == 4, hit[0]
+
+    def test_a_server_that_cannot_say_still_gets_reported(self, monkeypatch):
+        # no /props (not llama.cpp, or an old build): the model is still
+        # reported, and ctx_slot is 0 = "unknown", not a wrong number.
+        monkeypatch.setattr(hivv, "_CTX_CACHE", {})   # a cold probe
+        body = json.dumps({"data": [
+            {"id": "gemma-4-E2B-it-Q4_K_M.gguf"}]}).encode()
+        res = self._detect(monkeypatch, {":8080/v1/models": body})
+        hit = [m for m in res if m.get("port") == 8080]
+        assert hit, res
+        assert hit[0]["ctx_slot"] == 0, hit[0]
+        assert hit[0]["slots"] == 0, hit[0]

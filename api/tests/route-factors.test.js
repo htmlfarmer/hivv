@@ -247,6 +247,45 @@ test('every scored candidate carries a full factor vector in dbg', async () => {
   assert.strictEqual(scored[0].dbg.ttfb_ms, 300, 'TTFT is reported alongside total latency');
 });
 
+// A bee that publishes its REAL slot window. llama.cpp divides its context
+// across parallel slots, so "-c 4096 -np 4" is FOUR 1024-token slots behind
+// a model name the name-table calls 32768 (yalla 2026-11-27).
+function beeWithSlot(name, ctxSlot, slots, model = 'gemma-4-E2B-it-Q4_K_M.gguf') {
+  return { node_id: name, name,
+           local_models: [{ provider: 'llama.cpp:8080', model, ctx_slot: ctxSlot, slots }] };
+}
+
+test('a bee PUBLISHED slot window beats the model-name table', async () => {
+  const r = makeRouter({ perfRows: [row('small-slot', 'gemma-4-E2B')] });
+  r.orchestrator = { nodes: new Map([
+    ['small-slot', beeWithSlot('small-slot', 1024, 4)],
+  ]) };
+  const scored = await rank(r, [target('small-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                            'balanced', { promptEst: 5000 });
+  assert.strictEqual(scored[0].dbg.factors.capability, 0,
+    'a 5k-token prompt does NOT fit in a published 1024-token slot');
+
+  // The SAME bee without a published number: the name table says 32768, so
+  // the router believes the prompt fits. That guess is what produced the
+  // HTTP 400 (yalla 2026-11-27).
+  const r2 = makeRouter({ perfRows: [row('small-slot', 'gemma-4-E2B')] });
+  const s2 = await rank(r2, [target('small-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                        'balanced', { promptEst: 5000 });
+  assert.strictEqual(s2[0].dbg.factors.capability, 1,
+    'with no published window the name table still guesses');
+});
+
+test('a published window big enough keeps the candidate', async () => {
+  const r = makeRouter({ perfRows: [row('big-slot', 'gemma-4-E2B')] });
+  r.orchestrator = { nodes: new Map([
+    ['big-slot', beeWithSlot('big-slot', 32768, 1)],
+  ]) };
+  const scored = await rank(r, [target('big-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                            'balanced', { promptEst: 5000 });
+  assert.strictEqual(scored[0].dbg.factors.capability, 1,
+    'a 32k slot holds a 5k prompt');
+});
+
 test('fast mode: the bee with the lower TTFT wins', async () => {
   const r = makeRouter({
     perfRows: [row('quick', 'gemma-4-E2B', { ttfb_ms: 150, latency_ms: 400 }),
@@ -276,6 +315,46 @@ test('quality mode: the better model wins when speed is equal', async () => {
   const r = makeRouter({ perfRows: [row('bee-a', 'gpt-4o'), row('bee-b', 'gemma-4-E2B')] });
   const scored = await rank(r, [target('bee-b', 'gemma-4-E2B'), target('bee-a', 'gpt-4o')], 'quality');
   assert.strictEqual(names(scored)[0], 'bee-a');
+});
+
+test('the quality tier is SIZE-aware: a 0.5B model is not a 72B model', () => {
+  const r = makeRouter();
+  // The tier table is per FAMILY, so "qwen" handed a 0.5B model the tier of
+  // the family's flagship -- and quality carries the heaviest weight in
+  // quality mode (6 of 11.3). A 0.5B outranked a 4.6B gemma in EVERY mode
+  // (yalla 2026-11-27: OpenCode was served by the 0.5B while a gemma-4-E2B
+  // sat idle on the same LAN).
+  assert.strictEqual(r._qualityOf('Qwen2.5-0.5B-Instruct-GGUF'), 4);
+  assert.ok(r._qualityOf('Qwen2.5-0.5B-Instruct-GGUF')
+          < r._qualityOf('gemma-4-E2B-it-Q4_K_M.gguf'),
+    'a 0.5B model must not outrank a 2B-effective gemma');
+});
+
+test('the size cap never RAISES a tier, and never touches an unstated size', () => {
+  const r = makeRouter();
+  // A model whose size is not in its name keeps its family tier.
+  assert.strictEqual(r._qualityOf('gpt-4o'), 10);
+  assert.strictEqual(r._qualityOf('claude-3-5-sonnet'), 10);
+  // A big model of a low-tier family is not promoted.
+  assert.strictEqual(r._qualityOf('codestral-22b'), 5);
+  // A big model of a high-tier family keeps its tier.
+  assert.strictEqual(r._qualityOf('Qwen2.5-72B-Instruct'), 8);
+});
+
+test('a MoE model is judged by its ACTIVE parameters', () => {
+  const r = makeRouter();
+  // "235b-a22b" runs 22B per token, so it is a tier-8 model.
+  assert.strictEqual(r._qualityOf('Qwen3-235B-A22B'), 8);
+});
+
+test('quality mode: the bigger model wins when speed is equal', async () => {
+  const r = makeRouter({
+    perfRows: [row('bee-a', 'Qwen2.5-0.5B-Instruct'), row('bee-b', 'gemma-4-E2B')],
+  });
+  const scored = await rank(r, [target('bee-a', 'Qwen2.5-0.5B-Instruct'),
+                                target('bee-b', 'gemma-4-E2B')], 'quality');
+  assert.strictEqual(names(scored)[0], 'bee-b',
+    'the 0.5B model must not win quality mode on a name match alone');
 });
 
 test('cost mode: donated compute beats a priced endpoint by a wide margin', async () => {

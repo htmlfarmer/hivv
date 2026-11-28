@@ -173,8 +173,16 @@ test('inbox: wait=N holds N SECONDS, not N milliseconds', async () => {
   });
   const slowMs = Date.now() - t1;
   assert.equal(slow.status, 200, `wait=1 must still work: ${JSON.stringify(slow.body)}`);
-  assert.ok(slowMs >= 900,
-    `wait=1 held only ${slowMs}ms - seconds are being read as milliseconds again`);
+  // A message arriving during the window legitimately ends the poll early —
+  // that is the entire point of a long-poll, and under a full suite another
+  // test (or a policy broadcast) can enqueue one mid-wait. Only an EMPTY early
+  // return means seconds are being read as milliseconds again, which is the
+  // regression this test exists to catch.
+  const gotMessage = (slow.body?.messages || []).length > 0;
+  if (!gotMessage) {
+    assert.ok(slowMs >= 900,
+      `wait=1 held only ${slowMs}ms with nothing to deliver - seconds are being read as milliseconds again`);
+  }
   assert.ok(slowMs < 5000, `wait=1 overshot badly (${slowMs}ms)`);
 });
 

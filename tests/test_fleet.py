@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess as sp
 import sys
 import tempfile
 from pathlib import Path
@@ -130,6 +131,46 @@ def main() -> int:
         check("the report is JSON-serialisable",
               isinstance(json.dumps(st, default=str), str))
 
+    # ── add and list, driven the way a person drives them ──────────────
+    # These went UNTESTED until they shipped broken: 'hivv fleet list' on an
+    # empty registry raised NameError on a helper that does not exist in
+    # this CLI (_info), and the dashboard — the part the tests DID cover —
+    # never touched it. A verb that only works when there is something to
+    # show is a verb that is broken exactly when you need it.
+    with tempfile.TemporaryDirectory(prefix="hivv-fleet-cli-") as td:
+        os.environ["HIVV_CONFIG_DIR"] = td
+        mod.CONFIG_DIR = Path(td)
+        env = {**os.environ, "HIVV_CONFIG_DIR": td}
+
+        # list on an EMPTY registry must not crash
+        r = sp.run([sys.executable, str(CLI), "fleet", "list"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet list on an empty registry exits 0",
+              r.returncode == 0, r.stderr[-300:])
+        check("fleet list on an empty registry says so",
+              "no boxes registered" in r.stdout, r.stdout[-200:])
+
+        # add a box, then list it
+        r = sp.run([sys.executable, str(CLI), "fleet", "add", "ashy",
+                    "192.168.1.3", "--role", "centre"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet add exits 0", r.returncode == 0, r.stderr[-300:])
+        check("fleet add confirms",
+              "ashy" in r.stdout and "centre" in r.stdout, r.stdout[-200:])
+
+        r = sp.run([sys.executable, str(CLI), "fleet", "list"],
+                   capture_output=True, text=True, timeout=90, env=env)
+        check("fleet list shows the box",
+              r.returncode == 0 and "ashy" in r.stdout,
+              (r.stdout + r.stderr)[-300:])
+        check("fleet list shows the host",
+              "192.168.1.3" in r.stdout, r.stdout[-200:])
+
+        # the registry the CLI wrote is the one the CLI reads
+        reg = json.loads((Path(td) / "fleet.json").read_text())
+        check("the registry on disk has the box",
+              reg["boxes"]["ashy"]["role"] == "centre", str(reg))
+
     # ── the probe ─────────────────────────────────────────────────────────
     # The probe is what the fleet asks when the CLI on a box is an old
     # version. It runs on a box with no fleet code at all, so it has to
@@ -139,7 +180,6 @@ def main() -> int:
     check("the probe ships with the repo", probe.exists())
     if probe.exists():
         with tempfile.TemporaryDirectory(prefix="hivv-probe-") as td:
-            import subprocess as sp
             r = sp.run([sys.executable, str(probe)], capture_output=True,
                        text=True, timeout=90,
                        env={**os.environ, "HOME": td})

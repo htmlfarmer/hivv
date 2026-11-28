@@ -452,13 +452,52 @@ class AIRouter {
         return `${this._routeLabel(t)}::${AIRouter._prettyModel(t.model || 'local')}`;
     }
 
+    // The parameter count in a model NAME, in billions. 0 = not stated.
+    //
+    // A FAMILY is not a size. "qwen" covers 0.5B and 72B; "gemma" covers 1B
+    // and 27B. The tier table is per family, so it is a statement about the
+    // family's FLAGSHIP, not about every model wearing its name.
+    static _paramBillions(modelStr) {
+        const s = String(modelStr || '').toLowerCase();
+        // MoE ("235b-a22b"): the ACTIVE count is what runs per token.
+        const moe = s.match(/a(\d+(?:\.\d+)?)b/);
+        if (moe) return Number(moe[1]);
+        // "e2b" (effective 2B -- Gemma 3n) beats the family number.
+        const eff = s.match(/e(\d+(?:\.\d+)?)b/);
+        if (eff) return Number(eff[1]);
+        const m = s.match(/(\d+(?:\.\d+)?)b(?![a-z0-9])/);
+        return m ? Number(m[1]) : 0;
+    }
+
+    // The tier a model of THIS SIZE can honestly hold. Only ever caps: a
+    // size we cannot read leaves the family tier alone.
+    //
+    // Why this exists: quality carries the heaviest weight in quality mode
+    // (6 of 11.3), and the family table gave "qwen" 8 - so a Qwen2.5-0.5B
+    // outranked a 4.6B gemma in EVERY mode. OpenCode was served by the 0.5B
+    // model while a gemma-4-E2B sat idle on the same LAN (yalla
+    // 2026-11-27). A tier is a claim about capability, and a 0.5B model
+    // cannot carry the claim of a 72B one.
+    static _sizeCapTier(params) {
+        if (!(params > 0)) return 10;   // size not stated: no cap
+        if (params < 1) return 4;
+        if (params < 2) return 5;
+        if (params < 4) return 6;
+        if (params < 8) return 7;
+        if (params < 16) return 8;
+        if (params < 32) return 9;
+        return 10;
+    }
+
     _qualityOf(modelStr) {
         const s = String(modelStr || '').toLowerCase();
         let best = 5;
         for (const [k, v] of Object.entries(this._routeCfg.quality_weights || {})) {
             if (s.includes(k)) best = Math.max(best, v);
         }
-        return best;
+        // Then the size: a small model may not keep a tier that is really a
+        // statement about its family's flagship.
+        return Math.min(best, AIRouter._sizeCapTier(AIRouter._paramBillions(modelStr)));
     }
 
     // Model families known to emit OpenAI tool_calls through /v1/chat/completions.
@@ -586,6 +625,37 @@ class AIRouter {
         return false;
     }
 
+    // The window a BEE can really hold, as published in its heartbeat.
+    //
+    // A model NAME is not a context window. llama.cpp divides its context
+    // across parallel slots, so "-c 4096 -np 4" is FOUR 1024-token slots
+    // behind a model name the table below calls 32768. The hub guessed
+    // (CONTEXT_WINDOWS) and routed a 5k-token OpenCode prompt into a
+    // 1024-token slot, which answered HTTP 400 "request (4702 tokens)
+    // exceeds the available context size (1024 tokens)" -- and the router
+    // reported every candidate as fine (yalla 2026-11-27).
+    //
+    // The bee knows the real number (llama-server /props); it is published
+    // as local_models[].ctx_slot. Use it whenever it is there.
+    _publishedCtxSlot(t) {
+        const node = this._nodeForTarget(t);
+        const models = Array.isArray(node?.local_models) ? node.local_models : [];
+        if (!models.length) return 0;
+        const want = AIRouter._prettyModel(t.model || '').toLowerCase();
+        let only = 0;
+        for (const m of models) {
+            const ctx = Number(m?.ctx_slot) || 0;
+            if (!(ctx > 0)) continue;
+            const name = String(m?.model || '').toLowerCase();
+            if (want && name && (name === want || name.includes(want) || want.includes(name))) {
+                return ctx;
+            }
+            if (!only) only = ctx;
+        }
+        // ONE model on the bee: its window is the only one that matters.
+        return models.length === 1 ? only : 0;
+    }
+
     // What does THIS request need from a candidate? Tri-state: null = not
     // applicable, so an ordinary chat message scores capability NEUTRAL rather
     // than a meaningless 1.0. Tools stay a hard filter upstream too — this is
@@ -594,7 +664,10 @@ class AIRouter {
         let contextOk = null;
         const promptEst = Number(options.promptEst) || 0;
         if (promptEst > 0) {
-            const ctx = contextWindowFor(t.model || '', options.contextWindow);
+            // The bee's PUBLISHED window beats a guess from the model name:
+            // the name is identical on every box, the window is not.
+            const published = this._publishedCtxSlot(t);
+            const ctx = published || contextWindowFor(t.model || '', options.contextWindow);
             // prompt + room to actually answer: a model that cannot hold it will
             // 413 anyway, so prefer one that can instead of discovering it late.
             contextOk = ctx >= promptEst + 512;
