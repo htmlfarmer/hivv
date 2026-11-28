@@ -247,6 +247,45 @@ test('every scored candidate carries a full factor vector in dbg', async () => {
   assert.strictEqual(scored[0].dbg.ttfb_ms, 300, 'TTFT is reported alongside total latency');
 });
 
+// A bee that publishes its REAL slot window. llama.cpp divides its context
+// across parallel slots, so "-c 4096 -np 4" is FOUR 1024-token slots behind
+// a model name the name-table calls 32768 (yalla 2026-11-27).
+function beeWithSlot(name, ctxSlot, slots, model = 'gemma-4-E2B-it-Q4_K_M.gguf') {
+  return { node_id: name, name,
+           local_models: [{ provider: 'llama.cpp:8080', model, ctx_slot: ctxSlot, slots }] };
+}
+
+test('a bee PUBLISHED slot window beats the model-name table', async () => {
+  const r = makeRouter({ perfRows: [row('small-slot', 'gemma-4-E2B')] });
+  r.orchestrator = { nodes: new Map([
+    ['small-slot', beeWithSlot('small-slot', 1024, 4)],
+  ]) };
+  const scored = await rank(r, [target('small-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                            'balanced', { promptEst: 5000 });
+  assert.strictEqual(scored[0].dbg.factors.capability, 0,
+    'a 5k-token prompt does NOT fit in a published 1024-token slot');
+
+  // The SAME bee without a published number: the name table says 32768, so
+  // the router believes the prompt fits. That guess is what produced the
+  // HTTP 400 (yalla 2026-11-27).
+  const r2 = makeRouter({ perfRows: [row('small-slot', 'gemma-4-E2B')] });
+  const s2 = await rank(r2, [target('small-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                        'balanced', { promptEst: 5000 });
+  assert.strictEqual(s2[0].dbg.factors.capability, 1,
+    'with no published window the name table still guesses');
+});
+
+test('a published window big enough keeps the candidate', async () => {
+  const r = makeRouter({ perfRows: [row('big-slot', 'gemma-4-E2B')] });
+  r.orchestrator = { nodes: new Map([
+    ['big-slot', beeWithSlot('big-slot', 32768, 1)],
+  ]) };
+  const scored = await rank(r, [target('big-slot', 'gemma-4-E2B-it-Q4_K_M.gguf')],
+                            'balanced', { promptEst: 5000 });
+  assert.strictEqual(scored[0].dbg.factors.capability, 1,
+    'a 32k slot holds a 5k prompt');
+});
+
 test('fast mode: the bee with the lower TTFT wins', async () => {
   const r = makeRouter({
     perfRows: [row('quick', 'gemma-4-E2B', { ttfb_ms: 150, latency_ms: 400 }),
