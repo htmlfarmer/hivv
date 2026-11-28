@@ -37,6 +37,9 @@
   "api/lib/cache.js": [
    "api/tests/cache.test.js"
   ],
+  "api/lib/capabilities.js": [
+   "api/tests/embed-model.test.js"
+  ],
   "api/lib/circuit-breaker.js": [
    "api/tests/circuit-breaker.test.js"
   ],
@@ -87,6 +90,9 @@
   "api/lib/mcp-client.js": [
    "api/tests/interop.test.js"
   ],
+  "api/lib/model-kind.js": [
+   "api/tests/embed-model.test.js"
+  ],
   "api/lib/moon.js": [
    "api/tests/ritual.test.js"
   ],
@@ -117,6 +123,7 @@
    "api/tests/route-factors.test.js"
   ],
   "api/lib/router.js": [
+   "api/tests/embed-model.test.js",
    "api/tests/key-isolation.test.js",
    "api/tests/route-factors.test.js",
    "api/tests/route-prefs.test.js",
@@ -374,6 +381,11 @@
   "api/tests/dashboard.test.js": [],
   "api/tests/degenerate.test.js": [
    "api/lib/degenerate.js"
+  ],
+  "api/tests/embed-model.test.js": [
+   "api/lib/capabilities.js",
+   "api/lib/model-kind.js",
+   "api/lib/router.js"
   ],
   "api/tests/fast-scan.test.js": [
    "api/lib/fast-scan.js"
