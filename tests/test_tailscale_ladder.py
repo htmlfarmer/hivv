@@ -55,7 +55,9 @@ import contextlib
 import importlib.util
 import io
 import json
+import platform
 import re
+import shutil
 import subprocess as real_subprocess
 import sys
 from pathlib import Path
@@ -111,7 +113,16 @@ def _fake_run_factory(routes):
 
 def _wire(monkeypatch, mod, routes, *, which=None, **module_patches):
     """Patch subprocess.run for REAL (local imports shadow mod.subprocess),
-    plus shutil.which and any module-level helper the test needs."""
+    plus shutil.which and any module-level helper the test needs.
+
+    Also pins the platform to Linux: `cmd_firewall` branches on
+    `platform.system()` — `if system == "Linux"` is the ufw path, `Darwin`
+    takes pf and never prints the ufw messages these tests assert on. The
+    routes here are Linux commands anyway (`ss -tlnp`, `hostname -I`), so on a
+    macOS runner the fixtures said Linux while the code under test said
+    Darwin: `unit tests (macos-latest)` red-lit two tests that ubuntu passed.
+    """
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
     monkeypatch.setattr(real_subprocess, "run", _fake_run_factory(routes))
     if which is not None:
         monkeypatch.setattr(mod.shutil, "which", which)
@@ -566,7 +577,27 @@ class TestInstallerLadder:
             p.write_text("#!/bin/sh\n" + ufw + "\n")
             p.chmod(0o755)
         env = dict(_os.environ)
-        env["PATH"] = d + ":" + env.get("PATH", "")
+        # Simulate ABSENCE for real. Prepending an empty temp dir does NOT
+        # hide a binary sitting later on PATH: with `tailscale=None` the box's
+        # own /usr/bin/tailscale was still found, `_ts_next_step` read step 4,
+        # and this test passed only on machines that happen to have no
+        # tailscale (ubuntu CI) while failing on any box that does.
+        #
+        # Filtering whole PATH directories instead took /usr/bin out with it —
+        # which also holds bash and sed, so the harness died with
+        # FileNotFoundError. So: a MINIMAL PATH — the temp dir (our fakes)
+        # plus symlinks to the few binaries the harness and `_ts_next_step`
+        # actually invoke. Nothing else comes along, in particular no real
+        # tailscale or ufw, so `command -v tailscale` answers honestly.
+        bin_dir = tempfile.mkdtemp(prefix="tslbin-")
+        for _n in ("bash", "sh", "sed", "printf", "cat", "sudo", "grep"):
+            _src = shutil.which(_n)
+            if _src:
+                try:
+                    _os.symlink(_src, str(Path(bin_dir) / _n))
+                except (FileExistsError, OSError):
+                    pass
+        env["PATH"] = ":".join([d, bin_dir])
         script = (
             'GRN=""; RST=""; YLW=""; DIM=""; BLD="";\n'
             'eval "$(sed -n "/^_ts_next_step()/,/^}/p" "$1")"\n'

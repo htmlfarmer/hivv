@@ -120,16 +120,29 @@ class TestInstallTailscaleDoor:
         out = r.stdout + r.stderr
         assert "what do you want to install" not in out, (
             "install tailscale fell into the chooser instead of the installer")
-        assert "tier 1" in out and "tier 3" in out, (
+        # The three-tier script ran — either it walked the tiers (a box with
+        # no tailscale) or reported there is nothing to do (a box that has
+        # one). Both prove the RIGHT door was reached; only the chooser would
+        # print neither. Before this, the assertion demanded the tier walk, so
+        # it passed only on machines that happen to have no tailscale (ubuntu
+        # CI) and failed on any box that does.
+        assert ("tier 1" in out and "tier 3" in out) or "already installed" in out, (
             f"the three-tier script did not run:\n{out}")
         assert r.returncode == 0, out
 
     def test_dry_run_changes_nothing_and_needs_no_root(self):
         r = run([sys.executable, str(CLI), "install", "tailscale", "--dry-run"])
         assert r.returncode == 0, r.stdout + r.stderr
-        assert "dry run" in r.stdout
-        # all three tiers are shown, not just the first
-        assert "tier 1" in r.stdout and "tier 2" in r.stdout and "tier 3" in r.stdout
+        # A dry run must always SAY what it would do: the three-tier plan on a
+        # box without tailscale, or that there is nothing to do on one with it.
+        # What it must never do is change anything or demand root — this runs
+        # as an ordinary user, and CI has no sudo.
+        out = r.stdout
+        assert "dry run" in out or "already installed" in out, out
+        if "already installed" not in out:
+            # all three tiers are shown, not just the first (fresh-box path —
+            # the one CI exercises)
+            assert "tier 1" in out and "tier 2" in out and "tier 3" in out, out
 
     def test_help_is_clean(self):
         r = run([sys.executable, str(CLI), "install", "tailscale", "--help"])
