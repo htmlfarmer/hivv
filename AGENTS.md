@@ -1008,6 +1008,23 @@ MOVES.md entry in the same commit is incomplete.**
 5. Moving/renaming anything? Same commit adds the `MOVES.md` entry (what,
    from → to, why, what still points at the old path). Leave a stub at the old
    path until everyone has pulled.
+6. **Merge early; do not pre-verify the gate.** A session that has a clean
+   `git merge --check` and one green run should push and let `deploy.sh` do
+   the rest — its pytest gate and automatic rollback ARE the guard, so
+   pre-running the suite repeatedly just duplicates a check that runs
+   anyway. Measured cost of ignoring this (2026-11-28): a conflict-free
+   merge was proven at 00:50, then six more full-suite runs (~7 min each),
+   two backup rebuilds and four file-stability sample rounds passed before
+   anything shipped — over-verification, not caution. **The two checks worth
+   keeping** are the only ones that guard against something irreversible:
+   *(a)* copy another session's uncommitted work somewhere byte-identical
+   before touching it, and *(b)* one green run before the merge. After that,
+   recover instead of re-confirming — `git reflog`, `reset --hard`, and a
+   worktree undo almost everything this repo can get wrong. Reserve a pause
+   for what git cannot undo: deleting uncommitted work, or force-pushing
+   over someone else's branch. **When a human is present and says go, treat
+   "minimal problems, we can recover" as the licence it is** — merge, push,
+   test, report. Ask once, not five times.
 
 ## Running / Restarting
 
