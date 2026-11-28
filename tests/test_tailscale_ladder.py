@@ -55,7 +55,9 @@ import contextlib
 import importlib.util
 import io
 import json
+import platform
 import re
+import shutil
 import subprocess as real_subprocess
 import sys
 from pathlib import Path
@@ -111,7 +113,16 @@ def _fake_run_factory(routes):
 
 def _wire(monkeypatch, mod, routes, *, which=None, **module_patches):
     """Patch subprocess.run for REAL (local imports shadow mod.subprocess),
-    plus shutil.which and any module-level helper the test needs."""
+    plus shutil.which and any module-level helper the test needs.
+
+    Also pins the platform to Linux: `cmd_firewall` branches on
+    `platform.system()` — `if system == "Linux"` is the ufw path, `Darwin`
+    takes pf and never prints the ufw messages these tests assert on. The
+    routes here are Linux commands anyway (`ss -tlnp`, `hostname -I`), so on a
+    macOS runner the fixtures said Linux while the code under test said
+    Darwin: `unit tests (macos-latest)` red-lit two tests that ubuntu passed.
+    """
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
     monkeypatch.setattr(real_subprocess, "run", _fake_run_factory(routes))
     if which is not None:
         monkeypatch.setattr(mod.shutil, "which", which)
