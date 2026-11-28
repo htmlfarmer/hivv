@@ -112,7 +112,8 @@ function _pruneNonces(nowMs) {
 //   advisory  — non-fatal observations (e.g. clock skew)
 //   principal — the self-certifying id derived from the presented key
 //   action    — 'bound' | 'verified' | 'replaced' | 'failed'
-function verifyIncoming({ nodeId, identity, kind, legacyProof = false, now = _nowS() }) {
+function verifyIncoming({ nodeId, identity, kind, legacyProof = false,
+                          consumeNonce = true, now = _nowS() }) {
   const fatal = [];
   const advisory = [];
   let principal = null;
@@ -198,6 +199,15 @@ function verifyIncoming({ nodeId, identity, kind, legacyProof = false, now = _no
   const nonceKey = `${nodeId}:${statement.nonce}`;
   const nowMs = Date.now();
   _pruneNonces(nowMs);
+  // consumeNonce=false means "this is a WHO-ARE-YOU check, not the
+  // submission": a route that first resolves the principal and then runs the
+  // real verify would otherwise CONSUME the nonce on the first call and report
+  // the second one as a replay — the browser-signed proposal path did exactly
+  // that, so every signed proposal from the page came back 403.
+  //
+  // The READ still happens either way: a principal lookup must still refuse a
+  // spent nonce (that is the replay property the auth tests pin). Only the
+  // WRITE is suppressed — peek, never commit.
   if (_nonces.has(nonceKey)) {
     fatal.push('replayed nonce');
     // fall through to signature check for a complete report, then finish
@@ -218,7 +228,7 @@ function verifyIncoming({ nodeId, identity, kind, legacyProof = false, now = _no
     fatal.push(`verify error: ${e.message}`);
   }
   if (fatal.length === 0 && !sigOk) fatal.push('signature mismatch');
-  if (fatal.length === 0 && sigOk) _nonces.set(nonceKey, nowMs + NONCE_TTL_MS);
+  if (consumeNonce && fatal.length === 0 && sigOk) _nonces.set(nonceKey, nowMs + NONCE_TTL_MS);
 
   // shape/claim problems already short-circuited above
   if (fatal.length) return finish();

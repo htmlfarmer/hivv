@@ -1183,6 +1183,7 @@ hivv explain kubernetes           # also sends to the LLM
 3. **In-memory sessions** — lost on restart (D2)
 4. **<5% test coverage** — no integration tests for API endpoints
 5. ~~**Caddy streaming** — compression middleware may interfere with SSE through Caddy~~ ✅ Verified 2026-09-25: 54 SSE frames live; `flush_interval -1` on all proxy routes; compression skips SSE
+6. **`deploy.sh` WARNS on a migration failure instead of failing** — and a lib's `ensureSchema()` can create the table itself, so the migration's `CREATE TABLE IF NOT EXISTS` becomes a no-op while its `CREATE INDEX` and `INSERT` never run. Found live 2026-11-27: `034_hivv_proposals` had never been applied — `hivv_proposals` existed with 60 rows (self-created by `proposalLib.ensureSchema()`) but was missing 034's three indexes and the `source.modify` capability, while 035's indexes WERE present. The gate degraded *safely* (`caps.resolve()` returns null → tier `side-effect` → verdict `ask`, so it still asked), but the capability was invisible in `hivv cap list` and the rule read `default:unknown`. Applied by hand, idempotently: `source.modify` is now `ask (side-effect)`, all seven indexes present. **The fix belongs in `scripts/deploy.sh` — a PROTECTED path, so it is flagged here rather than changed unilaterally**: a migration that exits non-zero must abort the deploy, not warn. Until then, after any deploy that adds a migration, check `pg_indexes` and `hivv_capabilities`.
 
 ## What's Next
 
