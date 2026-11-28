@@ -22,6 +22,7 @@
   ],
   "api/lib/attest.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-auth.test.js",
    "api/tests/proposal-funnel.test.js",
    "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
@@ -64,6 +65,7 @@
   ],
   "api/lib/identity.js": [
    "api/tests/identity.test.js",
+   "api/tests/proposal-auth.test.js",
    "api/tests/proposal-funnel.test.js",
    "api/tests/proposal-sign.test.js",
    "api/tests/trust.test.js",
@@ -168,6 +170,9 @@
   ],
   "api/routes/mcp-routes.js": [
    "tests/test_submission.py"
+  ],
+  "api/routes/proposal-routes.js": [
+   "api/tests/proposal-auth.test.js"
   ],
   "api/routes/tile-routes.js": [
    "api/tests/tile.test.js"
@@ -419,6 +424,11 @@
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"
+  ],
+  "api/tests/proposal-auth.test.js": [
+   "api/lib/attest.js",
+   "api/lib/identity.js",
+   "api/routes/proposal-routes.js"
   ],
   "api/tests/proposal-funnel.test.js": [
    "api/lib/attest.js",
