@@ -200,6 +200,60 @@ describe('getAllEndpoints — embedders are never candidates', () => {
     });
 });
 
+describe('_tryRelay — an embedder-only bee is never a relay candidate', () => {
+    // The relay path had the same hole as capabilities: `some(m => !m.locked)`
+    // let an embedder-only VOLUNTEER through, firstChatModel then fell back to
+    // 'local', and the job came back HTTP 400 "does not support chat".
+    //
+    // Both cases return { ok:false }, so the observable difference is whether
+    // a job was ever QUEUED for the bee — createJob is stubbed and counted.
+
+    const volunteer = (models) => ({
+        node_id: 'ashy', name: 'ashy', status: 'online', volunteer: true,
+        lan_ip: '192.168.1.3', local_models: models,
+    });
+
+    async function tryRelay(node) {
+        const rt = makeRouter();
+        rt.orchestrator = { nodes: new Map([[node.node_id, node]]) };
+        const relay = {
+            calls: [],
+            getConfig: () => ({ maxActivePerNode: 2 }),
+            activeForNode: () => 0,
+            createJob(job) { relay.calls.push(job); return { error: 'stubbed' }; },
+        };
+        rt.relay = relay;
+        const stream = { setHeader() {}, write() {}, end() {} };
+        await rt._tryRelay([{ role: 'user', content: 'hi' }], stream, {});
+        return relay.calls;
+    }
+
+    it('queues NOTHING for a bee whose only model is an embedder', async () => {
+        const calls = await tryRelay(volunteer([
+            { provider: 'ollama', model: 'nomic-embed-text:latest', port: 11434 },
+        ]));
+        assert.strictEqual(calls.length, 0,
+            'an embedder-only volunteer was offered relay work');
+    });
+
+    it('still queues work for a bee with a chat model', async () => {
+        // the control: the filter must not have become "no volunteers at all"
+        const calls = await tryRelay(volunteer([
+            { provider: 'llama.cpp:8090', model: 'gemma-4-E2B-it-Q4_K_M.gguf', port: 8090 },
+            { provider: 'ollama', model: 'nomic-embed-text:latest', port: 11434 },
+        ]));
+        assert.strictEqual(calls.length, 1);
+    });
+
+    it('a keyed (locked) model is still not servable', async () => {
+        const calls = await tryRelay(volunteer([
+            { provider: 'llama.cpp:8080', model: 'locked (api-key required)',
+              locked: true, port: 8080 },
+        ]));
+        assert.strictEqual(calls.length, 0, 'a locked LLM leaked into relay');
+    });
+});
+
 describe('deriveNodeCaps — a bee may only CLAIM what it could ANSWER', () => {
     // capability is a HARD routing gate, so this is the gate that decides
     // whether chat may be sent to a bee at all. Before this, any model

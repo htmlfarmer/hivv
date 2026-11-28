@@ -2106,7 +2106,13 @@ class AIRouter {
         let cands = Array.from(this.orchestrator.nodes.values()).filter(n =>
             n.status === 'online' &&
             (n.volunteer === true || n.volunteer?.on === true) &&
-            (n.local_models || []).some(m => !m.locked) &&   // locked (keyed) LLMs can't serve relay jobs
+            // A servable model: NOT keyed (peers can't auth a locked LLM) and
+            // NOT an embedder (nomic-embed-text answers vectors, not chats —
+            // it would be picked, firstChatModel would fall back to 'local',
+            // and the job would come back HTTP 400 "does not support chat").
+            // Same predicate the direct path and capabilities already use.
+            (n.local_models || []).some(m =>
+                !m.locked && !modelKind.isEmbedModel(m.model || m.name)) &&
             this.relay.activeForNode(n.node_id) < (relayCfg.maxActivePerNode || 2));
         // K4: privacy 'self' — relay crosses NAT to ANOTHER machine, so under
         // 'self' it may only reach the caller's own bees.
