@@ -294,7 +294,8 @@
    "tests/test_installer_ci.py",
    "tests/test_llm_build_tools.py",
    "tests/test_rescue.py",
-   "tests/test_tailscale_install.py"
+   "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py"
   ],
   "public_html/install-tailscale.sh": [
    "tests/test_tailscale_install.py"
@@ -744,7 +745,8 @@
    "public_html/install-tailscale.sh"
   ],
   "tests/test_tailscale_ladder.py": [
-   "public_html/hivv-cli.py"
+   "public_html/hivv-cli.py",
+   "public_html/install-hivv.sh"
   ],
   "tests/test_telemetry_tasks_a2a.py": [
    "api",
