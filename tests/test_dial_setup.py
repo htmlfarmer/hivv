@@ -715,3 +715,56 @@ class TestP2pNudge:
     def test_missing_file_is_fine(self, monkeypatch, capsys, tmp_path):
         monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
         assert cli._p2p_nudge(paths=[tmp_path / "nope.jsonc"]) is False
+
+
+class TestSpawnWaitIsHumanSized:
+    """The spawned shim is THIS 27k-line file — import, bind, answer.
+
+    The deploy gate runs the whole suite while other suites are running.
+    At load avg 9-14 a 3.0s budget reported "could not start" over a shim
+    that had simply not finished starting, failed the gate, and ROLLED BACK
+    a good deploy (2026-11-28). The test that caught it monkeypatches the
+    service path away, so ONLY this spawn wait applies.
+
+    Waiting longer costs only the genuinely-dead case (8s instead of 3s,
+    once, on a path that already failed). Giving up early costs a real
+    deploy — so pin the budget rather than trusting it.
+    """
+
+    def test_spawn_wait_is_at_least_eight_seconds(self, monkeypatch):
+        seen = []
+        monkeypatch.setattr(cli, "_dial_install_service", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_spawn", lambda *a, **k: 4242)
+        monkeypatch.setattr(cli, "_dial_health", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_port_state", lambda *a, **k: "free")
+        monkeypatch.setattr(cli, "_dial_disabled", lambda: False)
+
+        def _wait(*a, **k):
+            seen.append(k.get("seconds"))
+            # call 1 is the SERVICE wait, call 2 the SPAWN wait; only the
+            # spawn one is the path this test pins (the service install is
+            # monkeypatched away, so it can never succeed here)
+            return len(seen) > 1
+
+        monkeypatch.setattr(cli, "_dial_wait", _wait)
+        cli._dial_ensure(port=_free_port(), install=True)
+        assert len(seen) >= 2, (
+            "expected a service wait THEN a spawn wait, saw %r" % seen)
+        assert seen[-1] >= 8.0, (
+            "spawn wait is %ss — too short to import this file under load; "
+            "a short budget fails the gate and rolls back a good deploy"
+            % seen[-1])
+
+    def test_giving_up_still_happens_when_the_shim_never_answers(self,
+                                                                 monkeypatch):
+        # the budget must not become "wait forever": a shim that never
+        # answers still reports failure and falls back to the hub
+        monkeypatch.setattr(cli, "_dial_install_service", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_spawn", lambda *a, **k: 4242)
+        monkeypatch.setattr(cli, "_dial_health", lambda *a, **k: None)
+        monkeypatch.setattr(cli, "_dial_port_state", lambda *a, **k: "free")
+        monkeypatch.setattr(cli, "_dial_disabled", lambda: False)
+        monkeypatch.setattr(cli, "_dial_wait", lambda *a, **k: False)
+        st = cli._dial_ensure(port=_free_port(), install=True)
+        assert st["running"] is False and st["how"] == "failed", st
+        assert st["error"], "a dead shim must say why it gave up"
