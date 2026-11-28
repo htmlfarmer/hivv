@@ -264,6 +264,94 @@ server all read from it — they cannot drift apart.
   differences), the SSRF guard, the memory store, the SSE interceptor, and a
   live round trip that proves an approved grant is reusable.
 
+### The clock and the place — timezones that do not lie (2026-11-28)
+
+A bug report, fixed end to end:
+
+> `$ hivv what time is it now in jinja uganda` → *"The current time in Uganda is
+> 2026-11-28 07:08:13 UTC."* Uganda is UTC+03:00. **Three hours wrong, and it
+> looked authoritative.**
+
+**Three faults lined up:**
+
+1. **`current_time` answered in UTC and said `ok: true`.**
+   `current_time({timezone:"Uganda"})` returned `ok:true` with UTC and a
+   `timezone_valid:false` buried in the JSON — a model reads `ok`, takes the
+   human-readable time, and stamps it with the place the user named. **A tool
+   that cannot do what it was asked must SAY SO:** silent degradation is a lie
+   with a green receipt.
+2. **Nothing could turn a place into a zone.** The model had to know
+   `Jinja, Uganda → Africa/Kampala` itself. It got `karachi` right and
+   `jinja` wrong, so it passed *no* timezone at all → UTC → mislabelled.
+3. **The CLI's direct-to-bee path sends NO system message at all** — no
+   identity message, no briefing, no clock. `hivv …` goes direct whenever a
+   bee is reachable, so it never saw any of the hub's prompt.
+
+**The fix — one resolver, three surfaces:**
+
+- **`scripts/gen-place-tz.py` → `api/lib/place-tz-data.js`** — 247 countries
+  and 418 zones, GENERATED from the system's canonical tzdata (`zone.tab` +
+  `iso3166.tab`), never hand-typed: 249 countries hand-written is exactly how
+  Uganda ends up in the wrong hemisphere. 31 countries span several zones (the
+  US has 29), so a bare country always NAMES the zone it used. `--check` fails
+  if the committed file drifts. The output is deterministic (no timestamps),
+  and the file carries `/* eslint-disable */` because reformatting it only
+  fights the generator.
+- **`api/lib/place-tz.js`** — the resolver. Specificity order: explicit zone →
+  city → country. A phrase sitting inside a longer one never wins on its own
+  (`st petersburg` is Russia, not America/Indiana/Petersburg); the
+  DESTINATION of "from london to paris" wins; two-letter aliases only count as
+  acronyms, so "tell us the time" is not a question about America; and the
+  curated city table carries **Jinja**, which has no zone of its own and is
+  therefore the case that used to fall through to nothing.
+- **`api/server.js` — the MEASURED CLOCK.** For time questions ONLY, the hub
+  states the measured UTC *and* the resolved local time, then tells the model
+  to copy the zone **verbatim** rather than construct one (showing it an
+  example zone instead invited it to pattern-match one — a question about
+  Uganda came back citing "Africa/Juno"). It returns `[]` for everything else
+  on purpose: a system message that changes every second rewrites the prompt
+  prefix and throws away the prefix cache (a warm run reports ~2,560 cached
+  tokens).
+- **`api/lib/toolkit.js`** — `current_time` / `timezone_convert` now ACCEPT
+  place names (`Uganda`, `Jinja`) and REFUSE an unlocatable one instead of
+  degrading to UTC. `datetime:"now"` is **honoured** — the intent is
+  unambiguous, and that refusal is what made a model apologise, invent a
+  reason, and answer from memory. Everything else still gets a repair
+  instruction (`OMIT the datetime … ISO-8601 like 2026-11-28T07:00:00Z`).
+  **`from_timezone` is non-fatal**: a bad optional argument must not be able
+  to destroy the answer that was actually asked for — observed live, a model
+  passed `from_timezone:"now"`, the whole call failed, and it then invented a
+  time for London. The target zone is still delivered, with
+  `from_timezone_error` reporting the bad argument.
+- **`public_html/hivv-cli.py`** — the direct path now sends what the hub
+  sends: the **toolkit briefing** plus the clock line from
+  `POST /api/tools/time-context`, ONCE per attempt rather than per port.
+  The briefing comes from the catalog the CLI ALREADY fetches, so no new
+  dependency. It matters: schemas with no instruction about when to use them
+  is how a time question ended up calling a tool with a zone it had made up
+  — a controlled A/B against one bee gave *correct* with briefing+clock and
+  *nothing usable* with the clock alone. The briefing is dropped again if the
+  context pre-flight drops the tools (never instruct a model to use what it
+  was not given). The message text is only sent when the question ALREADY
+  looks about time — ordinary chat must not start shipping its text down a
+  path meant to bypass the hub — and a locally measured UTC line covers the
+  hub being unreachable.
+- **`public_html/hivv-tools.py`** — the bee's own tool server resolves places
+  by asking the hub (`_as_zone` → `hub_call`), never returns UTC with an
+  `error` key tucked beside it, and stops shipping `ok:true` with a nested
+  `error`.
+
+`GET /api/tools/catalog` also carries the **`briefing`** now, so a client
+with no hub prompt of its own can ask for one instead of improvising.
+
+**Tests:** `api/tests/place-tz.test.js` (25) — the reported bug resolves to
+Africa/Kampala, no false positives ("tell us the time", "what time does the
+center open"), containment / destination / acronym rules, the clock line's
+measured values, **the silent-UTC regression**, `datetime:"now"`, the server
+wiring at all four message-list sites, and the generator drift check (skipped
+where tzdata is absent). The full-set briefing stays **byte-identical** — the
+clock is a separate message, pinned by `tool-profiles.test.js`.
+
 ### hivv OS (capabilities · route modes · policy gate)
 
 Shipped 2026-09-27 — plan: [`HIVV_CAPABILITY_POLICY_PLAN.md`](HIVV_CAPABILITY_POLICY_PLAN.md).

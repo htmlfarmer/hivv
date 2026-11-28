@@ -101,6 +101,9 @@
    "api/tests/traffic-count.test.js",
    "tests/test_resume_not_reregister.py"
   ],
+  "api/lib/place-tz.js": [
+   "api/tests/place-tz.test.js"
+  ],
   "api/lib/policy.js": [
    "api/tests/github-relay.test.js",
    "api/tests/proposal-funnel.test.js"
@@ -148,6 +151,7 @@
    "api/tests/telemetry.test.js"
   ],
   "api/lib/toolkit.js": [
+   "api/tests/place-tz.test.js",
    "api/tests/polite.test.js",
    "api/tests/tool-profiles.test.js"
   ],
@@ -433,6 +437,10 @@
   "api/tests/node-auth.test.js": [],
   "api/tests/node-name-xss.test.js": [],
   "api/tests/node-registration.test.js": [],
+  "api/tests/place-tz.test.js": [
+   "api/lib/place-tz.js",
+   "api/lib/toolkit.js"
+  ],
   "api/tests/polite.test.js": [
    "api/lib/polite.js",
    "api/lib/toolkit.js"

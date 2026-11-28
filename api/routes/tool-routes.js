@@ -31,6 +31,7 @@ const crypto = require('crypto');
 const toolkit = require('../lib/toolkit');
 const policy = require('../lib/policy');
 const caps = require('../lib/capabilities');
+const placeTz = require('../lib/place-tz');
 
 const ANONYMOUS_TTL = 90 * 24 * 60 * 60 * 1000;   // 90 days for anonymous
 
@@ -118,7 +119,52 @@ router.get('/catalog', async (req, res) => {
         total: tools.length,
         advertised,
         web_search_enabled: toolkit.isWebSearchEnabled(),
-        tools: tools.map((t) => ({ ...t, for_you: verdicts[t.name] || null })),
+        // The system message that tells a model WHEN to reach for these tools.
+        // The CLI's direct-to-bee path has no hub prompt at all, so it fetches
+        // this and prepends it: a model handed tool schemas with no instruction
+        // improvises — on a time question it either called a tool with a
+        // made-up zone or answered from memory.
+        briefing: toolkit.toolBriefing(null),
+        tools: tools.map((t) => ({ ...t, for_you: verdicts[t.name] || null }))
+    });
+});
+
+// ── POST /api/tools/time-context — the measured clock, as a system message ──
+//
+// WHY THIS EXISTS
+// ───────────────
+// The CLI's direct-to-bee path builds its prompt from NOTHING but the user's
+// message — no identity message, no toolkit briefing, no clock. Asked
+// "what time is it now in jinja uganda", a model answers from memory and
+// labels whatever it produces with the place the user named. That is how a
+// UTC value was reported as the local time in Uganda, three hours wrong.
+//
+// The hub owns the place → IANA zone table (api/lib/place-tz.js), so the CLI
+// asks for the clock line here — exactly as it already asks for the tool
+// catalog. The reply is a ready-to-prepend system message.
+//
+// It carries no policy gate: it reads the system clock and a static table,
+// stores nothing, and has no side effects. The caller only sends text that
+// already looks like a question about time.
+//
+// POST (not GET) because the message is arbitrary user text: a query string
+// would hit URL limits and land in access logs.
+router.post('/time-context', express.json({ limit: '8kb' }), (req, res) => {
+    const text = String((req.body && req.body.text) || '').slice(0, 4000);
+    const system = placeTz.timeContext(text);
+    if (!system) {
+        // Not a question about time — the caller must not pay for a system
+        // message (and must not rewrite its prompt prefix) for no reason.
+        return res.json({ ok: true, time_related: false, system: null });
+    }
+    const now = new Date();
+    const place = placeTz.resolvePlace(text);
+    res.json({
+        ok: true,
+        time_related: true,
+        system,
+        utc: now.toISOString(),
+        place: place ? { zone: place.zone, label: place.label, source: place.source } : null
     });
 });
 

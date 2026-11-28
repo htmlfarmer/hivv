@@ -25,6 +25,7 @@ const { createAuthRoutes } = require('./lib/routes');
 const lockedLlm = require('./lib/locked-llm');
 const keyDonation = require('./lib/key-donation');   // K2: donor guard-rails + spend caps
 const nodeAuth = require('./lib/node-auth');         // K2: prove the CLI's node identity
+const placeTzLib = require('./lib/place-tz');        // place → IANA zone + the measured clock
 
 const cache = createCache({ ttl: 30000, localTtl: 300000 });
 
@@ -42,6 +43,53 @@ const HIVV_IDENTITY_MSG = {
 // to use web_search it was not given. Pass the resolved schema list.
 function toolSystemMessage(attached) {
     return { role: 'system', content: toolkitLib.toolBriefing(attached) };
+}
+
+/**
+ * The last thing the user actually said, as plain text.
+ *
+ * Content may be a string or an array of content parts (the OpenAI shape),
+ * so both are unwrapped — otherwise a client that sends parts gets an empty
+ * clock line and the whole point is lost.
+ */
+function lastUserText(messages) {
+    if (!Array.isArray(messages)) {
+        return '';
+    }
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (!m || m.role !== 'user') {
+            continue;
+        }
+        const c = m.content;
+        if (typeof c === 'string') {
+            return c;
+        }
+        if (Array.isArray(c)) {
+            return c.map((p) => (p && p.text) || '').join(' ');
+        }
+    }
+    return '';
+}
+
+/**
+ * The measured clock, for questions about time ONLY.
+ *
+ * WHY THIS EXISTS — "hivv what time is it now in jinja uganda" answered
+ * "2026-11-28 07:08:13 UTC" labelled as Uganda. Uganda is UTC+03:00. The
+ * model had to resolve the place itself, got it wrong, and had no ground
+ * truth in the prompt to catch the mistake — so it just stamped the UTC
+ * value with the place the user named.
+ *
+ * Now the HUB resolves the place and states the measured local time, so the
+ * model only has to repeat a number it can see. It returns [] for everything
+ * that is not about time on purpose: a system message that changes every
+ * second would rewrite the prompt prefix and throw away the prefix cache
+ * (a warm run reports ~2,560 cached tokens).
+ */
+function timeSystemMessages(messages) {
+    const ctx = placeTzLib.timeContext(lastUserText(messages));
+    return ctx ? [{ role: 'system', content: ctx }] : [];
 }
 
 /**
@@ -2410,7 +2458,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     // its own tools keeps them.
     const effectiveTools = resolveToolAttachment(req, tools);
     const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
-    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+    const toolMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
 
     const useStream = stream === true || stream === 'true' || (req.headers.accept && req.headers.accept.includes('text/event-stream'));
 
@@ -3008,7 +3056,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
             const localTools = req.body.local_tools === true;
             // ── Non-streaming: support tool_call loop ───────────────────────────
             const MAX_TOOL_ROUNDS = 5;
-            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages.slice()];
+            let msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages.slice()];
             let lastData = null;
             for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 const data = await router.chatCompletion(msgList, {
@@ -3098,7 +3146,7 @@ app.post(['/api/chat', '/v1/chat/stream'], async (req, res) => {
         // back, forwards content frames live, and lets the hub run the tool
         // and ask the model again. The client sees one clean answer.
         const MAX_TOOL_ROUNDS = 5;
-        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+        const streamMsgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
         let result = null;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
             const interceptor = new toolStreamLib.ToolStreamInterceptor(res, { maxRounds: MAX_TOOL_ROUNDS });
@@ -3221,7 +3269,7 @@ app.post('/api/chat/continue', async (req, res) => {
     const toolsAttached = Array.isArray(effectiveTools) && effectiveTools.length > 0;
 
     // Build full message list: system + user msg + assistant tool_call msg + tool result
-    const msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools)] : []), ...messages];
+    const msgList = [HIVV_IDENTITY_MSG, ...(toolsAttached ? [toolSystemMessage(effectiveTools), ...timeSystemMessages(messages)] : []), ...messages];
     if (assistant_message) {
         msgList.push(assistant_message);  // assistant's original tool_call message
     }

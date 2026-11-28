@@ -38,6 +38,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/model-kind.js` | `api/tests/embed-model.test.js` |
 | `api/lib/moon.js` | `api/tests/ritual.test.js` |
 | `api/lib/orchestrator.js` | `api/tests/quarantine-recovery.test.js`, `api/tests/traffic-count.test.js`, `tests/test_resume_not_reregister.py` |
+| `api/lib/place-tz.js` | `api/tests/place-tz.test.js` |
 | `api/lib/policy.js` | `api/tests/github-relay.test.js`, `api/tests/proposal-funnel.test.js` |
 | `api/lib/polite.js` | `api/tests/polite.test.js` |
 | `api/lib/proposal-funnel.js` | `api/tests/proposal-funnel.test.js` |
@@ -50,7 +51,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/lib/suggestions.js` | `api/tests/suggestions.test.js` |
 | `api/lib/task-queue.js` | `api/tests/task-queue.test.js` |
 | `api/lib/telemetry.js` | `api/tests/telemetry.test.js` |
-| `api/lib/toolkit.js` | `api/tests/polite.test.js`, `api/tests/tool-profiles.test.js` |
+| `api/lib/toolkit.js` | `api/tests/place-tz.test.js`, `api/tests/polite.test.js`, `api/tests/tool-profiles.test.js` |
 | `api/lib/trust.js` | `api/tests/trust.test.js` |
 | `api/lib/version-date.js` | `api/tests/version-date.test.js` |
 | `api/migrations/005_hivv_feedback.sql` | `tests/test_submission.py` |
@@ -129,6 +130,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `api/tests/node-auth.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/node-name-xss.test.js` | *(no static source reference — part of the full suite)* |
 | `api/tests/node-registration.test.js` | *(no static source reference — part of the full suite)* |
+| `api/tests/place-tz.test.js` | `api/lib/place-tz.js`, `api/lib/toolkit.js` |
 | `api/tests/polite.test.js` | `api/lib/polite.js`, `api/lib/toolkit.js` |
 | `api/tests/proposal-auth.test.js` | `api/lib/attest.js`, `api/lib/identity.js`, `api/routes/proposal-routes.js` |
 | `api/tests/proposal-funnel.test.js` | `api/lib/attest.js`, `api/lib/github-relay.js`, `api/lib/identity.js`, `api/lib/policy.js`, `api/lib/proposal-funnel.js`, `api/lib/proposal.js` |
@@ -232,6 +234,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `api/lib/node-privacy.js`
 - `api/lib/omni-engine.js`
 - `api/lib/perf.js`
+- `api/lib/place-tz-data.js`
 - `api/lib/proposal-study.js`
 - `api/lib/providers.js`
 - `api/lib/rate-limiter.js`
@@ -300,6 +303,7 @@ Editing one of these has no dedicated test — the full suite is your gate.
 - `restart.sh`
 - `scripts/bridge-peer-test.sh`
 - `scripts/gen-agent-card.js`
+- `scripts/gen-place-tz.py`
 - `scripts/kokoro-tts-server.py`
 - `scripts/loadtest.py`
 - `scripts/test-attribution.py`
