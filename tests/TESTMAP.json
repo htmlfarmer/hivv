@@ -298,7 +298,8 @@
    "tests/test_tailscale_ladder.py"
   ],
   "public_html/install-tailscale.sh": [
-   "tests/test_tailscale_install.py"
+   "tests/test_tailscale_install.py",
+   "tests/test_tailscale_ladder.py"
   ],
   "public_html/panel.html": [
    "tests/test_panel_update.py"
@@ -746,7 +747,8 @@
   ],
   "tests/test_tailscale_ladder.py": [
    "public_html/hivv-cli.py",
-   "public_html/install-hivv.sh"
+   "public_html/install-hivv.sh",
+   "public_html/install-tailscale.sh"
   ],
   "tests/test_telemetry_tasks_a2a.py": [
    "api",

@@ -78,7 +78,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `public_html/index.html` | `tests/test_repo_scripts.py` |
 | `public_html/install-hivv.ps1` | `tests/test_installer_ci.py`, `tests/test_windows_install.py` |
 | `public_html/install-hivv.sh` | `tests/test_dev_tools.py`, `tests/test_fallback.py`, `tests/test_installer_ci.py`, `tests/test_llm_build_tools.py`, `tests/test_rescue.py`, `tests/test_tailscale_install.py`, `tests/test_tailscale_ladder.py` |
-| `public_html/install-tailscale.sh` | `tests/test_tailscale_install.py` |
+| `public_html/install-tailscale.sh` | `tests/test_tailscale_install.py`, `tests/test_tailscale_ladder.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
 | `public_html/rescue` | `tests/test_fallback.py`, `tests/test_rescue.py` |
 | `scripts` | `tests/test_repo_scripts.py` |
@@ -203,7 +203,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_submission.py` | `api/migrations/005_hivv_feedback.sql`, `api/routes/mcp-routes.js`, `opencode/skills/hivv/SKILL.md`, `public_html/.well-known/skills/hivv/SKILL.md`, `public_html/hivv-cli.py` |
 | `tests/test_sync_review.py` | `public_html/hivv-cli.py` |
 | `tests/test_tailscale_install.py` | `public_html`, `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `public_html/install-tailscale.sh` |
-| `tests/test_tailscale_ladder.py` | `public_html/hivv-cli.py`, `public_html/install-hivv.sh` |
+| `tests/test_tailscale_ladder.py` | `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `public_html/install-tailscale.sh` |
 | `tests/test_telemetry_tasks_a2a.py` | `api`, `public_html` |
 | `tests/test_testmap.py` | `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
 | `tests/test_tool_loop.py` | *(no static source reference — part of the full suite)* |
