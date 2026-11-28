@@ -106,7 +106,7 @@ function _requester(req) {
 //      signs this action separately, which is the whole point of a nonce.
 //
 // Anything else is null, and null is not an owner.
-async function _principal(req) {
+async function _principal(req, { consumeNonce = true } = {}) {
     try {
         const serverPath = require.resolve('../server');
         if (require.cache[serverPath]) {
@@ -124,8 +124,17 @@ async function _principal(req) {
             // decision made by the route. 'proposal.create' is the kind the
             // identity system already knows how to sign, so a bee can mint
             // one with the signing code it already has.
+            //
+            // consumeNonce defaults to true — a principal lookup normally
+            // SPENDS the nonce, so the same block cannot act twice (that is
+            // what BUG1 pins). The create route passes false instead, because
+            // it then hands the very same envelope to funnel.verify, which
+            // must be the call that accepts it; otherwise the first call
+            // spends the nonce and the second reports it as a replay, and
+            // every signed proposal from the page comes back 403.
             const v = require('../lib/identity').verifyIncoming({
                 nodeId, identity: block, kind: 'proposal.create',
+                consumeNonce,
             });
             if (v && v.ok && v.principal) return v.principal;
         } catch (_e) { /* fail closed */ }
@@ -333,7 +342,10 @@ router.post('/', express.json({ limit: '2mb' }), async (req, res) => {
     }
 
     const body = req.body || {};
-    const principal = (await _principal(req)) || _requester(req);
+    // consumeNonce:false — the funnel verifies this same envelope next and
+    // must be the call that spends it (see _principal).
+    const principal = (await _principal(req, { consumeNonce: false }))
+        || _requester(req);
     const nodeId = _cleanId(body.node_id || req.headers['x-hivv-node']);
     // A pre-check is a query parameter, never a body field a client can
     // smuggle past a proxy that only inspects the payload.
