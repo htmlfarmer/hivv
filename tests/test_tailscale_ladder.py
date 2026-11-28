@@ -506,7 +506,9 @@ class TestInstallerLadder:
 
     def test_installer_ladder_is_the_same_four_steps(self):
         body = self._ladder_body()
-        assert body.index("install.sh | sh") < body.index("sudo tailscale up")
+        # step 1 is our three-tier door, never the raw tailscale.com curl
+        # (that installer exits 1 on distros it does not recognise)
+        assert body.index("hivv install tailscale") < body.index("sudo tailscale up")
         assert body.index("sudo tailscale up") < body.index("tailscale ip -4")
         assert body.index("tailscale ip -4") < body.index(
             "hivv firewall --apply --mode tailscale")
