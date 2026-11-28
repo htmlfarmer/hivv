@@ -67,17 +67,18 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `docs/HELP.md` | `tests/test_fallback.py` |
 | `docs/INTEGRATION-CONTRACT.md` | `tests/test_cross_network.py` |
 | `hivv_init_node.sh` | `tests/test_setup_scripts.py` |
-| `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_telemetry_tasks_a2a.py`, `tests/test_windows_install.py` |
+| `public_html` | `tests/test_bridge.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_tailscale_install.py`, `tests/test_telemetry_tasks_a2a.py`, `tests/test_windows_install.py` |
 | `public_html/.well-known/skills/hivv/SKILL.md` | `tests/test_submission.py` |
 | `public_html/chat/app.js` | `tests/test_personas.py`, `tests/test_testmap.py` |
 | `public_html/chat/index.html` | `tests/test_personas.py` |
 | `public_html/hivv` | `tests/test_cli_install.py`, `tests/test_fallback.py` |
-| `public_html/hivv-cli.py` | `tests/test_add_personal.py`, `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_discovery.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_dev_tools.py`, `tests/test_dial_setup.py`, `tests/test_dial_startup.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_eval_harness.py`, `tests/test_failure_diagnostics.py`, `tests/test_fallback.py`, `tests/test_fast_scan_parity.py`, `tests/test_fleet.py`, `tests/test_git_verbs.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_identity_cli.py`, `tests/test_installer_ci.py`, `tests/test_llm_build_tools.py`, `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_prefs_cli.py`, `tests/test_propose_cli.py`, `tests/test_propose_funnel_cli.py`, `tests/test_resume_not_reregister.py`, `tests/test_rollback.py`, `tests/test_salah_cli.py`, `tests/test_speeds_view.py`, `tests/test_submission.py`, `tests/test_sync_review.py`, `tests/test_testmap.py`, `tests/test_tools_test_cmd.py`, `tests/test_traffic_count.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py`, `tests/test_watchdog.py` |
+| `public_html/hivv-cli.py` | `tests/test_add_personal.py`, `tests/test_ask_flags.py`, `tests/test_bee_chat.py`, `tests/test_boot_command.py`, `tests/test_cli_chat_diagnostics.py`, `tests/test_cli_discovery.py`, `tests/test_cli_install.py`, `tests/test_cli_link.py`, `tests/test_cli_parser.py`, `tests/test_contributors.py`, `tests/test_dev_tools.py`, `tests/test_dial_setup.py`, `tests/test_dial_startup.py`, `tests/test_direct_messaging.py`, `tests/test_direct_tool_loop.py`, `tests/test_eval_harness.py`, `tests/test_failure_diagnostics.py`, `tests/test_fallback.py`, `tests/test_fast_scan_parity.py`, `tests/test_fleet.py`, `tests/test_git_verbs.py`, `tests/test_gui_e2e.py`, `tests/test_gui_setup.py`, `tests/test_identity_cli.py`, `tests/test_installer_ci.py`, `tests/test_llm_build_tools.py`, `tests/test_location_independence.py`, `tests/test_nodes_offline.py`, `tests/test_nodes_table.py`, `tests/test_prefs_cli.py`, `tests/test_propose_cli.py`, `tests/test_propose_funnel_cli.py`, `tests/test_resume_not_reregister.py`, `tests/test_rollback.py`, `tests/test_salah_cli.py`, `tests/test_speeds_view.py`, `tests/test_submission.py`, `tests/test_sync_review.py`, `tests/test_tailscale_install.py`, `tests/test_testmap.py`, `tests/test_tools_test_cmd.py`, `tests/test_traffic_count.py`, `tests/test_upgrade_review.py`, `tests/test_user_install_cmd.py`, `tests/test_verify_drift.py`, `tests/test_watchdog.py` |
 | `public_html/hivv-gui-setup.py` | `tests/test_gui_e2e.py`, `tests/test_gui_setup.py` |
 | `public_html/hivv-tools.py` | `tests/test_muhasabah.py` |
 | `public_html/index.html` | `tests/test_repo_scripts.py` |
 | `public_html/install-hivv.ps1` | `tests/test_installer_ci.py`, `tests/test_windows_install.py` |
-| `public_html/install-hivv.sh` | `tests/test_dev_tools.py`, `tests/test_fallback.py`, `tests/test_installer_ci.py`, `tests/test_llm_build_tools.py`, `tests/test_rescue.py` |
+| `public_html/install-hivv.sh` | `tests/test_dev_tools.py`, `tests/test_fallback.py`, `tests/test_installer_ci.py`, `tests/test_llm_build_tools.py`, `tests/test_rescue.py`, `tests/test_tailscale_install.py` |
+| `public_html/install-tailscale.sh` | `tests/test_tailscale_install.py` |
 | `public_html/panel.html` | `tests/test_panel_update.py` |
 | `public_html/rescue` | `tests/test_fallback.py`, `tests/test_rescue.py` |
 | `scripts` | `tests/test_repo_scripts.py` |
@@ -201,6 +202,7 @@ Full suite, always: `hivv verify` (or `python3 -m pytest tests/ -q` + `cd api &&
 | `tests/test_speeds_view.py` | `public_html/hivv-cli.py` |
 | `tests/test_submission.py` | `api/migrations/005_hivv_feedback.sql`, `api/routes/mcp-routes.js`, `opencode/skills/hivv/SKILL.md`, `public_html/.well-known/skills/hivv/SKILL.md`, `public_html/hivv-cli.py` |
 | `tests/test_sync_review.py` | `public_html/hivv-cli.py` |
+| `tests/test_tailscale_install.py` | `public_html`, `public_html/hivv-cli.py`, `public_html/install-hivv.sh`, `public_html/install-tailscale.sh` |
 | `tests/test_telemetry_tasks_a2a.py` | `api`, `public_html` |
 | `tests/test_testmap.py` | `public_html/chat/app.js`, `public_html/hivv-cli.py`, `scripts/lib/deps.sh` |
 | `tests/test_tool_loop.py` | *(no static source reference — part of the full suite)* |
